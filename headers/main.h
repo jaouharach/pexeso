@@ -13,10 +13,10 @@ typedef struct cell cell;
 
 struct index_settings {
     const char * root_directory;  
-    unsigned int vector_size;
+    unsigned int num_dim;
     float max_dim_value;    
     float min_dim_value;
-    float leaf_cell_area;
+    float leaf_cell_length;
 };
 
 struct index{
@@ -43,24 +43,27 @@ struct cell {
 struct level {
   unsigned int id;
   unsigned int num_cells;
-  float cell_area;
+  float cell_length;
   cell * cells;
   struct level * next_level;
 };
 
 //In progress
-void insert_vector(char * index_directory, vector *v);
+void insert_vector(char * index_directory, vector *);
 void create_index(char * index_directory, char * dataset_directory);
-int init_cell(index_settings * settings, cell * c);
-int init_level(index_settings * settings, level * l);
-void append_vector_to_cell(cell * c, vector * v);
+
+void append_vector_to_cell(cell * , vector *);
 
 // done.
+int init_leaf_cells(level *, unsigned int num_dim);
+int init_leaf_cell(cell *, float length);
+
+int init_leaf_level(index_settings *, level *);
 int init_index(const char * root_directory,
-                unsigned int vector_size,
+                unsigned int num_dim,
                 float max_dim_value,    
                 float min_dim_value,
-                float leaf_cell_area,
+                float leaf_cell_length,
                 index * pexeso_index);
 
 void exit_with_error(char * message);

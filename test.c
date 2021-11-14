@@ -3,8 +3,8 @@
 
 int main(int argc, char const *argv[])
 {
-    float x = 2, y = 3, z = 2;
-    float nc = (x*y)/(z*z);
+    float x = 2, y = 3, z = 2, l = 1;
+    float nc = (x*y*z)/(l*l*l);
     if(fmod(x*y, (z*z)) == 0)
         printf("Num cells = %.2f, OK!\n", nc);
     else   
