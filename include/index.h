@@ -19,11 +19,9 @@ struct index{
 void create_index(char * index_directory, char * dataset_directory);
 
 // done.
-int init_index(const char * root_directory,
+response init_index(const char * root_directory,
                 unsigned int num_dim,
                 float max_coordinate,    
                 float min_coordinate,
                 float leaf_cell_edge_length,
                 index * pexeso_index);
-
-// file for each cell

@@ -7,7 +7,7 @@
 
 
 /* initialize leaf level */
-int init_leaf_level(index_settings *settings, level *level)
+response init_leaf_level(index_settings *settings, level *level)
 {
     //num_cells = (max - min) ^ num_dim /cell_length ^ num_dim
     
@@ -31,6 +31,6 @@ int init_leaf_level(index_settings *settings, level *level)
         return OK;
     }
     else
-        exit_with_error("Warning: Number of cells can only be integer! please change settings.");
+        exit_with_error("Error in level.c:: Number of cells can only be integer! please change settings.");
 }
 

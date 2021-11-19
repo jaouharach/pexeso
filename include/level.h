@@ -1,5 +1,4 @@
 #include<stdio.h>
-#include"globals.h"
 
 typedef struct level level;
 
@@ -11,4 +10,4 @@ struct level {
   struct level * next_level;
 };
 
-int init_leaf_level(index_settings *, level *);
+response init_leaf_level(index_settings *, level *);

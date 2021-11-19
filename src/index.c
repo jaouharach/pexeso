@@ -2,14 +2,15 @@
 #include <stdlib.h>
 #include "../include/index.h"
 
+
 /* initialize index */
-int init_index(const char *root_directory, unsigned int num_dim,
+response init_index(const char *root_directory, unsigned int num_dim,
                float max_coordinate, float min_coordinate,
                float leaf_cell_edge_length, index *pexeso_index)
 {
     pexeso_index->settings = (index_settings *)malloc(sizeof(index_settings));
     if (pexeso_index->settings == NULL)
-        return FAILED;
+        exit_with_error("Error in index.c: Couldn't allocate memory for index settings!");
 
     pexeso_index->first_level = 0;
     pexeso_index->total_records = 0;

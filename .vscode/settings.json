@@ -3,6 +3,8 @@
         "chrono": "c",
         "random": "c",
         "limits": "c",
-        "valarray": "c"
+        "valarray": "c",
+        "unordered_map": "c",
+        "unordered_set": "c"
     }
 }
