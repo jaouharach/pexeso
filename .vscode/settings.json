@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "vector": "c",
-        "cerrno": "c",
-        "level.C": "cpp"
-    }
-}
