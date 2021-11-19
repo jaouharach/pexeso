@@ -16,7 +16,7 @@ struct index_settings {
     unsigned int num_dim;
     float max_coordinate;    
     float min_coordinate;
-    float leaf_cell_length;
+    float leaf_cell_edge_length;
 };
 
 struct index{
@@ -55,17 +55,17 @@ void create_index(char * index_directory, char * dataset_directory);
 void append_vector_to_cell(cell * , vector *);
 
 // done.
-int init_leaf_cells(level * leaf_level, index_settings * settings);
-int init_leaf_cell(cell *, float length);
-
-int init_leaf_level(index_settings *, level *);
 int init_index(const char * root_directory,
                 unsigned int num_dim,
                 float max_coordinate,    
                 float min_coordinate,
-                float leaf_cell_length,
+                float leaf_cell_edge_length,
                 index * pexeso_index);
-
+int init_leaf_level(index_settings *, level *);
+int init_leaf_cell(cell *, float length);
+int init_leaf_cells(level * leaf_level, index_settings * settings);
+/* initialize center vectors: ndc = number of distinct coordinates, k = vector length,  dim = vector length */
+void init_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, vector * center_vectors, vector temp, int append_at);
 void exit_with_error(char * message);
 
 
