@@ -1,0 +1,1 @@
+gcc index.c level.c cell.c main.c -o ../bin/pexeso -lm
