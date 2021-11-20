@@ -5,6 +5,23 @@
 #include "../include/level.h"
 #include "../include/cell.h"
 
+/* Find child cell with the closest center to vector */
+cell * cell_route_to_closest_child (cell * parent_cell, vector * vector, unsigned int num_dim)
+{
+    float bsf = FLT_MAX;
+    cell * closest_child_cell = NULL;
+    for(int i = 0; i < parent_cell->num_child_cells; i++)
+    {
+        float d = euclidean_distance(vector, parent_cell->children[i].center, num_dim);
+        if (d <= bsf)
+        {
+            bsf = d;
+            closest_child_cell = &parent_cell->children[i];
+        }
+    }
+    return closest_child_cell;
+}
+
 /* initialize leaf cells in a level */
 response init_leaf_cells(level *leaf_level, index_settings *settings)
 {
@@ -46,7 +63,7 @@ response init_leaf_cells(level *leaf_level, index_settings *settings)
 
     for (i = 0; i < leaf_level->num_cells; i++)
     {
-        init_leaf_cell(&leaf_level->cells[i], leaf_level->cell_length);
+        init_leaf_cell(&leaf_level->cells[i], leaf_level->cell_edge_length);
         leaf_level->cells[i].center = &center_vectors[i];
 
         /* printf("(");
@@ -61,11 +78,15 @@ response init_leaf_cells(level *leaf_level, index_settings *settings)
 /* initialize leaf cell */
 response init_leaf_cell(cell *cell, float length)
 {
-    cell->filename = "";
     cell->parent = NULL;
-    cell->is_leaf = 1;
+    cell->children = NULL;
+    cell->num_child_cells = 0;
+
+    cell->filename = "";
+    cell->file_buffer = NULL;
+    
+    cell->is_leaf = true;
     cell->edge_length = length;
-    cell->num_vectors = 0;
     cell->center = NULL;
 
     return OK;
@@ -95,4 +116,14 @@ void init_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, 
         temp.values[append_at] = distinct_coordinates[j];
         init_center_vectors(distinct_coordinates, ndc, k - 1, dim, center_vectors, temp, append_at + 1);
     }
+}
+
+float euclidean_distance(vector * vector_1, vector * vector_2, int k)
+{
+    float distance = 0;
+    while (k > 0) {
+        distance += (vector_1->values[k] - vector_2->values[k]) * (vector_1->values[k] - vector_2->values[k]);
+        k--;
+    }
+    return distance;
 }

@@ -9,7 +9,7 @@
 /* initialize leaf level */
 response init_leaf_level(index_settings *settings, level *level)
 {
-    //num_cells = (max - min) ^ num_dim /cell_length ^ num_dim
+    //num_cells = (max - min) ^ num_dim /cell_edge_length ^ num_dim
     
     // check if num cells is integer
     if (fmod(
@@ -22,15 +22,15 @@ response init_leaf_level(index_settings *settings, level *level)
         
         printf("num cells: %d\n", level->num_cells);
 
-        level->cell_length = settings->leaf_cell_edge_length;
-        level->next_level = NULL;
-
+        level->cell_edge_length = settings->leaf_cell_edge_length;
+        level->next = NULL;
+        level->prev = NULL;
         // initialize cells.
         init_leaf_cells(level, settings);
 
         return OK;
     }
     else
-        exit_with_error("Error in level.c:: Number of cells can only be integer! please change settings.");
+        exit_with_error("Error in level.c: Number of cells can only be integer! please change settings.");
 }
 

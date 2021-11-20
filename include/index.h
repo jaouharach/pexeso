@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include <float.h>
 #include"globals.h"
 
 struct index_settings {
@@ -7,16 +8,14 @@ struct index_settings {
     float max_coordinate;    
     float min_coordinate;
     float leaf_cell_edge_length;
+    unsigned int num_levels;
 };
 
 struct index{
   unsigned long long total_records;
-  level * first_level;
+  struct level * first_level;
   struct index_settings * settings;
 };
-
-//In progress
-void create_index(char * index_directory, char * dataset_directory);
 
 // done.
 response init_index(const char * root_directory,
@@ -24,4 +23,7 @@ response init_index(const char * root_directory,
                 float max_coordinate,    
                 float min_coordinate,
                 float leaf_cell_edge_length,
-                index * pexeso_index);
+                index * index);
+
+response append_vector(index * , vector *);
+response index_binary_files(char * dataset_dir, unsigned int l, index *);

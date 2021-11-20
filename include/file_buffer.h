@@ -1,6 +1,5 @@
 #include<stdio.h>
 #include <stdbool.h>
-#include"globals.h"
 
 
 struct file_buffer {

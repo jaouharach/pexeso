@@ -14,19 +14,17 @@ int main()
     float min_coordinate = 0;
     float leaf_cell_edge_length = 2;
     int curr_state = OK;
+    unsigned int mode = 0;
 
     // initialize index
-    index *pexeso_index = (index *)malloc(sizeof(struct index));
+    index * index = (struct index *)malloc(sizeof(struct index));
 
-    if (pexeso_index == NULL)
+    if (index == NULL)
         exit_with_error("Error in main.c: Couldn't allocate memory for index!");
 
-    if (!init_index(root_directory, num_dim, max_coordinate, min_coordinate, leaf_cell_edge_length, pexeso_index))
+    if (!init_index(root_directory, num_dim, max_coordinate, min_coordinate, leaf_cell_edge_length, index))
         exit_with_error("Error in main.c: Couldn't initialize index!");
-
-    // printf("Root directory = %s\n", pexeso_index->settings->root_directory);
-    // printf("Vector size = %d\n", pexeso_index->settings->num_dim);
-
+  
     printf("Index has been initialized!\n");
 
     // initialize first level
@@ -35,7 +33,7 @@ int main()
     if (level == NULL)
         exit_with_error("Error in main.c: Could not allocate memory for level.\n");
 
-    if (!init_leaf_level(pexeso_index->settings, level))
+    if (!init_leaf_level(index->settings, level))
         exit_with_error("Error in main.c: Couldn't initialize first level!");
 
     printf("Leaf level has been initialized!\n");
