@@ -7,26 +7,35 @@
 
 
 /* initialize leaf level */
-response init_leaf_level(index_settings *settings, level *level)
+response init_leaf_level(pexeso_index * index)
 {
+    // initialize first level
+    level * level = (struct level *)malloc(sizeof(struct level));
+
+    if (level == NULL)
+        exit_with_error("Error in main.c: Could not allocate memory for level.");
+
     //num_cells = (max - min) ^ num_dim /cell_edge_length ^ num_dim
     
     // check if num cells is integer
     if (fmod(
-            pow(settings->max_coordinate - settings->min_coordinate, settings->num_dim),
-            pow(settings->leaf_cell_edge_length, settings->num_dim) == 0))
+            pow(index->settings->max_coordinate - index->settings->min_coordinate, index->settings->num_dim),
+            pow(index->settings->leaf_cell_edge_length, index->settings->num_dim) == 0))
     {
         level->id = 0;
         level->num_cells = (unsigned int)abs(
-            pow(settings->max_coordinate - settings->min_coordinate, settings->num_dim) / pow(settings->leaf_cell_edge_length, settings->num_dim));
+            pow(index->settings->max_coordinate - index->settings->min_coordinate, index->settings->num_dim) / pow(index->settings->leaf_cell_edge_length, index->settings->num_dim));
         
         printf("num cells: %d\n", level->num_cells);
 
-        level->cell_edge_length = settings->leaf_cell_edge_length;
+        level->cell_edge_length = index->settings->leaf_cell_edge_length;
         level->next = NULL;
         level->prev = NULL;
+        
         // initialize cells.
-        init_leaf_cells(level, settings);
+        init_leaf_cells(level, index->settings);
+
+        index->first_level = level;
 
         return OK;
     }

@@ -1,9 +1,9 @@
-#include<stdio.h>
-
+#include <stdio.h>
+#include <stdbool.h>
 struct vector{
 	int table_id;
 	int set_id;
-	float * values;
+	v_type * values;
 };
 
 struct cell {
@@ -18,10 +18,6 @@ struct cell {
     vector * center;
     float edge_length;
 };
-
-
-//In progress
-void insert_vector(char * index_directory, vector *);
 
 // done.
 response init_leaf_cell(cell *, float length);

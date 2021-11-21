@@ -7,7 +7,7 @@ typedef enum response {OK = 1, FAILED = 0} response;
 /* types */
 typedef float v_type; // vector values
 
-typedef struct index index;
+typedef struct pexeso_index pexeso_index;
 typedef struct index_settings index_settings;
 typedef struct level level;
 typedef struct cell cell;

@@ -30,7 +30,7 @@ int main()
     out.values = malloc(sizeof(float) * d);
     for (p = 0; p < n_vectors; p++)
     {
-        vectors[p].values = malloc(sizeof(float) * d);
+        vectors[p].values = malloc(sizeof(v_type) * d);
     }
 
     find_combinations(V, d, d, vectors, out, 0);

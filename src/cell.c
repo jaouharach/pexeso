@@ -4,6 +4,7 @@
 #include "../include/index.h"
 #include "../include/level.h"
 #include "../include/cell.h"
+#include "../include/file_buffer.h"
 
 /* Find child cell with the closest center to vector */
 cell * cell_route_to_closest_child (cell * parent_cell, vector * vector, unsigned int num_dim)
@@ -26,11 +27,11 @@ cell * cell_route_to_closest_child (cell * parent_cell, vector * vector, unsigne
 response init_leaf_cells(level *leaf_level, index_settings *settings)
 {
     /* allocate memory for cells */
-    leaf_level->cells = (cell *)malloc(sizeof(struct cell) * leaf_level->num_cells);
+    leaf_level->cells = (cell *) malloc(sizeof(struct cell) * leaf_level->num_cells);
     int i, j, ndc = log(leaf_level->num_cells) / log(settings->num_dim); //ndc = number of distinct coordinate values of cell center vectors
 
     /* copmute distinct coordinate values (v1, v2, v3, ...) */
-    float *distinct_coordinates = (float *)malloc(sizeof(float) * ndc);
+    v_type * distinct_coordinates = (v_type *) malloc(sizeof(v_type) * ndc);
     for (i = 0, j = 1; i < ndc; i++, j += 2)
     {
         distinct_coordinates[i] = settings->max_coordinate - ((j * settings->leaf_cell_edge_length) / 2);
@@ -38,7 +39,7 @@ response init_leaf_cells(level *leaf_level, index_settings *settings)
 
     /* init cells with their center vectors */
     vector temp;
-    temp.values = malloc(sizeof(float) * settings->num_dim);
+    temp.values = malloc(sizeof(v_type) * settings->num_dim);
 
     if (temp.values == NULL)
         exit_with_error("Error in cell.c: Could not allocate memory for temp vector.\n");
@@ -51,7 +52,7 @@ response init_leaf_cells(level *leaf_level, index_settings *settings)
 
     for (i = 0; i < leaf_level->num_cells; i++)
     {
-        center_vectors[i].values = malloc(sizeof(float) * settings->num_dim);
+        center_vectors[i].values = malloc(sizeof(v_type) * settings->num_dim);
 
         if (center_vectors[i].values == NULL)
             exit_with_error("Error in cell.c: Could not allocate memory for list of center vectors.\n");
@@ -72,6 +73,9 @@ response init_leaf_cells(level *leaf_level, index_settings *settings)
         printf(")\n"); */
     }
 
+    free(temp.values);
+    free(distinct_coordinates);
+    // don't free centre_vectors
     return OK;
 }
 
@@ -84,10 +88,12 @@ response init_leaf_cell(cell *cell, float length)
 
     cell->filename = "";
     cell->file_buffer = NULL;
-    
+
     cell->is_leaf = true;
     cell->edge_length = length;
     cell->center = NULL;
+
+    file_buffer_init(cell);
 
     return OK;
 }

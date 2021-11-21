@@ -5,6 +5,7 @@
 #include "../include/index.h"
 #include "../include/level.h"
 #include "../include/cell.h"
+#include "../include/file_loader.h"
 
 int main()
 {
@@ -15,9 +16,12 @@ int main()
     float leaf_cell_edge_length = 2;
     int curr_state = OK;
     unsigned int mode = 0;
-
+    const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binary_files/";
+    unsigned int num_files = 5;
+    unsigned int base = 32; // 32 bits to store numbers in binary files
+    
     // initialize index
-    index * index = (struct index *)malloc(sizeof(struct index));
+    pexeso_index * index = (struct pexeso_index *) malloc(sizeof(struct pexeso_index));
 
     if (index == NULL)
         exit_with_error("Error in main.c: Couldn't allocate memory for index!");
@@ -27,16 +31,14 @@ int main()
   
     printf("Index has been initialized!\n");
 
-    // initialize first level
-    level * level = (struct level *)malloc(sizeof(struct level));
-
-    if (level == NULL)
-        exit_with_error("Error in main.c: Could not allocate memory for level.\n");
-
-    if (!init_leaf_level(index->settings, level))
+    if (!init_leaf_level(index))
         exit_with_error("Error in main.c: Couldn't initialize first level!");
 
-    printf("Leaf level has been initialized!\n");
+    if(index->first_level == NULL)
+        exit_with_error("Error in main.c: first level not initialized for index!");
+        
+    if (!index_binary_files(index, bin_files_directory, num_files, base))
+        exit_with_error("Error in main.c: Couldn't initialize first level!");
 
     return 0;
 }

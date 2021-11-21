@@ -1,1 +1,7 @@
-gcc index.c level.c cell.c main.c -o ../bin/pexeso -lm
+To compile:                         gcc index.c level.c cell.c file_buffer.c file_loader.c main.c -o ../bin/pexeso -lm -g
+
+Binary conversion:                  little indian.
+Base:
+Number of bytes for integer:        4 (32 bits)
+Number of bytes for floats:         4 (32 bits)
+Number of bytes per binary file:    base * ((datasize * index->settings->num_dim) + nsets) / 8
