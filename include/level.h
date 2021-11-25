@@ -13,4 +13,5 @@ struct level {
   struct level * next; // next level
 };
 
-response init_leaf_level(pexeso_index * index);
+response init_first_level(pexeso_index * index);
+response init_levels(pexeso_index * index);

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <math.h>
 #include "../include/index.h"
 #include "../include/level.h"
 #include "../include/cell.h"
@@ -9,21 +10,23 @@
 /* initialize index */
 response init_index(const char *root_directory, unsigned int num_dim,
                     float max_coordinate, float min_coordinate,
-                    float leaf_cell_edge_length, pexeso_index * index)
+                    unsigned int num_levels, pexeso_index * index)
 {
     index->settings = (index_settings *)malloc(sizeof(index_settings));
     if (index->settings == NULL)
         exit_with_error("Error in index.c: Couldn't allocate memory for index settings!");
 
-    index->first_level = 0;
+    index->first_level = NULL;
     index->total_records = 0;
 
     index->settings->root_directory = root_directory;
     index->settings->num_dim = num_dim;
     index->settings->max_coordinate = max_coordinate;
     index->settings->min_coordinate = min_coordinate;
-    index->settings->leaf_cell_edge_length = leaf_cell_edge_length;
-
+    index->settings->num_leaf_cells = pow(2, num_dim * num_levels); // 2^(P * m)
+    index->settings->leaf_cell_edge_length = (max_coordinate - min_coordinate) / index->settings->num_leaf_cells;
+    index->settings->num_levels = num_levels;
+    
     return OK;
 }
 
@@ -72,7 +75,7 @@ response insert_vector(pexeso_index * index, vector *vector)
     }
     else
     {
-        // BUG: undefinedrealloc(): invalid next size
+        /* Resize memory allocate for buffered list to fit for the new vector */
         cell->file_buffer->buffered_list = realloc(cell->file_buffer->buffered_list,
                                                    sizeof(struct vector) * (cell->file_buffer->buffered_list_size + 1));
         if (cell->file_buffer->buffered_list == NULL)
@@ -97,4 +100,12 @@ response insert_vector(pexeso_index * index, vector *vector)
     cell->file_buffer->buffered_list_size++;
 
     return OK;
+}
+
+void display_indexed_vectors(pexeso_index * index)
+{
+    for(int i = 0; i < index->settings->num_levels; i++)
+    {
+        
+    }
 }
