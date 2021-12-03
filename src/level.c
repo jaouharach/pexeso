@@ -8,6 +8,7 @@
 /* initialize levels */
 response init_levels(pexeso_index *index)
 {
+    printf("Init leves...\n");
     level *level = index->first_level;
     // initialize levels of the index startin from the second level
     for (int id = 2; id <= index->settings->num_levels; id++)
@@ -24,6 +25,9 @@ response init_levels(pexeso_index *index)
         level->next->id = id;
         // num_cells = 2 ^ (P * id)
         level->next->num_cells = (unsigned int)abs(pow(2, index->settings->num_dim * id));
+        level->next->cells = (struct cell *)malloc(sizeof(struct cell) * level->next->num_cells);
+        if (level->next->cells == NULL)
+            exit_with_error("Error in main.c: Could not allocate memory for next level cells.");
 
         printf("Num cells in level %u = %d\n", id, level->next->num_cells);
 
@@ -31,11 +35,13 @@ response init_levels(pexeso_index *index)
         level->next->next = NULL;
         level->next->prev = level; // point back to last level in index
 
+        // initialize cells.
+        for(int c = 0; c < level->next->num_cells; c++)
+        {
+            init_cell(&level->next->cells[c], level->next->cell_edge_length);
+        }
         level = level->next; // change current last level in list of levels.
     }
-
-    // initialize cells not leaf cells.
-    // init_leaf_cells(level->next, index->settings);
 
     return OK;
 }
@@ -52,6 +58,9 @@ response init_first_level(pexeso_index *index)
     index->first_level->id = 1;
     // num_cells = 2 ^ (P * 1)
     index->first_level->num_cells = (unsigned int)abs(pow(2, index->settings->num_dim));
+    index->first_level->cells = (struct cell *)malloc(sizeof(struct cell) * index->first_level->num_cells);
+        if (index->first_level->cells == NULL)
+            exit_with_error("Error in main.c: Could not allocate memory for first level cells.");
 
     printf("Num cells in first level = %d\n", index->first_level->num_cells);
 
@@ -60,7 +69,9 @@ response init_first_level(pexeso_index *index)
     index->first_level->prev = NULL;
 
     // initialize cells.
-    // init_leaf_cells(index->first_level, index->settings);
-
+    for(int c = 0; c < index->first_level->num_cells; c++)
+    {
+        init_cell(&index->first_level->cells[c], index->first_level->cell_edge_length);
+    }
     return OK;
 }
