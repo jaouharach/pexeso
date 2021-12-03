@@ -9,32 +9,45 @@
 
 int main()
 {
+    /* dataset */
     const char *root_directory = "/home/jaouhara/Projects/pexeso/index";
-    unsigned int num_dim = 3;
-    float max_coordinate = 6; // we assume than all dims have the same min and max coordinate in the metric space
-    float min_coordinate = 0;
-    int curr_state = OK;
-    unsigned int mode = 0;
-    const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binary_files/";
+    const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binary_files/"; //target directory
     unsigned int num_files = 5;
     unsigned int base = 32; // 32 bits to store numbers in binary files
+
+
+    /* mode 0 = index dataset, 1 = query dataset */
+    unsigned int mode = 0;
+
+    /* index settings */
     unsigned int num_levels = 2; // m
+    unsigned int num_pivots = 2; // number of pivots
 
-    /* get set of pivot vector from data lake */
+    /* get set of pivot vectors*/
+    vector * pivots = (struct vector *) malloc(sizeof(struct vector) * num_pivots);
+    for (int i = 0; i < num_pivots; i++)
+    {
+        pivots[i].values = (float *)malloc(sizeof(v_type) * num_pivots);
+    }
 
+    // search for pivot vectors using pca based algorithm. 
+    // (...)
 
-
+    vector * pivot_space_extrimity = get_extrimity(pivots, num_pivots);
 
 
     /* initialize index */
     pexeso_index * index = (struct pexeso_index *) malloc(sizeof(struct pexeso_index));
-
     if (index == NULL)
         exit_with_error("Error in main.c: Couldn't allocate memory for index!");
 
-    if (!init_index(root_directory, num_dim, max_coordinate, min_coordinate, num_levels, index))
+    if (!init_index(root_directory, num_pivots, pivot_space_extrimity, num_levels, index))
         exit_with_error("Error in main.c: Couldn't initialize index!");
     
+
+
+    
+
     printf("Number of leaf cells = %d\n", index->settings->num_leaf_cells);
     printf("Leaf cell edge length = %.2f\n", index->settings->leaf_cell_edge_length);
     printf("Index has been initialized!\n");
@@ -47,9 +60,19 @@ int main()
     
     if (!init_levels(index))
         exit_with_error("Error in main.c: Couldn't initialize index levels!");
-        
-    if (!index_binary_files(index, bin_files_directory, num_files, base))
-        exit_with_error("Error in main.c: Couldn't initialize first level!");
+    
+
+    /* get image of the data lake in the pivot space */
+    // metric_to_pivot_space(char * dataset_dir)
+
+
+
+
+
+
+
+    // if (!index_binary_files(index, bin_files_directory, num_files, base))
+    //     exit_with_error("Error in main.c: Couldn't initialize first level!");
 
     return 0;
 }

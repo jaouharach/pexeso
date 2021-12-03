@@ -8,9 +8,11 @@
 #include "../include/file_buffer.h"
 
 /* initialize index */
-response init_index(const char *root_directory, unsigned int num_dim,
-                    float max_coordinate, float min_coordinate,
-                    unsigned int num_levels, pexeso_index * index)
+response init_index(const char * root_directory,
+                unsigned int num_pivots,
+                vector * extrimity,
+                unsigned int num_levels,
+                pexeso_index * index)
 {
     index->settings = (index_settings *)malloc(sizeof(index_settings));
     if (index->settings == NULL)
@@ -20,15 +22,45 @@ response init_index(const char *root_directory, unsigned int num_dim,
     index->total_records = 0;
 
     index->settings->root_directory = root_directory;
-    index->settings->num_dim = num_dim;
-    index->settings->max_coordinate = max_coordinate;
-    index->settings->min_coordinate = min_coordinate;
-    index->settings->num_leaf_cells = pow(2, num_dim * num_levels); // 2^(P * m)
-    index->settings->leaf_cell_edge_length = (max_coordinate - min_coordinate) / index->settings->num_leaf_cells;
+    index->settings->num_dim = num_pivots; // number of dimensions is equal to the number of pivots
+    index->settings->pivot_space_extrimity = extrimity;
+    index->settings->num_leaf_cells = pow(2, num_pivots * num_levels); // 2^(|P| * m) number of cells depends on num_pivots to ensure same length in all edges.
+    
+    // volume of the pivot space = multiplication of all extrimity coordinates.
+    index->settings->pivot_space_volume = 0.0;
+    for(int i = 0; i < num_pivots; i++)
+    {
+        index->settings->pivot_space_volume *= extrimity->values[i];
+    }
+
+    // leaf cell edge length = (V / num_leaf_cells) ^ 1/|P|
+    index->settings->leaf_cell_edge_length = pow((index->settings->pivot_space_volume / index->settings->num_leaf_cells), (1/num_pivots));
+    
     index->settings->num_levels = num_levels;
     
     return OK;
 }
+/* get extrimity vector of the pivot space */
+vector * get_extrimity(vector * pivot_vectors, unsigned int num_dim)
+{
+    // extrimity =  farthest vector in the pivot space (holds max coordiante for each dimention d(., pi))
+    vector * pivot_space_extrimity = malloc(sizeof(struct vector));
+    pivot_space_extrimity->values = (v_type *) malloc(sizeof(v_type) * num_dim);
+
+    for(int i = 0; i < num_dim; i++)
+    {
+        v_type max = 0;
+        for(int j = 0; j < num_dim; j++)
+        {
+            if(pivot_vectors[j].values[i] > max)
+                max = pivot_vectors[j].values[i];
+        }
+        pivot_space_extrimity->values[i] = max;
+    }
+
+    return pivot_space_extrimity;
+}
+
 
 /* append vector to index */
 response insert_vector(pexeso_index * index, vector *vector)

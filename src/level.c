@@ -23,15 +23,16 @@ response init_levels(pexeso_index *index)
             exit_with_error("Error in main.c: Could not allocate memory for next level.");
 
         level->next->id = id;
-        // num_cells = 2 ^ (P * id)
+        // num_cells = 2 ^ (|P| * id)
         level->next->num_cells = (unsigned int)abs(pow(2, index->settings->num_dim * id));
         level->next->cells = (struct cell *)malloc(sizeof(struct cell) * level->next->num_cells);
         if (level->next->cells == NULL)
             exit_with_error("Error in main.c: Could not allocate memory for next level cells.");
 
-        printf("Num cells in level %u = %d\n", id, level->next->num_cells);
+        // cell edge length = (V / num_cells) ^ 1/|P|
+        level->next->cell_edge_length = pow((index->settings->pivot_space_volume / level->next->num_cells), (1/index->settings->num_dim));
+        printf("Num cells in level %u = %d, cell edge length = %.2f\n", id, level->next->num_cells, level->next->cell_edge_length);    
 
-        level->next->cell_edge_length = (index->settings->max_coordinate - index->settings->min_coordinate) / pow(level->next->num_cells, (1 / index->settings->num_dim));
         level->next->next = NULL;
         level->next->prev = level; // point back to last level in index
 
@@ -62,9 +63,10 @@ response init_first_level(pexeso_index *index)
         if (index->first_level->cells == NULL)
             exit_with_error("Error in main.c: Could not allocate memory for first level cells.");
 
-    printf("Num cells in first level = %d\n", index->first_level->num_cells);
+    // cell edge length = (V / num_cells) ^ 1/|P|
+    index->first_level->cell_edge_length = pow((index->settings->pivot_space_volume / index->first_level->num_cells), (1/index->settings->num_dim));
+    printf("Num cells in first level = %d, cell edge length = %.2f\n", index->first_level->num_cells, index->first_level->cell_edge_length);    
 
-    index->first_level->cell_edge_length = (index->settings->max_coordinate - index->settings->min_coordinate) / pow(index->first_level->num_cells, (1 / index->settings->num_dim));
     index->first_level->next = NULL;
     index->first_level->prev = NULL;
 
