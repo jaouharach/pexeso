@@ -11,7 +11,7 @@ int main()
 {
     const char *root_directory = "/home/jaouhara/Projects/pexeso/index";
     unsigned int num_dim = 3;
-    float max_coordinate = 6; // we assume than all dims have the same min and max coordinate
+    float max_coordinate = 6; // we assume than all dims have the same min and max coordinate in the metric space
     float min_coordinate = 0;
     int curr_state = OK;
     unsigned int mode = 0;
@@ -19,7 +19,14 @@ int main()
     unsigned int num_files = 5;
     unsigned int base = 32; // 32 bits to store numbers in binary files
     unsigned int num_levels = 2; // m
-    // initialize index
+
+    /* get set of pivot vector from data lake */
+
+
+
+
+
+    /* initialize index */
     pexeso_index * index = (struct pexeso_index *) malloc(sizeof(struct pexeso_index));
 
     if (index == NULL)
@@ -41,8 +48,8 @@ int main()
     if (!init_levels(index))
         exit_with_error("Error in main.c: Couldn't initialize index levels!");
         
-    // if (!index_binary_files(index, bin_files_directory, num_files, base))
-    //     exit_with_error("Error in main.c: Couldn't initialize first level!");
+    if (!index_binary_files(index, bin_files_directory, num_files, base))
+        exit_with_error("Error in main.c: Couldn't initialize first level!");
 
     return 0;
 }
