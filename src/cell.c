@@ -42,12 +42,12 @@ cell * cell_route_to_closest_child (cell * parent_cell, vector * vector, unsigne
 //     temp.values = malloc(sizeof(v_type) * settings->num_dim);
 
 //     if (temp.values == NULL)
-//         exit_with_error("Error in cell.c: Could not allocate memory for temp vector.\n");
+//         exit_with_failure("Error in cell.c: Could not allocate memory for temp vector.\n");
 
 //     vector *center_vectors = malloc(sizeof(struct vector) * leaf_level->num_cells);
 
 //     if (center_vectors == NULL)
-//         exit_with_error("Error in cell.c: Could not allocate memory for list of center vectors.\n");
+//         exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
     
 
 //     for (i = 0; i < leaf_level->num_cells; i++)
@@ -55,7 +55,7 @@ cell * cell_route_to_closest_child (cell * parent_cell, vector * vector, unsigne
 //         center_vectors[i].values = malloc(sizeof(v_type) * settings->num_dim);
 
 //         if (center_vectors[i].values == NULL)
-//             exit_with_error("Error in cell.c: Could not allocate memory for list of center vectors.\n");
+//             exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
         
 //     }
 
@@ -98,12 +98,12 @@ cell * cell_route_to_closest_child (cell * parent_cell, vector * vector, unsigne
 //     temp.values = malloc(sizeof(v_type) * settings->num_dim);
 
 //     if (temp.values == NULL)
-//         exit_with_error("Error in cell.c: Could not allocate memory for temp vector.\n");
+//         exit_with_failure("Error in cell.c: Could not allocate memory for temp vector.\n");
 
 //     vector *center_vectors = malloc(sizeof(struct vector) * level->num_cells);
 
 //     if (center_vectors == NULL)
-//         exit_with_error("Error in cell.c: Could not allocate memory for list of center vectors.\n");
+//         exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
     
 
 //     for (i = 0; i < level->num_cells; i++)
@@ -111,7 +111,7 @@ cell * cell_route_to_closest_child (cell * parent_cell, vector * vector, unsigne
 //         center_vectors[i].values = malloc(sizeof(v_type) * settings->num_dim);
 
 //         if (center_vectors[i].values == NULL)
-//             exit_with_error("Error in cell.c: Could not allocate memory for list of center vectors.\n");
+//             exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
         
 //     }
 
@@ -178,7 +178,7 @@ void init_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, 
     static int curr_vector = 0;
     if (ndc == 0 || k > ndc)
     {
-        exit_with_error("Error in cell.c: Couldn'l initialize center vector!\n");
+        exit_with_failure("Error in cell.c: Couldn'l initialize center vector!\n");
     }
 
     if (k == 0)
@@ -196,14 +196,4 @@ void init_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, 
         temp.values[append_at] = distinct_coordinates[j];
         init_center_vectors(distinct_coordinates, ndc, k - 1, dim, center_vectors, temp, append_at + 1);
     }
-}
-
-float euclidean_distance(vector * vector_1, vector * vector_2, int k)
-{
-    float distance = 0;
-    while (k > 0) {
-        distance += (vector_1->values[k] - vector_2->values[k]) * (vector_1->values[k] - vector_2->values[k]);
-        k--;
-    }
-    return distance;
 }

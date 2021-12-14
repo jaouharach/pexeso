@@ -5,6 +5,7 @@
         "limits": "c",
         "valarray": "c",
         "unordered_map": "c",
-        "unordered_set": "c"
+        "unordered_set": "c",
+        "vector": "c"
     }
 }

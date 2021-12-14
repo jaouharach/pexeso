@@ -1,4 +1,4 @@
-To compile:                         gcc index.c level.c cell.c file_buffer.c file_loader.c main.c -o ../bin/pexeso -lm -g
+To compile:                         gcc globals.c index.c level.c cell.c file_buffer.c file_loader.c main.c -o ../bin/pexeso -lm -g
 
 Binary conversion:                  little indian.
 Base:

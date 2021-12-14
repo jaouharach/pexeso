@@ -16,7 +16,7 @@ response init_index(const char * root_directory,
 {
     index->settings = (index_settings *)malloc(sizeof(index_settings));
     if (index->settings == NULL)
-        exit_with_error("Error in index.c: Couldn't allocate memory for index settings!");
+        exit_with_failure("Error in index.c: Couldn't allocate memory for index settings!");
 
     index->first_level = NULL;
     index->total_records = 0;
@@ -41,19 +41,19 @@ response init_index(const char * root_directory,
     return OK;
 }
 /* get extrimity vector of the pivot space */
-vector * get_extrimity(vector * pivot_vectors, unsigned int num_dim)
+vector * get_extrimity(vector * pivot_vectors, unsigned int num_pivots)
 {
     // extrimity =  farthest vector in the pivot space (holds max coordiante for each dimention d(., pi))
     vector * pivot_space_extrimity = malloc(sizeof(struct vector));
-    pivot_space_extrimity->values = (v_type *) malloc(sizeof(v_type) * num_dim);
+    pivot_space_extrimity->values = (v_type *) malloc(sizeof(v_type) * num_pivots);
 
-    for(int i = 0; i < num_dim; i++)
+    for(int i = 0; i < num_pivots; i++)
     {
         v_type max = 0;
-        for(int j = 0; j < num_dim; j++)
+        for(int j = 0; j < num_pivots; j++)
         {
-            if(pivot_vectors[j].values[i] > max)
-                max = pivot_vectors[j].values[i];
+            if(fabs(pivot_vectors[j].values[i]) > max)
+                max = fabs(pivot_vectors[j].values[i]);
         }
         pivot_space_extrimity->values[i] = max;
     }
@@ -84,7 +84,7 @@ response insert_vector(pexeso_index * index, vector *vector)
         cell = cell_route_to_closest_child(cell, vector, index->settings->num_dim);
 
         if (cell == NULL)
-            exit_with_error("Error in index.c: Could not route to closest child cell.\n");
+            exit_with_failure("Error in index.c: Could not route to closest child cell.\n");
     }
 
     // add vector to leaf cell file buffer.
@@ -96,13 +96,13 @@ response insert_vector(pexeso_index * index, vector *vector)
         cell->file_buffer->buffered_list = malloc(sizeof(struct vector *));
 
         if (cell->file_buffer->buffered_list == NULL)
-            exit_with_error("Error in index.c: Could not"
+            exit_with_failure("Error in index.c: Could not"
                             "allocate memory for the buffered list.\n");
 
         cell->file_buffer->buffered_list[s].values = (v_type *) malloc(sizeof(v_type) * index->settings->num_dim);
         
         if (cell->file_buffer->buffered_list[s].values == NULL)
-            exit_with_error("Error in index.c: Could not"
+            exit_with_failure("Error in index.c: Could not"
                             "reallocate memory for buffered list.\n");
     }
     else
@@ -111,13 +111,13 @@ response insert_vector(pexeso_index * index, vector *vector)
         cell->file_buffer->buffered_list = realloc(cell->file_buffer->buffered_list,
                                                    sizeof(struct vector) * (cell->file_buffer->buffered_list_size + 1));
         if (cell->file_buffer->buffered_list == NULL)
-            exit_with_error("Error in index.c: Could not"
+            exit_with_failure("Error in index.c: Could not"
                             "reallocate memory for buffered list.\n");
 
         cell->file_buffer->buffered_list[s].values = (v_type *) malloc(sizeof(v_type) * index->settings->num_dim);
         
         if (cell->file_buffer->buffered_list[s].values == NULL)
-            exit_with_error("Error in index.c: Could not"
+            exit_with_failure("Error in index.c: Could not"
                             "reallocate memory for buffered list.\n");
     }
 

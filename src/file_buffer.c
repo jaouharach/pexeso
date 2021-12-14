@@ -10,7 +10,7 @@ response file_buffer_init(cell *cell)
     cell->file_buffer = (struct file_buffer *) malloc(sizeof(struct file_buffer));
 
     if (cell->file_buffer == NULL)
-        exit_with_error("Error in file_buffer.c: Could not allocate memory for file buffer.\n");
+        exit_with_failure("Error in file_buffer.c: Could not allocate memory for file buffer.\n");
 
     cell->file_buffer->in_disk = false;
     
