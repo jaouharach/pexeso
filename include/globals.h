@@ -1,5 +1,5 @@
-#include<stdio.h>
-
+#include <stdio.h>
+#include <math.h>
 /* enumerations */
 typedef enum response {OK = 1, FAILED = 0} response;
 
@@ -32,5 +32,8 @@ float euclidean_distance(vector * v1, vector * v2, unsigned int v_len);
 // FFT: farthest first traversal, n = data_set size (total vectors), k  = number of outliers to be retrieved
 vector * fft(vector * data_set, unsigned int n, unsigned int k, unsigned int v_len);
 float min_distance(vector * vectors, unsigned int num_vectors, vector * v, unsigned int v_len);
+/* tranform vector to pivot space */
+void transform_vector(vector * v, unsigned int v_len, vector * v_transf, vector * pivots, unsigned int num_pivots);
+
 void print_vector(vector * v, unsigned int v_len);
 void vector_cpy(vector * dest, vector * src, unsigned int v_len);

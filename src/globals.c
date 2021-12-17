@@ -13,9 +13,9 @@ float euclidean_distance(vector * v1, vector * v2, unsigned int v_len)
     float d = 0.0;
     for(int j = 0; j < v_len; j++)
     {
-        d += (v1->values[j] - v2->values[j]) * (v1->values[j] - v2->values[j]);
+        d = d + (v1->values[j] - v2->values[j]) * (v1->values[j] - v2->values[j]);
     }
-    return d;
+    return (float) sqrt(d);
 }
 
 // Farthest First traversal
@@ -72,6 +72,13 @@ vector * fft(vector * data_set, unsigned int n, unsigned int k, unsigned int v_l
     return outliers;
 }
 
+/* tranform vector to pivot space */
+void transform_vector(vector * v, unsigned int v_len, vector * v_transf, vector * pivots, unsigned int num_pivots)
+{
+    for(int i = 0; i < num_pivots; i++)
+        v_transf->values[i] = euclidean_distance(v, &pivots[i], v_len);
+}
+
 /* print error and kill process */
 void exit_with_failure(char *message)
 {
@@ -95,7 +102,7 @@ void print_vector(vector * v, unsigned int v_len)
     printf("(");
     for(int i = 0; i < v_len; i++)
     {
-        printf("%2f, ", v->values[i]);
+        printf("%f, ", v->values[i]);
     }
     printf(")\n");
 }

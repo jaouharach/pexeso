@@ -138,6 +138,7 @@ vector * load_binary_files(unsigned long * curr_total_vectors, const char *bin_f
     return data_set;
 }
 
+/* index raw binary vectors (in metric space) */
 response index_binary_files(pexeso_index *index, const char *bin_files_directory, unsigned int num_files, unsigned int base)
 {
     // printf("step 1.\n");
