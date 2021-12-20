@@ -8,33 +8,68 @@
 /* initialize levels */
 response init_levels(pexeso_index *index)
 {
-    level *level = index->first_level;
+    level * curr_level = index->first_level;
     // initialize levels of the index startin from the second level
     for (int id = 2; id <= index->settings->num_levels; id++)
     {
-        if((level->next != NULL))
+        if((curr_level->next != NULL))
             exit_with_failure("Error in level.c: Something went wrong, next level should be NULL!");
 
         // initialize next level
-        level->next = (struct level *)malloc(sizeof(struct level));
-
-        if (level->next == NULL)
+        curr_level->next = (struct level *)malloc(sizeof(struct level));
+        if (curr_level->next == NULL)
             exit_with_failure("Error in main.c: Could not allocate memory for next level.");
 
-        level->next->id = id;
-        // num_cells = 2 ^ (|P| * id)
-        level->next->num_cells = (unsigned int)abs(pow(2, index->settings->num_dim * id));
-        
+        level * new_level = curr_level->next;
+
+        new_level->id = id;
+        new_level->num_cells = (unsigned int)abs(pow(2, index->settings->num_dim * id)); // num_cells = 2 ^ (|P| * id)
+        new_level->cells = malloc(sizeof(struct cell) * new_level->num_cells);
+        if (new_level->cells == NULL)
+            exit_with_failure("Error in cell.c: Could not allocate memory for new level cells.");
+
+        // allocate memory for center vectors
+        vector *center_vectors = malloc(sizeof(struct vector) * new_level->num_cells);
+        if (center_vectors == NULL)
+            exit_with_failure("Error in level.c: Could not allocate memory for list of center vectors.\n");
+
+        for (int i = 0; i < new_level->num_cells; i++)
+        {
+            center_vectors[i].values = malloc(sizeof(v_type) * index->settings->num_dim);
+            if (center_vectors[i].values == NULL)
+                exit_with_failure("Error in level.c: Could not allocate memory for list of center vectors.\n");
+            
+            new_level->cells[i].center = &center_vectors[i];
+        }
         // cell edge length = (V / num_cells) ^ 1/|P|
-        level->next->cell_edge_length = pow((index->settings->pivot_space_volume / level->next->num_cells), (1.0/index->settings->num_dim));
+        new_level->cell_edge_length = pow((index->settings->pivot_space_volume / new_level->num_cells), (1.0/index->settings->num_dim));
         printf("\n**************************************************************");
-        printf("\nLevel %u, num_cells = %d, cell_edge_length = %f\n", id, level->next->num_cells, level->next->cell_edge_length);    
+        printf("\nCurr Level %u, num_cells = %d, cell_edge_length = %f\n", curr_level->id, curr_level->num_cells, curr_level->cell_edge_length);    
+        printf("\nNew Level %u, num_cells = %d, cell_edge_length = %f\n", id, new_level->num_cells, new_level->cell_edge_length);    
 
-        make_level_cells(level->next, index->settings);
+        
+        // (!) link cells in curr_level to cells in new level (curr_cell = current cell in next level)
+        for(int i = 0, curr_cell = 0; i < curr_level->num_cells; i++)
+        {
+            printf("\n-> Making %d child cells for cell %d in level %d...\n", curr_level->cells[0].num_child_cells, i, curr_level->id);
+            // get child cell for current parent cell
+            if(&curr_level->cells[i] == NULL)
+                exit_with_failure("Error in level.c: Fatal, current cell in current level is a null point.");
+            cell * child_cells = get_child_cells(&curr_level->cells[i], curr_level->cells[i].num_child_cells, index->settings);
+            
+            // // link child cells to next level
+            curr_level->cells[i].children = &new_level->cells[curr_cell];
+            for(int j = 0; j < curr_level->cells[i].num_child_cells; j++, curr_cell++)
+            {
+                printf("Adding cell %d, center vector: \n", curr_cell);
+                cell_cpy(&new_level->cells[curr_cell], &child_cells[j], index->settings->num_dim);
+                print_vector(new_level->cells[curr_cell].center, index->settings->num_dim);
+            }
+        }
 
-        level->next->next = NULL;
-        level->next->prev = level; // point back to last level in index
-        level = level->next; // change current last level in list of levels.
+        new_level->next = NULL;
+        new_level->prev = curr_level; // point back to last level in index
+        curr_level = curr_level->next; // change current last level in list of levels.
     }
     return OK;
 }
@@ -59,17 +94,19 @@ response init_first_level(pexeso_index *index)
     index->first_level->prev = NULL;
     
     printf("\n**************************************************************");
-    printf("\nLevel 0, num_cells = %d, cell_edge_length = %f\n", index->first_level->num_cells, index->first_level->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
+    printf("\nLevel 1, num_cells = %d, cell_edge_length = %f\n", index->first_level->num_cells, index->first_level->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
 
     /* initialize cells*/
     for(int c = 0; c < index->first_level->num_cells; c++)
     {
-        init_cell(&index->first_level->cells[c], index->first_level->cell_edge_length);
+        init_cell(&index->first_level->cells[c], index->first_level->cell_edge_length, index->first_level->num_cells);
     }
 
     /* compute coordiante for cell center vectors */
     int i, j, ndc = index->settings->pivot_space_extrimity->values[0] / index->first_level->cell_edge_length; //ndc = number of distinct coordinate values of cell center vectors
 
+    // ndc = number of child cells per parent cell = number of cells in the first level 
+    
     // find all distinct coordinate values (v1, v2, v3, ...)
     v_type * distinct_coordinates = (v_type *) malloc(sizeof(v_type) * ndc);
     for (i = 0, j = 1; i < ndc; i++, j += 2)

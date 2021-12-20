@@ -6,6 +6,9 @@
         "valarray": "c",
         "unordered_map": "c",
         "unordered_set": "c",
-        "vector": "c"
+        "vector": "c",
+        "cmath": "c",
+        "complex": "c",
+        "cstddef": "c"
     }
 }

@@ -21,6 +21,7 @@ response init_leaf_cells(level * leaf_level, index_settings * settings);
 /* initialize center vectors: ndc = number of distinct coordinates, k = vector length,  dim = vector length */
 void init_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, vector * center_vectors, vector temp, int append_at);
 cell * cell_route_to_closest_child (cell * parent_cell, vector * vector, unsigned int num_dim);
-response init_cell(cell *cell, float length); // initialize non leaf cell
-/* create cells for a given level */
-response make_level_cells(level * level, index_settings *settings);
+response init_cell(cell *cell, float length, unsigned int num_child_cells); // initialize non leaf cell
+/* create child cells for a parent cell */
+cell * get_child_cells(cell * parent_cell, unsigned int num_child_cells, index_settings *settings);
+void cell_cpy(cell *dest, cell *src, unsigned int num_dim);

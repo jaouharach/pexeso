@@ -33,7 +33,7 @@ int main(int argc, char const *argv[])
         vector *centers = (struct vector *)malloc(sizeof(struct vector) * nc);
         for (i = 0; i < nc; i++)
         {
-            centers[i].values = (float *)malloc(sizeof(v_type) * num_dim);
+            centers[i].values = (float *)malloc(sizeof(float) * num_dim);
         }
 
         /* centers is a list of all possible combination of coor_values */

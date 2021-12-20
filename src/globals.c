@@ -115,3 +115,40 @@ void vector_cpy(vector * dest, vector * src, unsigned int v_len)
         dest->values[i] = src->values[i];
     }
 }
+
+/* convert integer to decimal array */
+int * integer_to_binary_array(int number, unsigned int arr_len)
+{
+    int * bit_array = calloc(arr_len, sizeof(int));
+    for(int i = arr_len - 1 ; number > 0 ; i--)
+    {
+        bit_array[i] = number%2;    
+        number = number/2; 
+    }
+    return bit_array;
+}
+
+/* cartesian product (array x array) of dimension dim (array must be of length 2) */
+vector * self_cartesian_product(int * array, unsigned int dim)
+{
+    // number of results
+    int n = (int) pow(2, dim);
+    // allocate memory for result
+    vector * result = malloc(sizeof(struct vector)* n);
+    for (int i = 0; i < n; i++)
+        result[i].values = malloc(sizeof(int) * dim);
+    
+    // cartesian product arr x arr of dimention k
+    for (int i = 0; i < n; i++)
+    {
+        int * bin_arr = integer_to_binary_array(i, dim);
+        for(int j = 0; j < dim; j++)
+        {
+            result[i].values[j] = (float) array[bin_arr[j]];
+        }
+    }
+
+    return result;
+}
+
+

@@ -153,11 +153,11 @@ response init_leaf_cell(cell *cell, float length)
 }
 
 /* initialize non leaf cell */
-response init_cell(cell *cell, float length)
+response init_cell(cell *cell, float length, unsigned int num_child_cells)
 {
     cell->parent = NULL;
     cell->children = NULL;
-    cell->num_child_cells = 0;
+    cell->num_child_cells = num_child_cells;
 
     cell->filename = "";
     cell->file_buffer = NULL;
@@ -169,6 +169,68 @@ response init_cell(cell *cell, float length)
     return OK;
 }
 
+cell * get_child_cells(cell * parent_cell, unsigned int num_child_cells, index_settings * settings)
+{
+    parent_cell->children = malloc(sizeof(struct cell) * num_child_cells);
+    if(parent_cell->children == NULL)
+        exit_with_failure("Error in cell.c: Couldn't allocate memory for child cells.");
+    cell * child_cells = parent_cell->children;
+    for(int c = 0; c < num_child_cells; c++)
+    {
+        child_cells[c].parent = parent_cell;
+        child_cells[c].num_child_cells = parent_cell->num_child_cells;
+        child_cells[c].edge_length = parent_cell->edge_length / 2;
+        child_cells[c].is_leaf = false;
+        child_cells[c].center = NULL;
+    }
+    // the values of center vectors for child cells will vary (from parent center vector) in earch direction d(., pi) by (+/-) parent_cell->edge_length /4
+    unsigned int ndc = settings->num_dim * 2;
+    v_type * distinct_coor = malloc(sizeof(v_type) * ndc); // 2 for (+) edge_length/4 and (-) edge_length/4
+    if(distinct_coor == NULL)
+        exit_with_failure("Error in cell.c: Couldn't allocate memory for distinct coordinate of child cells.");
+    for(int i = 0, j = 0; i < settings->num_dim; i++, j += 2)
+    {
+        distinct_coor[j] =  parent_cell->center->values[i] + parent_cell->edge_length /4;
+        distinct_coor[j+1] =  parent_cell->center->values[i] - parent_cell->edge_length /4;
+    }
+
+    // make center vectors for child cells.
+    /* create center vectors */
+    vector temp;
+    temp.values = malloc(sizeof(v_type) * settings->num_dim);
+    if (temp.values == NULL)
+        exit_with_failure("Error in cell.c: Could not allocate memory for temp vector.\n");
+    
+
+    // allocate memory for center vectors
+    vector *center_vectors = malloc(sizeof(struct vector) * parent_cell->num_child_cells);
+    if (center_vectors == NULL)
+        exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
+
+    for(int i = 0; i < parent_cell->num_child_cells; i++)
+    {
+        center_vectors[i].values = malloc(sizeof(v_type) * settings->num_dim);
+        if (center_vectors[i].values == NULL)
+            exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
+        
+        parent_cell->children[i].center = &center_vectors[i];
+    }
+
+
+    // init_center_vectors(distinct_coor, ndc, settings->num_dim,
+    //                     settings->num_dim, center_vectors, temp, 0);
+    int s [] = {1, -1};
+    vector * sign_arr = self_cartesian_product(s, settings->num_dim); // (1, 1, 1), (1, 1, -1), (1, -1, 1), ...
+    for(int i = 0; i < parent_cell->num_child_cells; i++)
+    {
+        for(int j = 0; j < settings->num_dim; j++)
+        {
+            center_vectors[i].values[j] = parent_cell->center->values[j] + ((sign_arr[i].values[j] * parent_cell->edge_length) / 4);
+        }
+    }
+    
+    return parent_cell->children;
+}
 /* create center vectors for all cells of the data space */
 void init_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, vector *center_vectors, vector temp, int append_at)
 {
@@ -196,74 +258,88 @@ void init_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, 
 }
 
 /* initialize cells in a level */
-response make_level_cells(level *level, index_settings *settings)
+// response make_level_cells(level *level, index_settings *settings)
+// {
+//     /* allocate memory for cells */
+//     level->cells = (struct cell *)malloc(sizeof(struct cell) * level->num_cells);
+//     if (level->cells == NULL)
+//         exit_with_failure("Error in main.c: Could not allocate memory for next level cells.");
+//     // initialize cells.
+//     for (int c = 0; c < level->num_cells; c++)
+//     {
+//         init_cell(&level->cells[c], level->cell_edge_length);
+//     }
+
+
+//     /* find distinct center coordinates */
+//     int i, j, ndc = settings->pivot_space_extrimity->values[0] / level->cell_edge_length; //ndc = number of distinct coordinate values of cell center vectors
+//     printf("nuber of distinct coordinates = %d\n", ndc);
+//     /* compute distinct coordinate values (v1, v2, v3, ...) */
+//     v_type * distinct_coordinates = (v_type *) malloc(sizeof(v_type) * ndc);
+//     for (i = 0, j = 1; i < ndc; i++, j += 2)
+//     {
+//         distinct_coordinates[i] = settings->pivot_space_extrimity->values[0] - ((j * level->cell_edge_length) / 2);
+//     }
+
+//     printf("Distinct coordinates:\n");
+//     printf("(");
+//     for(i = 0; i < ndc; i++)
+//     {
+//         printf("%f, ", distinct_coordinates[i]);
+//     }
+//     printf(")\n");
+
+
+//     /* init cells with their center vectors */
+//     vector temp;
+//     temp.values = malloc(sizeof(v_type) * settings->num_dim);
+
+//     if (temp.values == NULL)
+//         exit_with_failure("Error in cell.c: Could not allocate memory for temp vector.\n");
+
+//     vector *center_vectors = malloc(sizeof(struct vector) * level->num_cells);
+
+//     if (center_vectors == NULL)
+//         exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
+
+//     for (i = 0; i < level->num_cells; i++)
+//     {
+//         center_vectors[i].values = malloc(sizeof(v_type) * settings->num_dim);
+
+//         if (center_vectors[i].values == NULL)
+//             exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
+//     }
+
+//     init_center_vectors(distinct_coordinates, ndc, settings->num_dim,
+//                         settings->num_dim, center_vectors, temp, 0);
+
+//     for (i = 0; i < level->num_cells; i++)
+//     {
+//         init_leaf_cell(&level->cells[i], level->cell_edge_length);
+//         level->cells[i].center = &center_vectors[i];
+
+//         /* printf("(");
+//         for(j = 0; j < settings->num_dim; j++)
+//             printf("%.2f, ", leaf_level->cells[i].center->values[j]);
+//         printf(")\n"); */
+//     }
+
+//     free(temp.values);
+//     free(distinct_coordinates);
+//     // don't free centre_vectors
+//     return OK;
+// }
+void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
 {
-    /* allocate memory for cells */
-    level->cells = (struct cell *)malloc(sizeof(struct cell) * level->num_cells);
-    if (level->cells == NULL)
-        exit_with_failure("Error in main.c: Could not allocate memory for next level cells.");
-    // initialize cells.
-    for (int c = 0; c < level->num_cells; c++)
-    {
-        init_cell(&level->cells[c], level->cell_edge_length);
-    }
+    dest->parent = src->parent;
+    dest->edge_length = src->edge_length;
+    for(int i = 0; i < num_dim; i++)
+        dest->center->values[i] = src->center->values[i];
 
+    dest->children = NULL;
+    dest->num_child_cells = src->num_child_cells;
+    dest->filename = src->filename;
+    dest->file_buffer = src->file_buffer;
 
-    /* find distinct center coordinates */
-    int i, j, ndc = settings->pivot_space_extrimity->values[0] / level->cell_edge_length; //ndc = number of distinct coordinate values of cell center vectors
-    printf("nuber of distinct coordinates = %d\n", ndc);
-    /* compute distinct coordinate values (v1, v2, v3, ...) */
-    v_type * distinct_coordinates = (v_type *) malloc(sizeof(v_type) * ndc);
-    for (i = 0, j = 1; i < ndc; i++, j += 2)
-    {
-        distinct_coordinates[i] = settings->pivot_space_extrimity->values[0] - ((j * level->cell_edge_length) / 2);
-    }
-
-    printf("Distinct coordinates:\n");
-    printf("(");
-    for(i = 0; i < ndc; i++)
-    {
-        printf("%f, ", distinct_coordinates[i]);
-    }
-    printf(")\n");
-
-
-    /* init cells with their center vectors */
-    vector temp;
-    temp.values = malloc(sizeof(v_type) * settings->num_dim);
-
-    if (temp.values == NULL)
-        exit_with_failure("Error in cell.c: Could not allocate memory for temp vector.\n");
-
-    vector *center_vectors = malloc(sizeof(struct vector) * level->num_cells);
-
-    if (center_vectors == NULL)
-        exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
-
-    for (i = 0; i < level->num_cells; i++)
-    {
-        center_vectors[i].values = malloc(sizeof(v_type) * settings->num_dim);
-
-        if (center_vectors[i].values == NULL)
-            exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
-    }
-
-    init_center_vectors(distinct_coordinates, ndc, settings->num_dim,
-                        settings->num_dim, center_vectors, temp, 0);
-
-    for (i = 0; i < level->num_cells; i++)
-    {
-        init_leaf_cell(&level->cells[i], level->cell_edge_length);
-        level->cells[i].center = &center_vectors[i];
-
-        /* printf("(");
-        for(j = 0; j < settings->num_dim; j++)
-            printf("%.2f, ", leaf_level->cells[i].center->values[j]);
-        printf(")\n"); */
-    }
-
-    free(temp.values);
-    free(distinct_coordinates);
-    // don't free centre_vectors
-    return OK;
+    dest->is_leaf = src->is_leaf;
 }

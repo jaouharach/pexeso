@@ -6,7 +6,7 @@ typedef struct vector
 {
     int table_id;
     int set_id;
-    float *values;
+    int *values;
 } vector;
 
 void find_combinations(int V[], int d, int dim, vector *vectors, vector out, int append_at);
@@ -16,8 +16,8 @@ static int curr_vector = 0;
 int main()
 {
     int d = 3;              // N dimentions
-    int V[] = {1, 2, 3, 4}; // distinct coordinate values for center points
-    int len_v = 4;
+    int V[] = {1, -1}; // distinct coordinate values for center points
+    int len_v = 2;
     int n_vectors = pow(len_v, d); // number of possible combinations
     int p, x;
 
@@ -30,7 +30,7 @@ int main()
     out.values = malloc(sizeof(float) * d);
     for (p = 0; p < n_vectors; p++)
     {
-        vectors[p].values = malloc(sizeof(v_type) * d);
+        vectors[p].values = malloc(sizeof(float) * d);
     }
 
     find_combinations(V, d, d, vectors, out, 0);
@@ -40,7 +40,7 @@ int main()
         printf("Vector %d:\n(", p+1);
         for(x = 0; x < d; x++)
         {
-            printf("%.2f, ", vectors[p].values[x]);
+            printf("%d, ", vectors[p].values[x]);
         }
         printf(")\n\n");
     }

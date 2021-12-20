@@ -37,3 +37,7 @@ void transform_vector(vector * v, unsigned int v_len, vector * v_transf, vector 
 
 void print_vector(vector * v, unsigned int v_len);
 void vector_cpy(vector * dest, vector * src, unsigned int v_len);
+/* cartesian product (array x array) of dimension dim  */
+vector * self_cartesian_product(int * array, unsigned int dim);
+/* convert integer to decimal array */
+int * integer_to_binary_array(int number, unsigned int arr_len);

@@ -22,8 +22,8 @@ int main()
     unsigned int mode = 0;
 
     /* index settings */
-    unsigned int num_levels = 3; // m
-    unsigned int num_pivots = 3; // number of pivots
+    unsigned int num_levels = 2; // m
+    unsigned int num_pivots = 2; // number of pivots
 
 
     /* read all vectors in the data set */
@@ -124,8 +124,8 @@ int main()
     if(index->first_level == NULL)
         exit_with_failure("Error in main.c: first level not initialized for index!");    
 
-    exit(1);
-
+    /* (!) implement code to create other levels and  link parent cells in first level to child cells in other levels. */
+    
     if (!init_levels(index))
         exit_with_failure("Error in main.c: Couldn't initialize index levels!");
 
