@@ -140,7 +140,7 @@ response init_leaf_cell(cell *cell, float length)
     cell->children = NULL;
     cell->num_child_cells = 0;
 
-    cell->filename = "";
+    cell->filename = malloc(sizeof(char));
     cell->file_buffer = NULL;
 
     cell->is_leaf = true;
@@ -155,17 +155,17 @@ response init_leaf_cell(cell *cell, float length)
 /* initialize non leaf cell */
 response init_cell(cell *cell, float length, unsigned int num_child_cells)
 {
+    cell->edge_length = length;
+    cell->num_child_cells = num_child_cells;
+    cell->is_leaf = false;
+
+    // null pointers 
     cell->parent = NULL;
     cell->children = NULL;
-    cell->num_child_cells = num_child_cells;
-
-    cell->filename = "";
-    cell->file_buffer = NULL;
-
-    cell->is_leaf = false;
-    cell->edge_length = length;
     cell->center = NULL;
-
+    cell->file_buffer = NULL;
+    cell->filename = NULL;
+    
     return OK;
 }
 

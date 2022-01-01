@@ -82,17 +82,16 @@ response init_first_level(pexeso_index *index)
     if (index->first_level == NULL)
         exit_with_failure("Error in main.c: Could not allocate memory for level.");
 
-    index->first_level->cells = (struct cell *)malloc(sizeof(struct cell) * index->first_level->num_cells);
-    if (index->first_level->cells == NULL)
-        exit_with_failure("Error in main.c: Could not allocate memory for first level cells.");
-
-
     index->first_level->id = 1;
     index->first_level->num_cells = (unsigned int)abs(pow(2, index->settings->num_dim)); // num_cells = 2 ^ (P * 1)
     index->first_level->cell_edge_length = pow((index->settings->pivot_space_volume / index->first_level->num_cells), (1.0/index->settings->num_dim));
     index->first_level->next = NULL;
     index->first_level->prev = NULL;
     
+    index->first_level->cells = malloc(sizeof(struct cell) * index->first_level->num_cells);
+    if (index->first_level->cells == NULL)
+        exit_with_failure("Error in main.c: Could not allocate memory for first level cells.");
+
     printf("\n**************************************************************");
     printf("\nLevel 1, num_cells = %d, cell_edge_length = %f\n", index->first_level->num_cells, index->first_level->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
 

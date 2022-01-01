@@ -25,7 +25,7 @@ int main()
     /* index settings */
     unsigned int num_levels = 2;  // m
     unsigned int num_pivots = 2;  // number of pivots
-    unsigned int fft_scale = 3;   // constant for finding |P| * c candidate pivots
+    unsigned int fft_scale = 1;   // constant for finding |P| * c candidate pivots
 
     /* read all vectors in the data set */
     printf("Reading data set vectors...");
@@ -42,7 +42,7 @@ int main()
     /* search for pivot vectors using pca based algorithm (waiting for response from authors) */
     // temp solution: use fft (fathest fist traversal to find k  pivots)
     int dataset_dim [] = {total_vectors, num_dim_metric_space};
-    vector * pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, 1);
+    vector * pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
     printf("(OK)\n");
 
     /* Mapping pivot vectors from metric to pivot space */
