@@ -18,60 +18,6 @@ float euclidean_distance(vector * v1, vector * v2, unsigned int v_len)
     return (float) sqrt(d);
 }
 
-// Farthest First traversal
-float min_distance(vector * vectors, unsigned int num_vectors, vector * v, unsigned int v_len)
-{
-    float min_d = FLT_MAX, d;
-    for (int i = 0; i < num_vectors; i++)
-    {
-        d = euclidean_distance(v, &vectors[i], v_len);
-        if(d < min_d)
-            min_d = d;
-    }
-    return min_d;
-}
-
-vector * fft(vector * data_set, unsigned int n, unsigned int k, unsigned int v_len)
-{
-    vector * outliers = malloc(sizeof(struct vector) * k);
-    for(int i = 0; i < k; i++)
-    {
-        outliers[i].values = malloc(sizeof(v_type)* v_len);
-    }
-    // unsigned int  * outliers_idx = malloc(sizeof(unsigned int) * k);
-    float bsf_d;
-    int bsf_v;
-
-    if (k == n)
-        warning("Warning in globals.c: number of outliers is equal to total vectors in the dataset.");
-
-    // pick an arbitrary vector as first outlier
-    unsigned int rand_idx = (rand() % (n - 1));
-    vector_cpy(&outliers[0], &data_set[rand_idx], v_len);
-
-
-    // find k outliers, skip first
-    for(int i = 1; i < k; i++)
-    {
-        bsf_d = FLT_MIN; // max distance to the current set of outliers
-        bsf_v = -1; // position of the farthest vector in the data set.
-        // find the farthest vector to the vectors in outliers list
-        for(int j = 0; j < n; j++)
-        {
-            // check if vector is already in oultiers
-            // (...)
-            float d = min_distance(outliers, i+1, &data_set[j], v_len);
-            if( d > bsf_d)
-            {
-                bsf_d = d;
-                bsf_v = j;
-            }
-        }
-        outliers[i].values = data_set[bsf_v].values;
-    }
-    return outliers;
-}
-
 /* tranform vector to pivot space */
 void transform_vector(vector * v, unsigned int v_len, vector * v_transf, vector * pivots, unsigned int num_pivots)
 {
