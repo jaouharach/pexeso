@@ -8,7 +8,7 @@
 #include "../include/file_loader.h"
 #include "../include/select_pivots.h"
 
-vector * get_dataset_extrimity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
+vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
 int main()
 {
     /* dataset */
@@ -68,10 +68,10 @@ int main()
     for(int j = 0; j < num_pivots; j++)
         print_vector(&pivots[j], num_pivots);
 
-    /* pivot space extrimity */
-    printf("Extrimity vector in pivot space:\n");
-    vector * pivot_space_extrimity = get_extrimity(pivots, num_pivots);
-    print_vector(pivot_space_extrimity, num_pivots);
+    /* pivot space extremity */
+    printf("extremity vector in pivot space:\n");
+    vector * pivot_space_extremity = get_extremity(pivots, num_pivots);
+    print_vector(pivot_space_extremity, num_pivots);
     
 
     /* Transforming data set from metric to pivot space (create distance matrix) */
@@ -89,11 +89,11 @@ int main()
     }
     printf("(OK)\n");
 
-    /* find extrimity in dataset */
+    /* find extremity in dataset */
 
-    // printf("\n\nExtrimity vector in pivot space:\n");
-    // pivot_space_extrimity = get_dataset_extrimity(dataset_img, total_vectors, num_pivots);
-    // print_vector(pivot_space_extrimity, num_pivots);
+    // printf("\n\nextremity vector in pivot space:\n");
+    // pivot_space_extremity = get_dataset_extremity(dataset_img, total_vectors, num_pivots);
+    // print_vector(pivot_space_extremity, num_pivots);
     // exit(1);
 
     /* initialize index */
@@ -102,7 +102,7 @@ int main()
     if (index == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for index!");
 
-    if (!init_index(root_directory, num_pivots, pivot_space_extrimity, num_levels, index))
+    if (!init_index(root_directory, num_pivots, pivot_space_extremity, num_levels, index))
         exit_with_failure("Error in main.c: Couldn't initialize index!");
     printf("(OK)\n");
 
@@ -139,25 +139,25 @@ int main()
     return 0;
 }
 
-vector * get_dataset_extrimity(vector * dataset, unsigned int num_vectors, unsigned int num_dim)
+vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim)
 {
-    vector * extrimity = malloc(sizeof(struct vector));
-    extrimity->values = malloc(sizeof(v_type)*num_dim);
+    vector * extremity = malloc(sizeof(struct vector));
+    extremity->values = malloc(sizeof(v_type)*num_dim);
     for(int j = 0; j < num_dim; j++)
     {
-        extrimity->values[j] = FLT_MIN;
+        extremity->values[j] = FLT_MIN;
     }
 
     for(int v = 0; v < num_vectors; v++)
     {
         for(int j = 0; j < num_dim; j++)
         {
-            if(dataset[v].values[j] > extrimity->values[j])
-                extrimity->values[j] = dataset[v].values[j];
+            if(dataset[v].values[j] > extremity->values[j])
+                extremity->values[j] = dataset[v].values[j];
         }
         
     }
 
-    return extrimity;
+    return extremity;
 
 }

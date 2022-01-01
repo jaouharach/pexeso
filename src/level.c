@@ -43,10 +43,9 @@ response init_levels(pexeso_index *index)
         }
         // cell edge length = (V / num_cells) ^ 1/|P|
         new_level->cell_edge_length = pow((index->settings->pivot_space_volume / new_level->num_cells), (1.0/index->settings->num_dim));
-        printf("\n**************************************************************");
-        printf("\nCurr Level %u, num_cells = %d, cell_edge_length = %f\n", curr_level->id, curr_level->num_cells, curr_level->cell_edge_length);    
+        printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
+        // printf("\nCurr Level %u, num_cells = %d, cell_edge_length = %f\n", curr_level->id, curr_level->num_cells, curr_level->cell_edge_length);    
         printf("\nNew Level %u, num_cells = %d, cell_edge_length = %f\n", id, new_level->num_cells, new_level->cell_edge_length);    
-
         
         // (!) link cells in curr_level to cells in new level (curr_cell = current cell in next level)
         for(int i = 0, curr_cell = 0; i < curr_level->num_cells; i++)
@@ -61,12 +60,12 @@ response init_levels(pexeso_index *index)
             curr_level->cells[i].children = &new_level->cells[curr_cell];
             for(int j = 0; j < curr_level->cells[i].num_child_cells; j++, curr_cell++)
             {
-                printf("Adding cell %d, center vector: \n", curr_cell);
+                printf("++ Adding cell %d, center vector: \n", curr_cell);
                 cell_cpy(&new_level->cells[curr_cell], &child_cells[j], index->settings->num_dim);
                 print_vector(new_level->cells[curr_cell].center, index->settings->num_dim);
             }
         }
-
+        printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
         new_level->next = NULL;
         new_level->prev = curr_level; // point back to last level in index
         curr_level = curr_level->next; // change current last level in list of levels.
@@ -77,6 +76,8 @@ response init_levels(pexeso_index *index)
 /* initialize leaf level */
 response init_first_level(pexeso_index *index)
 {
+    int i, j;
+
     /* allocate memory for level */
     index->first_level = (struct level *)malloc(sizeof(struct level));
     if (index->first_level == NULL)
@@ -92,40 +93,14 @@ response init_first_level(pexeso_index *index)
     if (index->first_level->cells == NULL)
         exit_with_failure("Error in main.c: Could not allocate memory for first level cells.");
 
-    printf("\n**************************************************************");
+    printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
     printf("\nLevel 1, num_cells = %d, cell_edge_length = %f\n", index->first_level->num_cells, index->first_level->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
 
-    /* initialize cells*/
+    /* create cells in first level */
     for(int c = 0; c < index->first_level->num_cells; c++)
     {
         init_cell(&index->first_level->cells[c], index->first_level->cell_edge_length, index->first_level->num_cells);
     }
-
-    /* compute coordiante for cell center vectors */
-    int i, j, ndc = index->settings->pivot_space_extrimity->values[0] / index->first_level->cell_edge_length; //ndc = number of distinct coordinate values of cell center vectors
-
-    // ndc = number of child cells per parent cell = number of cells in the first level 
-    
-    // find all distinct coordinate values (v1, v2, v3, ...)
-    v_type * distinct_coordinates = (v_type *) malloc(sizeof(v_type) * ndc);
-    for (i = 0, j = 1; i < ndc; i++, j += 2)
-    {
-        distinct_coordinates[i] = index->settings->pivot_space_extrimity->values[0] - ((j * index->first_level->cell_edge_length) / 2);
-    }
-    printf("number of distinct coordinates = %d\n", ndc);
-    printf("Distinct coordinates:\n");
-    printf("(");
-    for(i = 0; i < ndc; i++)
-    {
-        printf("%f, ", distinct_coordinates[i]);
-    }
-    printf(")\n");
-
-    /* create center vectors */
-    vector temp;
-    temp.values = malloc(sizeof(v_type) * index->settings->num_dim);
-    if (temp.values == NULL)
-        exit_with_failure("Error in level.c: Could not allocate memory for temp vector.\n");
 
     // allocate memory for center vectors
     vector *center_vectors = malloc(sizeof(struct vector) * index->first_level->num_cells);
@@ -138,20 +113,42 @@ response init_first_level(pexeso_index *index)
         if (center_vectors[i].values == NULL)
             exit_with_failure("Error in level.c: Could not allocate memory for list of center vectors.\n");
         
+        // link center vector to cell in first_level
         index->first_level->cells[i].center = &center_vectors[i];
     }
 
-    init_center_vectors(distinct_coordinates, ndc, index->settings->num_dim,
-                        index->settings->num_dim, center_vectors, temp, 0);
+    /*
+        ndc = number of distinct cooridantes = number of child cells per parent cell = number of cells in the first level 
+        compute coordiante for cell center vectors 
+        find all distinct coordinate values (v1, v2, v3, ...)
+    */
+    int ndc = index->settings->pivot_space_extremity->values[0] / index->first_level->cell_edge_length; //ndc = number of distinct coordinate values of cell center vectors
+    v_type * distinct_coordinates = (v_type *) malloc(sizeof(v_type) * ndc);
+    if(distinct_coordinates == NULL)
+        exit_with_failure("Error in level.c: Couldn't allocate memory for distinct coordinates.");
 
-    // print center vectors
-    // for (i = 0; i < index->first_level->num_cells; i++)
+    for (i = 0, j = 1; i < ndc; i++, j += 2)
+    {
+        distinct_coordinates[i] = index->settings->pivot_space_extremity->values[0] - ((j * index->first_level->cell_edge_length) / 2);
+    }
+    
+    // printf("number of distinct coordinates = %d\n", ndc);
+    // printf("Distinct coordinates:\n");
+    // printf("(");
+    // for(i = 0; i < ndc; i++)
     // {
-    //     printf("(");
-    //     for(j = 0; j < index->settings->num_dim; j++)
-    //         printf("%.2f, ", index->first_level->cells[i].center->values[j]);
-    //     printf(")\n");
+    //     printf("%f, ", distinct_coordinates[i]);
     // }
+    // printf(")\n");
+
+    /* create center vectors */
+    vector temp;
+    temp.values = malloc(sizeof(v_type) * index->settings->num_dim);
+    if (temp.values == NULL)
+        exit_with_failure("Error in level.c: Could not allocate memory for temp vector.\n");
+
+    create_center_vectors(distinct_coordinates, ndc, index->settings->num_dim,
+                        index->settings->num_dim, center_vectors, temp, 0);
 
     return OK;
 }

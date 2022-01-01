@@ -6,7 +6,7 @@
 struct index_settings {
     const char * root_directory;  
     unsigned int num_dim; // |P|
-    vector * pivot_space_extrimity; // 
+    vector * pivot_space_extremity; // 
     float pivot_space_volume;
     float leaf_cell_edge_length;
     unsigned int num_leaf_cells; // 2^(|P| * m)
@@ -21,11 +21,11 @@ struct pexeso_index{
 
 response init_index(const char * root_directory,
                 unsigned int num_pivots,
-                vector * extrimity,
+                vector * extremity,
                 unsigned int num_levels,
                 pexeso_index * index);
 
-vector * get_extrimity(vector * pivot_vectors, unsigned int num_dim);
+vector * get_extremity(vector * pivot_vectors, unsigned int num_dim);
 
 response insert_vector(pexeso_index *, vector *);
 void display_indexed_vectors(pexeso_index *);

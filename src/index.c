@@ -10,7 +10,7 @@
 /* initialize index */
 response init_index(const char * root_directory,
                 unsigned int num_pivots,
-                vector * extrimity,
+                vector * extremity,
                 unsigned int num_levels,
                 pexeso_index * index)
 {
@@ -23,16 +23,16 @@ response init_index(const char * root_directory,
 
     index->settings->root_directory = root_directory;
     index->settings->num_dim = num_pivots; // number of dimensions is equal to the number of pivots
-    index->settings->pivot_space_extrimity = extrimity;
+    index->settings->pivot_space_extremity = extremity;
     index->settings->num_levels = num_levels;
     index->settings->num_leaf_cells = pow(2, num_pivots * num_levels); // 2^(|P| * m) number of cells depends on num_pivots to ensure same length in all edges.
 
     
-    // volume of the pivot space = multiplication of all extrimity coordinates.
+    // volume of the pivot space = multiplication of all extremity coordinates.
     index->settings->pivot_space_volume = 1.0;
     for(int i = 0; i < num_pivots; i++)
     {
-        index->settings->pivot_space_volume *= fabs(extrimity->values[i]);
+        index->settings->pivot_space_volume *= fabs(extremity->values[i]);
     }
 
     // leaf cell edge length = (V / num_leaf_cells) ^ 1/|P|
@@ -40,12 +40,12 @@ response init_index(const char * root_directory,
     
     return OK;
 }
-/* get extrimity vector of the pivot space, pivots must be outliers for extrimity to be accurate */
-vector * get_extrimity(vector * pivot_vectors, unsigned int num_pivots)
+/* get extremity vector of the pivot space, pivots must be outliers for extremity to be accurate */
+vector * get_extremity(vector * pivot_vectors, unsigned int num_pivots)
 {
-    // extrimity =  farthest vector in the pivot space (holds maximum distance to a pivot)
-    vector * pivot_space_extrimity = malloc(sizeof(struct vector));
-    pivot_space_extrimity->values = (v_type *) malloc(sizeof(v_type) * num_pivots);
+    // extremity =  farthest vector in the pivot space (holds maximum distance to a pivot)
+    vector * pivot_space_extremity = malloc(sizeof(struct vector));
+    pivot_space_extremity->values = (v_type *) malloc(sizeof(v_type) * num_pivots);
 
     v_type max = FLT_MIN;
     for(int i = 0; i < num_pivots; i++)
@@ -55,9 +55,9 @@ vector * get_extrimity(vector * pivot_vectors, unsigned int num_pivots)
                 max = pivot_vectors[i].values[j];
     }
     for(int i = 0; i < num_pivots; i++)
-        pivot_space_extrimity->values[i] = max;
+        pivot_space_extremity->values[i] = max;
         
-    return pivot_space_extrimity;
+    return pivot_space_extremity;
 }
 
 /* append vector to index */
