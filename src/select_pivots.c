@@ -7,8 +7,12 @@ vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_piv
     // run fft to get a candidate set of outliers
     int num_cp = num_pivots*fft_scale; // number of candidate pivots
 
+    // get a set of candidate pivots (outliers)
     vector * candidate_pivots = fft(dataset, dataset_dim, num_cp);
 
+    // compute the distance matrix (num_vector x num_cp) to the current set of candidate pivots (outliers)
+    vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, candidate_pivots, num_cp);
+    
     return candidate_pivots;
 }
 
@@ -73,4 +77,33 @@ float min_distance(vector *outliers, unsigned int num_outliers, vector *v, unsig
             min_d = d;
     }
     return min_d;
+}
+
+/* map vector to pivot space  vector --> vector_mapping*/
+void map_vector(vector *v, unsigned int v_len, vector *v_mapping, vector *pivots, unsigned int num_pivots)
+{
+    for (int i = 0; i < num_pivots; i++)
+        v_mapping->values[i] = euclidean_distance(v, &pivots[i], v_len);   
+}
+
+/*  get distance matrix of a dataset (mapping of vectors to the pivot space), 
+    dataset_mtr (dataset in metric space) --> dataset_ps (dataset in pivot space) */
+vector * map_to_pivot_space(vector * dataset_mtr, int * dataset_dim, vector * pivots, unsigned int num_pivots)
+{
+    int num_vectors = dataset_dim[0];
+    int num_dim_metric_space = dataset_dim[1];
+
+    // allocate memory for dataset in pivot space
+    vector * dataset_ps = malloc(sizeof(struct vector) * num_vectors);
+    if(dataset_ps == NULL)
+        exit_with_failure("Error in select_pivots.c: Couldn't allocate memory for new dataset in pivot space.");
+    for(int i = 0; i < num_vectors; i++)
+    {
+        dataset_ps[i].values = malloc(sizeof(v_type) * num_pivots);
+        if(dataset_ps[i].values == NULL)
+            exit_with_failure("Error in select_pivots.c: couldn't allocate memory for values of vector mapping.");
+        
+        map_vector(&dataset_mtr[i], num_dim_metric_space, &dataset_ps[i], pivots, num_pivots);
+    }
+    return dataset_ps;
 }
