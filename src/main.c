@@ -14,10 +14,10 @@ int main()
     /* dataset */
     const char *root_directory = "/home/jaouhara/Projects/pexeso/index";
     const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binary_files/"; //target directory
-    unsigned int num_files = 5;
+    unsigned long num_files = 0ul;
     unsigned int base = 32; // 32 bits to store numbers in binary files
-    unsigned int num_dim_metric_space = 3;
-    unsigned long total_vectors = 0ul; // number of vectors in the whole data lake
+    unsigned int mtr_vector_length = 3, num_dim_metric_space = 3;
+    unsigned long long total_vectors = 0ull; // number of vectors in the whole data lake
 
     /* mode 0 = index dataset, 1 = query dataset */
     unsigned int mode = 0;
@@ -28,15 +28,19 @@ int main()
     unsigned int fft_scale = 1;   // constant for finding |P| * c candidate pivots
 
     /* read all vectors in the data set */
-    printf("Reading data set vectors...");
-    vector * dataset = load_binary_files(&total_vectors, bin_files_directory, 
-                                        num_files, base, num_dim_metric_space);
+    printf("Reading dataset info...");
+    get_dataset_info(bin_files_directory, &num_files, &total_vectors, &mtr_vector_length);
+    printf("(OK)\n");
+
+    printf("\tNumber of (.bin) files = %lu\n\tNumber of vectors = %llu\n\tVector length in mtric spaces = %u\n\n", num_files, total_vectors, mtr_vector_length);
+
+    printf("Loading dataset files...");
+    vector * dataset = load_binary_files(bin_files_directory, 
+                                        num_files, total_vectors, base, mtr_vector_length);
         
     if(dataset == NULL)
-        exit_with_failure("Error in main.c: Couldn't read dataset vectors!.");
+        exit_with_failure("Error in main.c: Something went wrong, couldn't read dataset vectors!");
     printf("(OK)\n");
-    printf("Total vectors = %lu\n", total_vectors);
-
 
     printf("\n\nLooking for pivot vectors... ");
     /* search for pivot vectors using pca based algorithm (waiting for response from authors) */
@@ -102,14 +106,17 @@ int main()
     if (index == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for index!");
 
-    if (!init_index(root_directory, num_pivots, pivot_space_extremity, num_levels, index))
+    if (!init_index(
+        root_directory, num_pivots, pivot_space_extremity, 
+        num_levels, total_vectors, base, mtr_vector_length, index
+        ))
         exit_with_failure("Error in main.c: Couldn't initialize index!");
     printf("(OK)\n");
 
     /* Display settings */
     printf("\n\t\t*** \tINDEX SETTINGS\t ***\t\n");
     printf("--------------------------------------------------------------\n");
-    printf("\t\tNumber of pivots = %d\n", index->settings->num_dim);
+    printf("\t\tNumber of pivots = %d\n", index->settings->num_pivots);
     printf("\t\tNumber of levels = %d\n", index->settings->num_levels);
     printf("\t\tPivot space volume = %f\n", index->settings->pivot_space_volume);
     printf("\t\tNumber of leaf cells = %d\n", index->settings->num_leaf_cells);
@@ -125,8 +132,6 @@ int main()
     if(index->first_level == NULL)
         exit_with_failure("Error in main.c: first level not initialized for index!");    
 
-    /* (!) implement code to create other levels and  link parent cells in first level to child cells in other levels. */
-    
     if (!init_levels(index))
         exit_with_failure("Error in main.c: Couldn't initialize index levels!");
 

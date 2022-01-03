@@ -4,4 +4,4 @@ Binary conversion:                  little indian.
 Base:
 Number of bytes for integer:        4 (32 bits)
 Number of bytes for floats:         4 (32 bits)
-Number of bytes per binary file:    base * ((datasize * index->settings->num_dim) + nsets) / 8
+Number of bytes per binary file:    base * ((datasize * index->settings->num_pivots) + nsets) / 8

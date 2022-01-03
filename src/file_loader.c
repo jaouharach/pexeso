@@ -8,13 +8,16 @@
 #include "../include/cell.h"
 #include "../include/file_loader.h"
 
-vector * load_binary_files(unsigned long * curr_total_vectors, const char *bin_files_directory, unsigned int num_files, unsigned int base, unsigned int num_dim)
+vector * load_binary_files(const char *bin_files_directory, unsigned long num_files, unsigned long long total_vectors, unsigned int base, unsigned int mtr_vector_length)
 {
-    vector * data_set = NULL;
+    vector * dataset = NULL;
     unsigned int read_files = 0u; // numbre of read files so far
+    unsigned long long curr_total_vectors = 0; // numbre of read vectors so far
+
+    // binary file info
     unsigned int datasize, table_id, nsets, vector_length;
     uint32_t num_vectors = 0u;
-    vector *vector = (struct vector *)malloc(sizeof(struct vector));
+
     v_type val;
     DIR *dir;
     struct dirent *dfile;
@@ -23,10 +26,28 @@ vector * load_binary_files(unsigned long * curr_total_vectors, const char *bin_f
     if (dir == NULL)
         exit_with_failure("Error in index.c: Unable to open binary files directory stream!\n");
 
-    vector->values = (v_type *)malloc(sizeof(v_type) * num_dim);
+    // temp vector
+    vector *vector = (struct vector *)malloc(sizeof(struct vector));
+    if (vector == NULL)
+        exit_with_failure("Error in file_loader.c: Could not allocate memory for temp vector.");
 
+    vector->values = (v_type *)malloc(sizeof(v_type) * mtr_vector_length);
     if (vector->values == NULL)
-        exit_with_failure("Error in file_loader.c: Could not allocate memory for vector values.");
+        exit_with_failure("Error in file_loader.c: Could not allocate memory for temp vector values.");
+
+
+    // allocate memory for the whole set of vectors
+    dataset = malloc(sizeof(struct vector) * total_vectors);
+    if (dataset == NULL)
+        exit_with_failure("Error in file_loader.c: Could not allocate memory for dataset.");
+
+    for(int k = 0; k < total_vectors; k++)
+    {
+        dataset[k].values = malloc(sizeof(v_type) * mtr_vector_length);
+        if (dataset[k].values == NULL)
+            exit_with_failure("Error in file_loader.c: Could not allocate memory for dataset values.");
+
+    }
 
     while ((dfile = readdir(dir)) != NULL && num_files > 0) // each file in directory
     {
@@ -49,7 +70,7 @@ vector * load_binary_files(unsigned long * curr_total_vectors, const char *bin_f
             sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &vector_length);
 
             // check if vector length in file name matches vector length passed as argument
-            if (vector_length != num_dim)
+            if (vector_length != mtr_vector_length)
                 exit_with_failure("Error in file_loader.c:  number of dimentions in index settings does not match vector length in file.\n");
 
             /* read binary file */
@@ -59,7 +80,7 @@ vector * load_binary_files(unsigned long * curr_total_vectors, const char *bin_f
                 exit_with_failure("Error in file_loader.c: Binary file not found in directory!\n");
 
             /* Start processing file: read every vector in binary file */
-            int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * num_dim) + nsets) / 8;
+            int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * mtr_vector_length) + nsets) / 8;
             // printf("File size in bytes = %u\n\n", total_bytes);
 
             while (total_bytes)
@@ -79,21 +100,18 @@ vector * load_binary_files(unsigned long * curr_total_vectors, const char *bin_f
 
                     set_id += 1;
                 }
-                else if (i <= (unsigned int)num_vectors * num_dim)
+                else if (i <= (unsigned int)num_vectors * mtr_vector_length)
                 {
                     // end of vector but still in current set
-                    if (j > num_dim - 1)
+                    if (j > mtr_vector_length - 1)
                     {
                         j = 0;
                         // add vector to array of vectors
-                        data_set = realloc(data_set, sizeof(struct vector) * (*curr_total_vectors + 1));
-                        data_set[*curr_total_vectors].values = malloc(sizeof(v_type) * num_dim);
+                        dataset[curr_total_vectors].set_id = vector->set_id;
+                        dataset[curr_total_vectors].table_id = vector->table_id;
+                        vector_cpy(&dataset[curr_total_vectors], vector, mtr_vector_length);
 
-                        data_set[*curr_total_vectors].set_id = vector->set_id;
-                        data_set[*curr_total_vectors].table_id = vector->table_id;
-                        vector_cpy(&data_set[*curr_total_vectors], vector, num_dim);
-
-                        *curr_total_vectors = *curr_total_vectors + 1;
+                        curr_total_vectors = curr_total_vectors + 1;
                     }
 
                     fread((void *)(&val), sizeof(val), 1, bin_file);
@@ -102,17 +120,14 @@ vector * load_binary_files(unsigned long * curr_total_vectors, const char *bin_f
                     vector->values[j] = val;
 
                     // last value in last vector in current  set
-                    if (i == (unsigned int)num_vectors * num_dim)
+                    if (i == (unsigned int)num_vectors * mtr_vector_length)
                     {
                         // add vector to array of vectors
-                        data_set = realloc(data_set, sizeof(struct vector) * (*curr_total_vectors + 1));
-                        data_set[*curr_total_vectors].values = malloc(sizeof(v_type) * num_dim);
+                        dataset[curr_total_vectors].set_id = vector->set_id;
+                        dataset[curr_total_vectors].table_id = vector->table_id;
+                        vector_cpy(&dataset[curr_total_vectors], vector, mtr_vector_length);
 
-                        data_set[*curr_total_vectors].set_id = vector->set_id;
-                        data_set[*curr_total_vectors].table_id = vector->table_id;
-                        vector_cpy(&data_set[*curr_total_vectors], vector, num_dim);
-
-                        *curr_total_vectors = *curr_total_vectors + 1;
+                        curr_total_vectors = curr_total_vectors + 1;
 
                         i = 0;
                         j = 0;
@@ -133,9 +148,8 @@ vector * load_binary_files(unsigned long * curr_total_vectors, const char *bin_f
 
     free(vector->values);
     free(vector);
-    free(dfile);
 
-    return data_set;
+    return dataset;
 }
 
 /* index raw binary vectors (in metric space) */
@@ -154,7 +168,7 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
     if (dir == NULL)
         exit_with_failure("Error in index.c: Unable to open binary files directory stream!\n");
 
-    vector->values = (v_type *)malloc(sizeof(v_type) * index->settings->num_dim);
+    vector->values = (v_type *)malloc(sizeof(v_type) * index->settings->num_pivots);
 
     if (vector->values == NULL)
         exit_with_failure("Error in file_loader.c: Could not allocate memory for vector values.");
@@ -180,7 +194,7 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
             sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &vector_length);
 
             // check if vector length in file name matches vector length passed as argument
-            if (vector_length != index->settings->num_dim)
+            if (vector_length != index->settings->num_pivots)
                 exit_with_failure("Error in file_loader.c:  number of dimentions in index settings does not match vector length in file.\n");
 
             /* read binary file */
@@ -190,7 +204,7 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
                 exit_with_failure("Error in file_loader.c: Binary file not found in directory!\n");
 
             /* Start processing file: read every vector in binary file */
-            int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * index->settings->num_dim) + nsets) / 8;
+            int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * index->settings->num_pivots) + nsets) / 8;
             printf("File size in bytes = %u\n\n", total_bytes);
 
             while (total_bytes)
@@ -210,10 +224,10 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
 
                     set_id += 1;
                 }
-                else if (i <= (unsigned int)num_vectors * index->settings->num_dim)
+                else if (i <= (unsigned int)num_vectors * index->settings->num_pivots)
                 {
                     // end of vector but still in current set
-                    if (j > index->settings->num_dim - 1)
+                    if (j > index->settings->num_pivots - 1)
                     {
                         j = 0;
                         // insert vector in index
@@ -227,7 +241,7 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
                     vector->values[j] = val;
 
                     // last value in last vector in current  set
-                    if (i == (unsigned int)num_vectors * index->settings->num_dim)
+                    if (i == (unsigned int)num_vectors * index->settings->num_pivots)
                     {
                         // insert vector in index
                         if (!insert_vector(index, vector))
@@ -262,4 +276,43 @@ bool is_binaryfile(const char *filename) // check if filename has extesion.
     char *ext = ".bin";
     size_t nl = strlen(filename), el = strlen(ext);
     return nl >= el && !strcmp(filename + nl - el, ext);
+}
+
+/* check dataset directory and count total files and number of vectors */
+unsigned long long get_dataset_info(const char *bin_files_directory, unsigned long *num_files, unsigned long long *num_vectors, unsigned int *vector_length)
+{
+    *num_files = 0ul;
+    *num_vectors = 0ull;
+    *vector_length = 0u;
+
+    // variables found in file name, datasize = total vactors in file, nsets = number of columns/tuples
+    unsigned int datasize, table_id, nsets, v_len;
+
+    DIR *dir;
+    struct dirent *dfile;
+    dir = opendir(bin_files_directory);
+
+    if (dir == NULL)
+        exit_with_failure("Error in index.c: Unable to open binary files directory stream!\n");
+
+    // check every file in directory
+    while ((dfile = readdir(dir)) != NULL) 
+    {
+        if (dfile->d_type != DT_REG) // skip directories
+            continue;
+
+        if (is_binaryfile(dfile->d_name))
+        {
+            // get binary file info
+            sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &v_len);
+            *num_files = *num_files + 1;
+            *num_vectors += datasize;
+
+            // check if there exist files with different vector lengths
+            if(*vector_length != 0 && *vector_length != v_len)
+                exit_with_failure("Error in file_loader.c: Exit dataset directory. Found binary files with different vector lengths!.");
+
+            *vector_length = v_len;
+        }
+    }
 }

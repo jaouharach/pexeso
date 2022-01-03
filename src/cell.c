@@ -70,11 +70,11 @@ cell * get_child_cells(cell * parent_cell, unsigned int num_child_cells, index_s
         child_cells[c].center = NULL;
     }
     // the values of center vectors for child cells will vary (from parent center vector) in earch direction d(., pi) by (+/-) parent_cell->edge_length /4
-    unsigned int ndc = settings->num_dim * 2;
+    unsigned int ndc = settings->num_pivots * 2;
     v_type * distinct_coor = malloc(sizeof(v_type) * ndc); // 2 for (+) edge_length/4 and (-) edge_length/4
     if(distinct_coor == NULL)
         exit_with_failure("Error in cell.c: Couldn't allocate memory for distinct coordinate of child cells.");
-    for(int i = 0, j = 0; i < settings->num_dim; i++, j += 2)
+    for(int i = 0, j = 0; i < settings->num_pivots; i++, j += 2)
     {
         distinct_coor[j] =  parent_cell->center->values[i] + parent_cell->edge_length /4;
         distinct_coor[j+1] =  parent_cell->center->values[i] - parent_cell->edge_length /4;
@@ -82,7 +82,7 @@ cell * get_child_cells(cell * parent_cell, unsigned int num_child_cells, index_s
 
     /* create center vectors for child cells */
     vector temp;
-    temp.values = malloc(sizeof(v_type) * settings->num_dim);
+    temp.values = malloc(sizeof(v_type) * settings->num_pivots);
     if (temp.values == NULL)
         exit_with_failure("Error in cell.c: Could not allocate memory for temp vector.\n");
     
@@ -93,7 +93,7 @@ cell * get_child_cells(cell * parent_cell, unsigned int num_child_cells, index_s
 
     for(int i = 0; i < parent_cell->num_child_cells; i++)
     {
-        center_vectors[i].values = malloc(sizeof(v_type) * settings->num_dim);
+        center_vectors[i].values = malloc(sizeof(v_type) * settings->num_pivots);
         if (center_vectors[i].values == NULL)
             exit_with_failure("Error in cell.c: Could not allocate memory for list of center vectors.\n");
         
@@ -108,10 +108,10 @@ cell * get_child_cells(cell * parent_cell, unsigned int num_child_cells, index_s
     */
 
     int s [] = {1, -1}; // sign (+/-)
-    vector * sign_arr = self_cartesian_product(s, settings->num_dim); // (1, 1, 1), (1, 1, -1), (1, -1, 1), ...
+    vector * sign_arr = self_cartesian_product(s, settings->num_pivots); // (1, 1, 1), (1, 1, -1), (1, -1, 1), ...
     for(int i = 0; i < parent_cell->num_child_cells; i++)
     {
-        for(int j = 0; j < settings->num_dim; j++)
+        for(int j = 0; j < settings->num_pivots; j++)
         {
             center_vectors[i].values[j] = parent_cell->center->values[j] + ((sign_arr[i].values[j] * parent_cell->edge_length) / 4);
         }
