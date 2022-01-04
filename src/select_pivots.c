@@ -1,4 +1,5 @@
 #include "../include/index.h"
+#include "../include/gsl_matrix.h"
 #include "../include/select_pivots.h"
 
 /* pivot selection algorithm */
@@ -13,6 +14,10 @@ vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_piv
     // compute the distance matrix (num_vector x num_cp) to the current set of candidate pivots (outliers)
     vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, candidate_pivots, num_cp);
     
+    // compute PCA with EM method
+    int dim_pcset [] = {num_pivots, num_cp+1};
+    gsl_matrix * pcset = empca(dataset_ps, dataset_dim[0], num_cp, num_pivots);
+
     return candidate_pivots;
 }
 
@@ -106,4 +111,150 @@ vector * map_to_pivot_space(vector * dataset_mtr, int * dataset_dim, vector * pi
         map_vector(&dataset_mtr[i], num_dim_metric_space, &dataset_ps[i], pivots, num_pivots);
     }
     return dataset_ps;
+}
+
+/* EMPCA: Expectation Management for Principal Component Analysis, return pc matrix */
+gsl_matrix * empca(vector *data_set, unsigned int num_vectors, unsigned int dim, unsigned int num_pc)
+{
+    unsigned int num_iteration = 20;
+    
+    int dim_data[] = {num_vectors, dim};
+    int dim_data_t[] = {dim, num_vectors};
+
+    // centerize data
+    gsl_matrix * data = to_gsl_matrix(data_set, dim_data);
+    gsl_matrix_centerize(data, dim_data);
+
+    // transpose matrix of the data_set
+    gsl_matrix * data_t = gsl_matrix_get_transpose(data, dim_data);
+
+    // printf("Mean centerised data matrix:\n");
+    // gsl_matrix_print(data, dim_data);
+
+    // printf("transpose of data matrix:\n");
+    // gsl_matrix_print(data_t, dim_data_t);
+
+    // create a (dim x num_pc) matrix of random weigths, each weigth wij = [-0.5, 0.5]
+    int dim_c[] = {dim, num_pc};
+    int dim_ct[] = {num_pc, dim};
+    int dim_ct_mult_c[] = {num_pc, num_pc};
+
+    gsl_matrix * C = gsl_matrix_alloc(dim, num_pc);
+    gsl_matrix * Ct = gsl_matrix_alloc(num_pc, dim);
+
+    if(C == NULL || Ct == NULL)
+        exit_with_failure("Error in select_pivots.c: Couldn't allocate memory for empca matrix.");
+
+    for (int i = 0; i < dim; i++)
+        for (int j = 0; j < num_pc; j++)
+            gsl_matrix_set(C, i, j, ((float)rand() / (float)((unsigned)RAND_MAX + 1)) - 0.5);  
+    
+
+    int dim_x [] = {num_pc, num_vectors};
+    int dim_xt [] = {num_vectors, num_pc};
+
+    gsl_matrix *x = NULL;
+    gsl_matrix *xt = gsl_matrix_alloc(num_vectors, num_pc);
+
+    // printf("C matrix:\n");
+    // gsl_matrix_print(C, dim_c);
+
+    // repeat 20 times
+    for (int i = 0; i < num_iteration; i++)
+    {
+        // [(Ct * C) ^-1 * Ct] * data
+        Ct = gsl_matrix_get_transpose(C, dim_c);        
+        
+        // printf("Ct matrix:\n");
+        // gsl_matrix_print(Ct, dim_ct);
+
+        x = gsl_matrix_product(
+                gsl_matrix_product(
+                    gsl_matrix_inverse(gsl_matrix_product(Ct, dim_ct, C, dim_c), dim_ct_mult_c),
+                    dim_ct_mult_c,
+                    Ct,
+                    dim_ct
+                ),
+                dim_ct,
+                data_t,
+                dim_data_t
+            );
+
+        // printf("x matrix:\n");
+        // gsl_matrix_print(x, dim_x);
+
+        
+        // compute xt 
+        xt = gsl_matrix_get_transpose(x, dim_x);
+
+        // printf("xt matrix:\n");
+        // gsl_matrix_print(xt, dim_xt);
+
+        // (data * Xt) * (X * Xt) ^-1
+        C = gsl_matrix_product(
+                gsl_matrix_product(data_t, dim_data_t, xt, dim_xt),
+                dim_c,
+                gsl_matrix_inverse(gsl_matrix_product(x, dim_x, xt, dim_xt), dim_ct_mult_c),
+                dim_ct_mult_c
+            );
+    }
+    
+
+    // orthonormalization of matrix C (SVD)
+    C = orthonormalization(C, dim_c, 1);
+
+    // cov_matrix = Covariance matrix of (Ct * data)t
+    int dim_ctd[] = {num_pc, num_vectors}; // dim of (Ct * data)
+    int dim_ctdt [] = {num_vectors, num_pc}; // dim of (Ct * data)t
+    // int dim_cov [] = {num_pc, num_pc};
+    int dim_v [] = {num_pc, num_pc};
+
+    // compute Ct
+    Ct = gsl_matrix_get_transpose(C, dim_c);
+
+    // compute (Ct * data)t    
+    gsl_matrix * ct_mult_data_t = gsl_matrix_get_transpose(gsl_matrix_product(Ct, dim_ct, data_t, dim_data_t), dim_ctd);
+
+    // compute covariance matrix
+    gsl_matrix * cov_matrix = gsl_matrix_covariance(ct_mult_data_t, dim_ctdt);
+
+    // Eigen value decomposition of cov_matrix: cov_matrix = V * [eigen_vals] * Vt
+    gsl_vector *eigen_vals = gsl_vector_alloc(num_pc);
+    gsl_matrix *V = gsl_matrix_alloc(num_pc, num_pc);
+    gsl_eigen_symmv_workspace *w = gsl_eigen_symmv_alloc(num_pc);
+
+    gsl_eigen_symmv(cov_matrix, eigen_vals, V, w);
+    
+
+    // result
+    int dim_result [] = {dim+1, num_pc};
+    gsl_matrix * result = gsl_matrix_alloc(dim+1, num_pc);
+
+    // (C x Vf)
+    gsl_matrix * Vf = gsl_matrix_flip_columns(V, dim_v);
+    gsl_matrix * c_mult_vf = gsl_matrix_alloc(dim, num_pc);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, C, Vf, 0.0, c_mult_vf); 
+
+    // assign (C * Vf) to sub matrix (dim x num_pc) starting at (1,0)
+    gsl_matrix_set_part(result, 1, 0, c_mult_vf, dim, num_pc);
+
+    // assign eigen values for first row in result matrix
+    // gsl_matrix_set_row(result, 0,  eigen_vals);
+    gsl_matrix_set_row(result, 0,  vector_flip(eigen_vals, num_pc));
+
+    // printf("Current result matrix:\n");
+    // gsl_matrix_print(result, dim_result);
+
+
+    gsl_matrix_free(C);
+    gsl_matrix_free(Ct);
+    gsl_matrix_free(x);
+    gsl_matrix_free(xt);
+    gsl_matrix_free(V);
+    gsl_matrix_free(Vf);
+
+    gsl_vector_free(eigen_vals);
+    gsl_eigen_symmv_free(w);
+
+    return gsl_matrix_get_transpose(result, dim_result);
 }

@@ -15,3 +15,6 @@ void map_vector(vector *v, unsigned int v_len, vector *v_mapping, vector *pivots
 /*  get distance matrix of a dataset (mapping of vectors to the pivot space), 
     dataset_mtr (dataset in metric space) --> dataset_ps (dataset in pivot space) */
 vector * map_to_pivot_space(vector * dataset_mtr, int * dataset_dim, vector * pivots, unsigned int num_pivots);
+
+/* EMPCA: Expectation Management for Principal Component Analysis */
+gsl_matrix * empca(vector *data_set, unsigned int num_vectors, unsigned int dim, unsigned int num_pc);

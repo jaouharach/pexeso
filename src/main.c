@@ -6,6 +6,7 @@
 #include "../include/level.h"
 #include "../include/cell.h"
 #include "../include/file_loader.h"
+#include "../include/gsl_matrix.h"
 #include "../include/select_pivots.h"
 
 vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
