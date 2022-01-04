@@ -16,7 +16,9 @@ typedef struct index_settings index_settings;
 typedef struct level level;
 typedef struct cell cell;
 typedef struct vector vector;
+typedef struct file_buffer_manager file_buffer_manager;
 typedef struct file_buffer file_buffer;
+typedef struct file_map file_map;
 
 struct vector{
 	int table_id;

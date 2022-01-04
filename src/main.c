@@ -19,6 +19,8 @@ int main()
     unsigned int base = 32; // 32 bits to store numbers in binary files
     unsigned int mtr_vector_length = 3, num_dim_metric_space = 3;
     unsigned long long total_vectors = 0ull; // number of vectors in the whole data lake
+    unsigned int max_leaf_size = 3000; // max vectors in one leaf cell
+    double buffered_memory_size = 2; // memory  allocated for file buffers (in MB)
 
     /* mode 0 = index dataset, 1 = query dataset */
     unsigned int mode = 0;
@@ -81,8 +83,8 @@ int main()
 
     if (!init_index(
         root_directory, num_pivots, pivot_space_extremity, 
-        num_levels, total_vectors, base, mtr_vector_length, index
-        ))
+        num_levels, total_vectors, base, mtr_vector_length, 
+        buffered_memory_size, max_leaf_size, index))
         exit_with_failure("Error in main.c: Couldn't initialize index!");
     printf("(OK)\n");
 

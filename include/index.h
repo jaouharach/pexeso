@@ -6,7 +6,7 @@
 struct index_settings {
     const char * root_directory;  
     unsigned int num_pivots; // |P|, number of dimensions in pivot space
-    vector * pivot_space_extremity; // 
+    vector * pivot_space_extremity;
     float pivot_space_volume;
     float leaf_cell_edge_length;
     unsigned int num_leaf_cells; // 2^(|P| * m)
@@ -16,12 +16,15 @@ struct index_settings {
     unsigned int mtr_vector_length; // vector length (number of dimensions) in metric space
     unsigned int vector_size; // vector size = (base/8) x vector length (in bytes)
     unsigned int max_filename_size; // each leaf cell is stored in one file 
+    double buffered_memory_size;
+    unsigned int max_leaf_size; // max number of vectors stored in one leaf cell
 };
 
 struct pexeso_index{
   unsigned long long total_records; // total vectors to be indexed
   struct level * first_level;
   struct index_settings * settings;
+  struct file_buffer_manager * buffer_manager;
 };
 
 response init_index(const char * root_directory,
@@ -31,6 +34,8 @@ response init_index(const char * root_directory,
                 unsigned long long num_vectors,
                 unsigned int base,
                 unsigned int mtr_vector_length,
+                double buffered_memory_size,
+                unsigned int max_leaf_size,
                 pexeso_index * index);
 
 vector * get_extremity(vector * pivot_vectors, unsigned int num_dim);
