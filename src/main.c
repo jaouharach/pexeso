@@ -43,64 +43,36 @@ int main()
         exit_with_failure("Error in main.c: Something went wrong, couldn't read dataset vectors!");
     printf("(OK)\n");
 
-    printf("\n\nLooking for pivot vectors... ");
+    printf("\n\nLooking for pivot vectors...");
     /* search for pivot vectors using pca based algorithm (waiting for response from authors) */
-    // temp solution: use fft (fathest fist traversal to find k  pivots)
     int dataset_dim [] = {total_vectors, num_dim_metric_space};
+    int pivots_mtr_dim [] = {num_pivots, num_dim_metric_space};
     vector * pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
     printf("(OK)\n");
 
-    /* Mapping pivot vectors from metric to pivot space */
-    printf("\n\nMapping pivots vectors... ");
-    vector * pivots = malloc(sizeof(struct vector) * num_pivots);
+    printf("\nPivot vectors (in metric space):\n");
     for(int i = 0; i < num_pivots; i++)
     {
-        pivots[i].values = malloc(sizeof(v_type) * num_pivots);
-        if(pivots[i].values == NULL)
-            exit_with_failure("Error in main.c: couldn't allocate memory for pivot mapping.");
-        transform_vector(&pivots_mtr[i], num_dim_metric_space,
-                        &pivots[i], pivots_mtr, num_pivots);   
+        printf("P%d:\n", i+1);
+        print_vector(&pivots_mtr[i], num_dim_metric_space);
     }
-    printf("(OK)\n");
-
-    
-    printf("Pivots found using FFT:\n");
-    printf("--> In metric space:\n");
-    for(int j = 0; j < num_pivots; j++)
-        print_vector(&pivots_mtr[j], num_dim_metric_space);
-    printf("\n\n");
-    printf("--> In pivot space:\n");
-    for(int j = 0; j < num_pivots; j++)
-        print_vector(&pivots[j], num_pivots);
-
-    /* pivot space extremity */
-    printf("extremity vector in pivot space:\n");
-    vector * pivot_space_extremity = get_extremity(pivots, num_pivots);
-    print_vector(pivot_space_extremity, num_pivots);
-    
 
     /* Transforming data set from metric to pivot space (create distance matrix) */
     printf("\n\nTransforming dataset to pivot space (compute the distance matrix)... ");
-    vector * dataset_img = malloc(sizeof(struct vector) * total_vectors);
-    for(int i = 0; i < total_vectors; i++)
-    {
-        dataset_img[i].values = malloc(sizeof(v_type) * num_pivots);
-        transform_vector(&dataset[i], num_dim_metric_space,
-                        &dataset_img[i], pivots_mtr, num_pivots);
-        // printf("V%d:\n", i+1);
-        // print_vector(&dataset[i], num_dim_metric_space);
-        // printf("V%d*:\n", i+1);
-        // print_vector(&dataset_img[i], num_pivots);
-    }
+    vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, pivots_mtr, num_pivots);
+
+    /* map pivot vectors to pivot space pi --> pi' */
+    vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
+    
     printf("(OK)\n");
 
-    /* find extremity in dataset */
+    /* pivot space extremity */
+    printf("\nextremity vector (in pivot space):\n");
+    // vector * pivot_space_extremity = get_rand_vector(num_pivots);
+    vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
+    print_vector(pivot_space_extremity, num_pivots);
 
-    // printf("\n\nextremity vector in pivot space:\n");
-    // pivot_space_extremity = get_dataset_extremity(dataset_img, total_vectors, num_pivots);
-    // print_vector(pivot_space_extremity, num_pivots);
-    // exit(1);
-
+    
     /* initialize index */
     printf("\n\nInitialize index... ");
     pexeso_index * index = (struct pexeso_index *) malloc(sizeof(struct pexeso_index));

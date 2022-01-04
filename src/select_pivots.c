@@ -18,7 +18,25 @@ vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_piv
     int dim_pcset [] = {num_pivots, num_cp+1};
     gsl_matrix * pcset = empca(dataset_ps, dataset_dim[0], num_cp, num_pivots);
 
-    return candidate_pivots;
+    // select pivots from the pca result, result = indecies of best pivots in candidate_pivots
+    int * result = select_pivots_by_pca_result_angle(pcset, dim_pcset, num_pivots);
+
+    vector * pivots = malloc(sizeof(struct vector) * num_pivots);
+    for(int i = 0; i < num_pivots; i++)
+    {
+        pivots[i].values =  malloc(sizeof(v_type) * dataset_dim[1]);
+        // printf("index of P%d = %d\n", i, result[i]);
+        for(int j = 0; j < dataset_dim[1]; j++)
+        {
+            pivots[i].values[j] = candidate_pivots[result[i]].values[j];
+        }
+    }
+
+    free(candidate_pivots);
+    free(dataset_ps);
+    free(result);
+    gsl_matrix_free(pcset);
+    return pivots;
 }
 
 
@@ -257,4 +275,61 @@ gsl_matrix * empca(vector *data_set, unsigned int num_vectors, unsigned int dim,
     gsl_eigen_symmv_free(w);
 
     return gsl_matrix_get_transpose(result, dim_result);
+}
+
+/* select pivots from the empca result (pc with highest projection on dataset)
+    returns indecies of the pivots with the highest projection */
+int * select_pivots_by_pca_result_angle(gsl_matrix * pca_result, int *pca_result_dim, int num_pivots)
+{
+    unsigned int num_pc = pca_result_dim[0];
+    unsigned int num_cols = pca_result_dim[1] - 1;
+
+    int dim_pc [] = {num_pc+1, num_cols};
+    int dim_pc_t [] = {num_cols, num_pc+1};
+    gsl_matrix * PC = gsl_matrix_alloc(num_pc+1, num_cols);
+
+    gsl_matrix_set_part(PC, 1, 0, gsl_matrix_get_part(pca_result, 0, 1, num_pc, num_cols), num_pc, num_cols);
+
+    // printf("PC matrix:\n");
+    // gsl_matrix_print(PC, dim_pc);
+
+
+    // convert matrix to positive matrix
+    gsl_to_positive_matrix(PC, dim_pc);
+    // extra column to sort changes on pct matrix
+    for (int i=0; i < num_cols; i++)
+            gsl_matrix_set(PC, 0, i, (double)i);
+    
+    // printf("PCt matrix:\n");
+    // gsl_matrix_print(gsl_matrix_get_transpose(PC, dim_pc), dim_pc_t);
+    
+    int counter = 0;
+    int * result = calloc(num_pivots, sizeof(*result));
+    if(result == NULL)
+        exit_with_failure("Error in select_pivots.c: Couldn't allocate memory for integer array.");
+    
+    gsl_matrix * pc_view = NULL;
+
+    //for jth pc, find the ith axis d(., pi), on which the pc has the largest projection
+    for(int i = 0; (i < num_cols) && (counter < num_pivots); i++)
+    {
+        for(int j = 1; (j <= num_pc) && (counter < num_pivots); j++)
+            {
+                pc_view = gsl_matrix_sort_by_column(gsl_matrix_get_transpose(PC, dim_pc), dim_pc_t, j);
+                // printf("PCt matrix sorted by column %d:\n", j);
+                // gsl_matrix_print(pc_view, dim_pc_t);
+                
+                int point = (int) gsl_matrix_get(pc_view, num_cols -1, 0);
+                
+                if(array_add(result, counter, point))
+                {   
+                    // printf("highest projection in row = %d\n", point);
+                    counter ++;
+                }
+                // replace max value in column j with zero
+                gsl_matrix_set(pc_view, num_cols -1, j, 0);
+            }
+    }
+
+    return result; // indecies of axis d(., pi) of which pcs have the highest projection 
 }

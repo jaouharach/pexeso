@@ -18,3 +18,7 @@ vector * map_to_pivot_space(vector * dataset_mtr, int * dataset_dim, vector * pi
 
 /* EMPCA: Expectation Management for Principal Component Analysis */
 gsl_matrix * empca(vector *data_set, unsigned int num_vectors, unsigned int dim, unsigned int num_pc);
+
+/* select pivots from the empca result (pc with highest projection on dataset)
+    returns indecies of the pivots with the highest projection */
+int * select_pivots_by_pca_result_angle(gsl_matrix * pca_result, int *result_dim, int num_pivots);

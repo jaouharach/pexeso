@@ -1,8 +1,12 @@
 #include <stdio.h>
 #include <math.h>
+#include <errno.h>
+#include <float.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
 /* enumerations */
 typedef enum response {OK = 1, FAILED = 0} response;
-
 
 /* types */
 typedef float v_type; // vector values
@@ -29,12 +33,20 @@ void warning(char *message);
 // euclidean distance
 float euclidean_distance(vector * v1, vector * v2, unsigned int v_len);
 
-/* tranform vector to pivot space */
-void transform_vector(vector * v, unsigned int v_len, vector * v_transf, vector * pivots, unsigned int num_pivots);
-
-void print_vector(vector * v, unsigned int v_len);
+/* copy vector */
 void vector_cpy(vector * dest, vector * src, unsigned int v_len);
+
 /* cartesian product (array x array) of dimension dim  */
-vector * self_cartesian_product(int * array, unsigned int dim);
+vector * self_cartesian_product(int *array, unsigned int dim);
+
 /* convert integer to decimal array */
 int * integer_to_binary_array(int number, unsigned int arr_len);
+
+/* print matrix */
+void matrix_print(vector * matrix, int * dim);
+
+/* print vector */
+void print_vector(vector * v, unsigned int v_len);
+
+/* add integer to array if it doesn't exist */
+bool array_add(int * arr, int curr_size, int number);

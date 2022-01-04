@@ -98,3 +98,16 @@ vector * self_cartesian_product(int * array, unsigned int dim)
 }
 
 
+/* add integer to array if it doesn't exist */
+bool array_add(int * arr, int curr_size, int number)
+{
+    int i;
+    for(i = 0; i < curr_size; i++)
+    {
+        if(number == arr[i])
+            return false;
+        
+    }
+    arr[i] = number; //add element to end of array
+    return true;
+}
