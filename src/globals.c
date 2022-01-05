@@ -2,7 +2,7 @@
 #include <errno.h>
 #include <float.h>
 #include <stdlib.h>
-
+#include <time.h>
 #include "../include/globals.h"
 
 float euclidean_distance(vector * v1, vector * v2, unsigned int v_len)
@@ -110,4 +110,17 @@ bool array_add(int * arr, int curr_size, int number)
     }
     arr[i] = number; //add element to end of array
     return true;
+}
+
+/* get current time */
+void get_current_time(char * time_buf)
+{
+    time_t timer;
+    
+    struct tm* tm_info;
+
+    time(&timer);
+    tm_info = localtime(&timer);
+
+    strftime(time_buf, 26, "%Y-%m-%d %H:%M:%S", tm_info);
 }

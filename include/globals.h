@@ -52,3 +52,6 @@ void print_vector(vector * v, unsigned int v_len);
 
 /* add integer to array if it doesn't exist */
 bool array_add(int * arr, int curr_size, int number);
+
+/* get current time */
+void get_current_time(char * time_buf);

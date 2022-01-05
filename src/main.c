@@ -8,6 +8,8 @@
 #include "../include/file_loader.h"
 #include "../include/gsl_matrix.h"
 #include "../include/select_pivots.h"
+#include "../include/file_buffer.h"
+#include "../include/file_buffer_manager.h"
 
 vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
 int main()
@@ -26,7 +28,7 @@ int main()
     unsigned int mode = 0;
 
     /* index settings */
-    unsigned int num_levels = 2;  // m
+    unsigned int num_levels = 3;  // m
     unsigned int num_pivots = 2;  // number of pivots
     unsigned int fft_scale = 1;   // constant for finding |P| * c candidate pivots
 
@@ -49,6 +51,7 @@ int main()
     /* search for pivot vectors using pca based algorithm (waiting for response from authors) */
     int dataset_dim [] = {total_vectors, num_dim_metric_space};
     int pivots_mtr_dim [] = {num_pivots, num_dim_metric_space};
+
     vector * pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
     printf("(OK)\n");
 
@@ -86,6 +89,9 @@ int main()
         num_levels, total_vectors, base, mtr_vector_length, 
         buffered_memory_size, max_leaf_size, index))
         exit_with_failure("Error in main.c: Couldn't initialize index!");
+
+    index->settings->pivots_mtr = pivots_mtr;
+    index->settings->pivots_ps = pivots_ps;
     printf("(OK)\n");
 
     /* Display settings */
@@ -99,7 +105,7 @@ int main()
     printf("--------------------------------------------------------------\n");
 
 
-    /* BUild levels */
+    /* Build levels */
     printf("\n\nBuild levels... ");
     if (!init_first_level(index))
         exit_with_failure("Error in main.c: Couldn't initialize first level!");
@@ -109,12 +115,14 @@ int main()
 
     if (!init_levels(index))
         exit_with_failure("Error in main.c: Couldn't initialize index levels!");
-
     printf("(OK)\n");
 
-    exit(1);
-    // if (!index_binary_files(index, bin_files_directory, num_files, base))
-    //     exit_with_failure("Error in main.c: Couldn't initialize first level!");
+    /* print index */
+    // print_index(index);
+
+    /* insert data in index */
+    if (!index_binary_files(index, bin_files_directory, num_files, base))
+        exit_with_failure("Error in main.c: Couldn't initialize first level!");
 
     return 0;
 }

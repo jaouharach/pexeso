@@ -7,7 +7,7 @@ struct cell {
     struct cell * children;
     unsigned int num_child_cells;
 
-    file_buffer * file_buffer;
+    struct file_buffer * file_buffer;
     char * filename; 
 
     bool is_leaf;
@@ -24,3 +24,5 @@ response init_cell(cell *cell, float length, unsigned int num_child_cells); // i
 /* create child cells for a parent cell */
 cell * get_child_cells(cell * parent_cell, unsigned int num_child_cells, index_settings *settings);
 void cell_cpy(cell *dest, cell *src, unsigned int num_dim);
+/* append vector to cell */
+response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,struct vector *vector);

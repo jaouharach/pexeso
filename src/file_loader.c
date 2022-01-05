@@ -3,8 +3,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "../include/index.h"
-#include "../include/level.h"
-#include "../include/cell.h"
 #include "../include/file_loader.h"
 
 vector * load_binary_files(const char *bin_files_directory, unsigned long num_files, unsigned long long total_vectors, unsigned int base, unsigned int mtr_vector_length)
@@ -138,7 +136,7 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
                 }
             }
             if (fclose(bin_file))
-                exit_with_failure("Error in dstree_file_loaders.c: Could not close binary.\n");
+                exit_with_failure("Error in file_loaders.c: Could not close binary.\n");
         }
     }
 
@@ -167,7 +165,7 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
     if (dir == NULL)
         exit_with_failure("Error in index.c: Unable to open binary files directory stream!\n");
 
-    vector->values = (v_type *)malloc(sizeof(v_type) * index->settings->num_pivots);
+    vector->values = (v_type *)malloc(sizeof(v_type) * index->settings->mtr_vector_length);
 
     if (vector->values == NULL)
         exit_with_failure("Error in file_loader.c: Could not allocate memory for vector values.");
@@ -193,7 +191,7 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
             sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &vector_length);
 
             // check if vector length in file name matches vector length passed as argument
-            if (vector_length != index->settings->num_pivots)
+            if (vector_length != index->settings->mtr_vector_length)
                 exit_with_failure("Error in file_loader.c:  number of dimentions in index settings does not match vector length in file.\n");
 
             /* read binary file */
@@ -203,7 +201,7 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
                 exit_with_failure("Error in file_loader.c: Binary file not found in directory!\n");
 
             /* Start processing file: read every vector in binary file */
-            int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * index->settings->num_pivots) + nsets) / 8;
+            int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * index->settings->mtr_vector_length) + nsets) / 8;
             printf("File size in bytes = %u\n\n", total_bytes);
 
             while (total_bytes)
@@ -223,14 +221,14 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
 
                     set_id += 1;
                 }
-                else if (i <= (unsigned int)num_vectors * index->settings->num_pivots)
+                else if (i <= (unsigned int)num_vectors * index->settings->mtr_vector_length)
                 {
                     // end of vector but still in current set
-                    if (j > index->settings->num_pivots - 1)
+                    if (j > index->settings->mtr_vector_length - 1)
                     {
                         j = 0;
                         // insert vector in index
-                        if (!insert_vector(index, vector))
+                        if (!index_insert(index, vector))
                             exit_with_failure("Error in file_loaders.c:  Could not add vector to the index.\n");
                     }
 
@@ -240,10 +238,10 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
                     vector->values[j] = val;
 
                     // last value in last vector in current  set
-                    if (i == (unsigned int)num_vectors * index->settings->num_pivots)
+                    if (i == (unsigned int)num_vectors * index->settings->mtr_vector_length)
                     {
                         // insert vector in index
-                        if (!insert_vector(index, vector))
+                        if (!index_insert(index, vector))
                             exit_with_failure("Error in file_loader.c:  Could not add vector to the index.\n");
 
                         i = 0;
@@ -256,7 +254,7 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
                 }
             }
             if (fclose(bin_file))
-                exit_with_failure("Error in dstree_file_loaders.c: Could not close binary.\n");
+                exit_with_failure("Error in file_loaders.c: Could not close binary.\n");
         }
     }
 
@@ -265,7 +263,6 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
 
     free(vector->values);
     free(vector);
-    free(dfile);
 
     return OK;
 }

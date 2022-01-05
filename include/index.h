@@ -4,7 +4,9 @@
 #include "globals.h"
 
 struct index_settings {
-    const char * root_directory;  
+    const char * root_directory;
+    vector * pivots_mtr; // pivot vectors in metric space  
+    vector * pivots_ps; // pivot vectors in pivot space  
     unsigned int num_pivots; // |P|, number of dimensions in pivot space
     vector * pivot_space_extremity;
     float pivot_space_volume;
@@ -40,5 +42,5 @@ response init_index(const char * root_directory,
 
 vector * get_extremity(vector * pivot_vectors, unsigned int num_dim);
 
-response insert_vector(pexeso_index *, vector *);
-void display_indexed_vectors(pexeso_index *);
+response index_insert(pexeso_index *, vector *);
+void print_index(pexeso_index * index);

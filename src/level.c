@@ -40,6 +40,10 @@ response init_levels(pexeso_index *index)
                 exit_with_failure("Error in level.c: Could not allocate memory for list of center vectors.\n");
             
             new_level->cells[i].center = &center_vectors[i];
+            // if its the leaf level (bottom level)
+            if(new_level->id == index->settings->num_levels)
+                new_level->cells[i].is_leaf = true;
+
         }
         // cell edge length = (V / num_cells) ^ 1/|P|
         new_level->cell_edge_length = pow((index->settings->pivot_space_volume / new_level->num_cells), (1.0/index->settings->num_pivots));
@@ -64,6 +68,8 @@ response init_levels(pexeso_index *index)
                 cell_cpy(&new_level->cells[curr_cell], &child_cells[j], index->settings->num_pivots);
                 print_vector(new_level->cells[curr_cell].center, index->settings->num_pivots);
             }
+            // free temp child cells
+            free(child_cells);
         }
         printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
         new_level->next = NULL;

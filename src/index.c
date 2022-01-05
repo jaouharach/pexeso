@@ -8,6 +8,8 @@
 #include "../include/cell.h"
 #include "../include/file_buffer.h"
 #include "../include/file_buffer_manager.h"
+#include "../include/gsl_matrix.h"
+#include "../include/select_pivots.h"
 
 /* initialize index */
 response init_index(const char * root_directory,
@@ -76,7 +78,7 @@ response init_index(const char * root_directory,
     if (!init_file_buffer_manager(index))
         exit_with_failure("Error in index.c: Could not initialize the file buffer manager for this index.");
     
-    
+
     return OK;
 }
 /* get extremity vector of the pivot space, pivots must be outliers for extremity to be accurate */
@@ -100,81 +102,84 @@ vector * get_extremity(vector * pivot_vectors, unsigned int num_pivots)
 }
 
 /* append vector to index */
-response insert_vector(pexeso_index * index, vector *vector)
+response index_insert(pexeso_index * index, vector *vector)
 {
-//     // find the closest cell in first level.
-//     float bsf = FLT_MAX;
-//     cell *cell = NULL;
-//     for (int c = 0; c < index->first_level->num_cells; c++)
-//     {
-//         float d = euclidean_distance(vector, index->first_level->cells[c].center, index->settings->num_pivots);
-//         if (d <= bsf)
-//         {
-//             bsf = d;
-//             cell = &index->first_level->cells[c];
-//         }
-//     }
+    // get vector mapping in pivot space v -> v'
+    struct vector * v_mapping = malloc(sizeof(struct vector));
+    if(v_mapping == NULL)
+        exit_with_failure("Error in index.c: Couldn't allocate memory for vector mapping.");
+    v_mapping->values = malloc(sizeof(v_type) * index->settings->num_pivots);
+    if(v_mapping->values == NULL)
+        exit_with_failure("Error in index.c: Couldn't allocate memory for values of vector mapping.");
+    
+    map_vector(vector, index->settings->mtr_vector_length, v_mapping, index->settings->pivots_mtr, index->settings->num_pivots);
 
-//     // loop children of cell untill you find closest leaf cell.
-//     while (!cell->is_leaf)
-//     {
-//         cell = cell_route_to_closest_child(cell, vector, index->settings->num_pivots);
+    printf("current vector, ");
+    printf("in metric space :\n");
+    print_vector(vector, index->settings->mtr_vector_length);
+    printf("in pivot space :\n");
+    print_vector(v_mapping, index->settings->num_pivots);
 
-//         if (cell == NULL)
-//             exit_with_failure("Error in index.c: Could not route to closest child cell.\n");
-//     }
+    // find the closest cell in first level.
+    float bsf = FLT_MAX;
+    cell *cell = NULL;
+    for (int c = 0; c < index->first_level->num_cells; c++)
+    {
+        float d = euclidean_distance(v_mapping, index->first_level->cells[c].center, index->settings->num_pivots);
+        if (d <= bsf)
+        {
+            bsf = d;
+            cell = &index->first_level->cells[c];
+        }
+    }
 
-//     // add vector to leaf cell file buffer.
-//     // allocate memory for new vector
-//     int s = cell->file_buffer->buffered_list_size;
-//     if (s == 0)
-//     {
-//         cell->file_buffer->buffered_list = NULL;
-//         cell->file_buffer->buffered_list = malloc(sizeof(struct vector *));
+    // loop children of cell untill you find closest leaf cell.
+    while (!cell->is_leaf)
+    {
+        cell = cell_route_to_closest_child(cell, v_mapping, index->settings->num_pivots);
 
-//         if (cell->file_buffer->buffered_list == NULL)
-//             exit_with_failure("Error in index.c: Could not"
-//                             "allocate memory for the buffered list.\n");
+        if (cell == NULL)
+            exit_with_failure("Error in index.c: Could not route to closest child cell.\n");
+    }
+    
 
-//         cell->file_buffer->buffered_list[s].values = (v_type *) malloc(sizeof(v_type) * index->settings->num_pivots);
-        
-//         if (cell->file_buffer->buffered_list[s].values == NULL)
-//             exit_with_failure("Error in index.c: Could not"
-//                             "reallocate memory for buffered list.\n");
-//     }
-//     else
-//     {
-//         /* Resize memory allocate for buffered list to fit for the new vector */
-//         cell->file_buffer->buffered_list = realloc(cell->file_buffer->buffered_list,
-//                                                    sizeof(struct vector) * (cell->file_buffer->buffered_list_size + 1));
-//         if (cell->file_buffer->buffered_list == NULL)
-//             exit_with_failure("Error in index.c: Could not"
-//                             "reallocate memory for buffered list.\n");
+    printf("we reached a leaf cell with center :\n");
+    print_vector(cell->center, index->settings->num_pivots);
 
-//         cell->file_buffer->buffered_list[s].values = (v_type *) malloc(sizeof(v_type) * index->settings->num_pivots);
-        
-//         if (cell->file_buffer->buffered_list[s].values == NULL)
-//             exit_with_failure("Error in index.c: Could not"
-//                             "reallocate memory for buffered list.\n");
-//     }
+    // append vector in metric format
+    append_vector_to_cell(index, cell, vector);
 
-//     // add vector to buffered list
-//     cell->file_buffer->buffered_list[s].table_id = vector->table_id;
-//     cell->file_buffer->buffered_list[s].set_id = vector->set_id;
-//     for (int i = 0; i < index->settings->num_pivots; ++i)
-//     {
-//         cell->file_buffer->buffered_list[s].values[i] = vector->values[i];
-//     }
-
-//     cell->file_buffer->buffered_list_size++;
-
-//     return OK;
+    return OK;
 }
 
-void display_indexed_vectors(pexeso_index * index)
+void print_index(pexeso_index * index)
 {
+    printf("DISPLAY PEXESO INDEX...\n");
+    printf("|       |       |       \n");
+    printf("V       V       V       \n\n\n");
+    level * level  = index->first_level;
     for(int i = 0; i < index->settings->num_levels; i++)
     {
+        printf("Level %u:\n", level->id);
+        printf("\tNumber of cells = %u\n", level->num_cells);
+        printf("\tCell edge length = %f\n", level->cell_edge_length);
+        printf("---------------------------------------------------------\n");
+        for(int j = 0; j < level->num_cells; j++)
+        {
+            printf("++(Cell %d)\n--> Center vector: \t", j+1);
+            print_vector(level->cells[j].center, index->settings->num_pivots);
+            printf("\n--> Children: \n");
+            if(level->cells[j].children == NULL)
+                printf("(none)\n");
+            else
+            {
+                for(int k = 0; k < level->cells[j].num_child_cells; k++)
+                print_vector(level->cells[j].children[k].center, index->settings->num_pivots);
+            }
+        }
+        printf("---------------------------------------------------------\n");
         
+        level = level->next; 
     }
+    printf("end of index.\n");
 }
