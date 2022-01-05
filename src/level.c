@@ -40,10 +40,17 @@ response init_levels(pexeso_index *index)
                 exit_with_failure("Error in level.c: Could not allocate memory for list of center vectors.\n");
             
             new_level->cells[i].center = &center_vectors[i];
+            
+            new_level->cells[i].level_id = new_level->id;
             // if its the leaf level (bottom level)
             if(new_level->id == index->settings->num_levels)
+            {
+                new_level->is_leaf = true;
                 new_level->cells[i].is_leaf = true;
+                new_level->cells[i].vid = calloc(index->settings->max_leaf_size, sizeof(struct vid));
+                new_level->cells[i].cell_size = 0;
 
+            }
         }
         // cell edge length = (V / num_cells) ^ 1/|P|
         new_level->cell_edge_length = pow((index->settings->pivot_space_volume / new_level->num_cells), (1.0/index->settings->num_pivots));
@@ -58,7 +65,7 @@ response init_levels(pexeso_index *index)
             // get child cell for current parent cell
             if(&curr_level->cells[i] == NULL)
                 exit_with_failure("Error in level.c: Fatal, current cell in current level is a null point.");
-            cell * child_cells = get_child_cells(&curr_level->cells[i], curr_level->cells[i].num_child_cells, index->settings);
+            struct cell * child_cells = get_child_cells(&curr_level->cells[i], curr_level->cells[i].num_child_cells, index->settings);
             
             // // link child cells to next level
             curr_level->cells[i].children = &new_level->cells[curr_cell];
@@ -67,6 +74,11 @@ response init_levels(pexeso_index *index)
                 printf("++ Adding cell %d, center vector: \n", curr_cell);
                 cell_cpy(&new_level->cells[curr_cell], &child_cells[j], index->settings->num_pivots);
                 print_vector(new_level->cells[curr_cell].center, index->settings->num_pivots);
+
+                // create filename if its a leaf cell
+                if(new_level->is_leaf)
+                    create_cell_filename(index->settings, &new_level->cells[curr_cell]);
+
             }
             // free temp child cells
             free(child_cells);
@@ -121,6 +133,7 @@ response init_first_level(pexeso_index *index)
         
         // link center vector to cell in first_level
         index->first_level->cells[i].center = &center_vectors[i];
+        index->first_level->cells[i].level_id = index->first_level->id;
     }
 
     /*

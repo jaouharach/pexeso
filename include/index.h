@@ -20,6 +20,7 @@ struct index_settings {
     unsigned int max_filename_size; // each leaf cell is stored in one file 
     double buffered_memory_size;
     unsigned int max_leaf_size; // max number of vectors stored in one leaf cell
+    unsigned int track_vector; // (value = 0 / 1) track data vector id or not, vector id = (table_id, column_id) 
 };
 
 struct pexeso_index{
@@ -27,6 +28,12 @@ struct pexeso_index{
   struct level * first_level;
   struct index_settings * settings;
   struct file_buffer_manager * buffer_manager;
+
+  //file to track vector ids 
+  const char * vid_filename; 
+  FILE * vid_file;
+  unsigned int vid_pos_ctr;
+  struct vid * vid_cache;
 };
 
 response init_index(const char * root_directory,
@@ -38,9 +45,17 @@ response init_index(const char * root_directory,
                 unsigned int mtr_vector_length,
                 double buffered_memory_size,
                 unsigned int max_leaf_size,
+                unsigned int track_vector,
                 pexeso_index * index);
 
+/* get the farthest vector in the pivot space */
 vector * get_extremity(vector * pivot_vectors, unsigned int num_dim);
 
+/* insert a vector in the index */
 response index_insert(pexeso_index *, vector *);
+
+/* print index in console */
 void print_index(pexeso_index * index);
+
+/* write index to disk */
+enum response index_write(pexeso_index *index);

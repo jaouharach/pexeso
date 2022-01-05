@@ -3,6 +3,7 @@
 
 
 struct cell {
+    unsigned int level_id;
     struct cell * parent;
     struct cell * children;
     unsigned int num_child_cells;
@@ -11,8 +12,15 @@ struct cell {
     char * filename; 
 
     bool is_leaf;
+    unsigned int cell_size; // number of vectors currently stored in cell
+    
     vector * center;
     float edge_length;
+
+    unsigned int vid_pos; // first position in vid.idx file
+    struct vid * vid;
+
+    
 };
 
 
@@ -26,3 +34,5 @@ cell * get_child_cells(cell * parent_cell, unsigned int num_child_cells, index_s
 void cell_cpy(cell *dest, cell *src, unsigned int num_dim);
 /* append vector to cell */
 response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,struct vector *vector);
+/* create cell filename */
+enum response create_cell_filename(struct index_settings *settings, struct cell * cell);

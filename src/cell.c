@@ -10,6 +10,10 @@
 /* append vector to cell */
 response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,struct vector *vector)
 {
+    // static int append_id = 0;
+    // printf("append %d.\n\n\n", append_id+1);
+    // append_id++;
+
     if (!get_file_buffer(index, cell))
         exit_with_failure("Error in cell.c:  Could not get the \
                      file buffer for this cell.");
@@ -48,13 +52,20 @@ response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,str
         cell->file_buffer->buffered_list[idx][i] = vector->values[i];
     }
 
-    // (todo) track vector
-    // cell->vid[cell->cell_size - 1].table_id = vector->table_id;
-    // cell->vid[cell->cell_size - 1].set_id = vector->set_id;
-
-
-    ++cell->file_buffer->buffered_list_size;
+    cell->cell_size++;
+    cell->file_buffer->buffered_list_size++;
+    index->total_records++;
     index->buffer_manager->current_values_count += vector_length;
+
+
+    // (todo) track vector
+    if (index->settings->track_vector)
+    {
+        cell->vid[cell->cell_size - 1].table_id = vector->table_id;
+        cell->vid[cell->cell_size - 1].set_id = vector->set_id;
+    }
+
+    
 
     return OK;
 }
@@ -208,4 +219,34 @@ void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
     dest->num_child_cells = src->num_child_cells;
     dest->filename = src->filename;
     dest->file_buffer = src->file_buffer;
+}
+/* create cell filename */
+
+enum response create_cell_filename(struct index_settings *settings, struct cell * cell)
+{
+    /* 
+        Each leaf cell has a file called: 
+        level_edge_center(mag,mean)_numVectors
+        02_0.334_(0.33,12.282)
+        level: leaf level id (m)
+        edge length: edge length of the leaf cell
+        mag: magnitude of the center vector of the leaf cell
+        num vectors: number of vectors stored in leaf cell
+        number of punctuation marks (underscores:3, parentheses:2, commas:2): total 7
+    */
+    if(cell->filename != NULL)
+        exit_with_failure("Error in cell.c: Couldn't create cell filename, cell already has a filename!");
+
+    int l = 0;
+    cell->filename = malloc(sizeof(char) * (settings->max_filename_size));
+    if(cell->filename == NULL)
+        exit_with_failure("Error in cell.c: Couldn't allocate memory for cell filename.");
+
+    l += sprintf(cell->filename+l ,"%02d", cell->level_id);
+    // l += sprintf(cell->filename+l ,"%s", "_");
+    l += sprintf(cell->filename+l ,"_%g", cell->edge_length);
+    l += sprintf(cell->filename+l ,"_(%g,%g)", get_vector_magnitude(cell->center, settings->num_pivots), get_vector_mean(cell->center, settings->num_pivots));
+
+    printf("Cell filename = %s\n\n\n", cell->filename);
+    return OK;
 }

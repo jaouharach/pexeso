@@ -20,9 +20,16 @@ typedef struct file_buffer_manager file_buffer_manager;
 typedef struct file_buffer file_buffer;
 typedef struct file_map file_map;
 
+// vector id (used to track vector ids of all vectors in one cell)
+struct vid {
+  unsigned int table_id;
+  unsigned int set_id;
+};
+
+// vector
 struct vector{
-	int table_id;
-	int set_id;
+	unsigned int table_id;
+	unsigned int set_id;
 	v_type * values;
 };
 
@@ -30,7 +37,7 @@ struct vector{
 void exit_with_failure(char * message);
 
 // print warning
-void warning(char *message);
+int warning(char *message);
 
 // euclidean distance
 float euclidean_distance(vector * v1, vector * v2, unsigned int v_len);
@@ -55,3 +62,12 @@ bool array_add(int * arr, int curr_size, int number);
 
 /* get current time */
 void get_current_time(char * time_buf);
+
+/* get mean of a vector */
+v_type get_vector_mean(vector * vector, unsigned int v_len);
+
+/* get magnitude of a vector */
+v_type get_vector_magnitude(vector * vector, unsigned int v_len);
+
+/* create directory, if directory exists ask user for action */
+enum response create_index_dir(const char * dir_path);

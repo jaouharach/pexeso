@@ -3,6 +3,10 @@
 #include <float.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
+#include <ftw.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "../include/globals.h"
 
 float euclidean_distance(vector * v1, vector * v2, unsigned int v_len)
@@ -32,20 +36,19 @@ void exit_with_failure(char *message)
     exit(1);
 }
 
-/* print warning and ask for user action */
-void warning(char *message)
+/* print warning and ask for user action, return 0 if No or 1 if user wants to continue */
+int warning(char *message)
 {
-    fprintf(stderr, "%s\n", message);
-    printf("Would you like to continue (y/n)? : ");
+    fprintf(stderr, "%s (y/n):\n", message);
     char * resp = "n"; 
     scanf("%c", resp);
     if (resp[0] == 'n' || resp[0] == 'N')
-        exit(1);
+        return 0;
 }
 
 void print_vector(vector * v, unsigned int v_len)
 {
-    printf("(");
+    printf("\t(");
     for(int i = 0; i < v_len; i++)
     {
         printf("%f, ", v->values[i]);
@@ -123,4 +126,45 @@ void get_current_time(char * time_buf)
     tm_info = localtime(&timer);
 
     strftime(time_buf, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+}
+
+/* get mean of a vector */
+v_type get_vector_mean(vector * vector, unsigned int v_len)
+{
+    v_type mean = 0.0;
+    for(int i = 0; i < v_len; i++)
+    {
+        mean += vector->values[i];
+    }
+    mean /= v_len;
+
+    return mean;
+}
+
+/* get magnitude of a vector */
+v_type get_vector_magnitude(vector * vector, unsigned int v_len)
+{
+    v_type mag = 0.0;
+
+    for(int i = 0; i < v_len; i++)
+    {
+        mag += pow(vector->values[i], 2);
+    }
+    mag = sqrt(mag);
+
+    return mag;
+}
+
+/* create directory, if directory exists ask user for action */
+enum response create_index_dir(const char * dir_path)
+{
+    struct stat sb;
+    if (stat(dir_path, &sb) == 0 && S_ISDIR(sb.st_mode)) // if directory exists ask user for action
+    {
+        fprintf(stderr, "Index root directory '%s' already exists!\n", dir_path);
+        return FAILED;
+    }
+
+    mkdir(dir_path, 0777);
+    return OK;
 }
