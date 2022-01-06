@@ -180,12 +180,12 @@ void print_index(pexeso_index *index)
             {
                 if (level->is_leaf == false || level->cells[j].is_leaf == false)
                     exit_with_failure("Not leaf level why cell has no children?!");
-                printf("(Leaf cell)!!!! ");
-                // printf("vectors list (total vectors = %u):\n", level->cells[j].cell_size);
-                // for(int i = 0; i < level->cells[j].cell_size; i++)
-                // {
-                //     printf("(%u, %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_id);
-                // }
+                printf("(Leaf cell) ");
+                printf("vectors list (total vectors = %u):\n", level->cells[j].cell_size);
+                for(int i = 0; i < level->cells[j].cell_size; i++)
+                {
+                    printf("(%u, %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_id);
+                }
             }
             else
             {
@@ -261,7 +261,7 @@ enum response index_write(pexeso_index *index)
 }
 
 /* destroy index */
-void index_destroy(struct pexeso_index *index, struct level *level)
+enum response index_destroy(struct pexeso_index *index, struct level *level)
 {
     //  leaf level
     if (level->is_leaf) 
@@ -280,7 +280,7 @@ void index_destroy(struct pexeso_index *index, struct level *level)
     {
         // free center vector values
         free(level->cells[c].center->values);
-        
+        free(level->cells[c].center);
         // free filename
         if (level->cells[c].filename != NULL)
             free(level->cells[c].filename);
@@ -304,6 +304,8 @@ void index_destroy(struct pexeso_index *index, struct level *level)
     free(level->cells->center);
     free(level->cells);
     free(level);
+
+    return OK;
 }
 
 /* destroy buffer manager */

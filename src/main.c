@@ -31,7 +31,7 @@ int main()
     /* index settings */
     unsigned int num_levels = 3;  // m
     unsigned int num_pivots = 2;  // number of pivots
-    unsigned int fft_scale = 1;   // constant for finding |P| * c candidate pivots, a good choice of c is approximately 30
+    unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30
 
     /* read all vectors in the data set */
     printf("Reading dataset info...");
@@ -130,9 +130,7 @@ int main()
         exit_with_failure("Error in main.c: Couldn't initialize index levels!");
     printf("(OK)\n");
 
-    /* print index */
-    print_index(index);
-
+    
     /* insert dataset in index */
     /* read all vectors in the data set */
     printf("Index dataset vectors...");
@@ -140,14 +138,34 @@ int main()
         exit_with_failure("Error in main.c: Couldn't initialize first level!");
     printf("(OK)\n");
 
+    /* print index */
+    print_index(index);
 
     /* write index to disk */
     if (!index_write(index))
         exit_with_failure("Error main.c:  Could not save the index to disk.\n");
     
-    /* destroy index */    
-    index_destroy(index, index->first_level);
     
+    /* destroy index */
+    if (!index_destroy(index, index->first_level))
+        exit_with_failure("Error main.c:  Could not destroy index.\n");
+    
+    // exit(1);
+
+    // free index and index settings
+    for(int p = index->settings->num_pivots - 1; p >= 0; p++)
+        free(index->settings->pivots_mtr[p].values);
+    free(index->settings->pivots_mtr);
+
+    for(int p = index->settings->num_pivots - 1; p >= 0; p++)
+        free(index->settings->pivots_ps[p].values);
+    free(index->settings->pivots_ps);
+
+    free(index->settings->pivot_space_extremity->values);
+    free(index->settings->pivot_space_extremity);
+
+    free(index->settings);
+    free(index);
     return 0;
 }
 

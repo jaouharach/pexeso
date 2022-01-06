@@ -63,7 +63,7 @@ void print_index(pexeso_index * index);
 enum response index_write(pexeso_index *index);
 
 /* destroy index */
-void index_destroy(struct pexeso_index *index, struct level *level);
+enum response index_destroy(struct pexeso_index *index, struct level *level);
 
 /* destroy buffer manager */
 enum response destroy_buffer_manager(struct pexeso_index *index);

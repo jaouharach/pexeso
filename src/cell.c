@@ -124,7 +124,7 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, bool are_
         child_cells[c].filename = NULL;
         child_cells[c].children = NULL;
         
-        printf("are leaf children = %s.\n", are_leaf_children ? "true" : "false");
+        // printf("are leaf children = %s.\n", are_leaf_children ? "true" : "false");
         if(are_leaf_children)
         {
             child_cells[c].is_leaf = are_leaf_children;

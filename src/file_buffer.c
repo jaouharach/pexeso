@@ -29,7 +29,7 @@ enum response file_buffer_init(struct cell *cell)
 /* add file buffer to file map */
 enum response add_file_buffer_to_map(struct pexeso_index *index, struct cell *cell)
 {
-    printf("Adding file_buffer of cell to map.\n");
+    // printf("Adding file_buffer of cell to map.\n");
     int idx = index->buffer_manager->file_map_size;
 
     // first file
