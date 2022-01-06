@@ -57,6 +57,12 @@ response init_index(const char *root_directory,
     index->settings->max_leaf_size = max_leaf_size;               // max number of vectors in one leaf cell
     index->settings->track_vector = track_vector;
 
+
+    // track vid
+    index->vid_file = NULL;
+    index->vid_filename = NULL;
+    index->vid_pos_ctr = 0;
+
     // volume of the pivot space = multiplication of all extremity coordinates.
     index->settings->pivot_space_volume = 1.0;
     for (int i = 0; i < num_pivots; i++)
@@ -182,7 +188,7 @@ void print_index(pexeso_index *index)
                     exit_with_failure("Not leaf level why cell has no children?!");
                 printf("(Leaf cell) ");
                 printf("vectors list (total vectors = %u):\n", level->cells[j].cell_size);
-                for(int i = 0; i < level->cells[j].cell_size; i++)
+                for (int i = 0; i < level->cells[j].cell_size; i++)
                 {
                     printf("(%u, %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_id);
                 }
@@ -206,7 +212,7 @@ void print_index(pexeso_index *index)
 /* write index to disk */
 enum response index_write(pexeso_index *index)
 {
-    
+
     printf(">>> Storing index : %s\n", index->settings->root_directory);
     // make root.idx file
     char *root_filename = malloc(sizeof(char) * (strlen(index->settings->root_directory) + 9));
@@ -220,7 +226,7 @@ enum response index_write(pexeso_index *index)
         exit_with_failure("Error in index.c: Couldn't open index file 'root.idx'.");
 
     free(root_filename);
-    
+
     // make vid.idx file
     if (index->settings->track_vector)
     {
@@ -236,7 +242,6 @@ enum response index_write(pexeso_index *index)
         index->vid_pos_ctr = 0;
 
         free(vid_filename);
-        
     }
 
     unsigned int num_leaf_cells = index->settings->num_leaf_cells;
@@ -253,12 +258,61 @@ enum response index_write(pexeso_index *index)
     fwrite(&total_records, sizeof(unsigned int), 1, root_file);
 
     // (todo) write cells and buffers
-    // level_write(index, index->first_level, root_file);
-    // fseek(root_file, 0L, SEEK_SET);
-    // fwrite(&num_leaf_cells, sizeof(unsigned long long), 1, root_file);
+    level_write(index, index->first_level, root_file);
+    fseek(root_file, 0L, SEEK_SET);
+    fwrite(&index->settings->num_levels, sizeof(unsigned int), 1, root_file);
 
     fclose(root_file);
     fclose(index->vid_file);
+    return OK;
+}
+
+/* write level cells to disk */
+enum response level_write(struct pexeso_index *index, struct level *level, FILE *file)
+{
+    fwrite(&(level->is_first), sizeof(unsigned char), 1, file);
+    fwrite(&(level->is_leaf), sizeof(unsigned char), 1, file);
+    fwrite(&(level->id), sizeof(unsigned int), 1, file);
+    fwrite(&(level->num_cells), sizeof(unsigned int), 1, file);
+    fwrite(&(level->cell_edge_length), sizeof(unsigned int), 1, file);
+    
+    if (level->is_leaf)
+    {
+        for (int c = 0; c < level->num_cells; c++)
+        {
+            struct cell curr_cell = level->cells[c];
+            if (curr_cell.filename != NULL && curr_cell.is_leaf)
+            {
+                int filename_size = strlen(curr_cell.filename);
+                fwrite(&filename_size, sizeof(int), 1, file);
+                fwrite(curr_cell.filename, sizeof(char), filename_size, file);
+                fwrite(&(curr_cell.cell_size), sizeof(short), 1, file);
+
+                
+                if (index->settings->track_vector)
+                {
+                    curr_cell.vid_pos = index->vid_pos_ctr;
+                    // save vids to file
+                    fwrite(&(curr_cell.vid_pos), sizeof(unsigned int), 1, file);
+                    fwrite(curr_cell.vid, sizeof(struct vid), curr_cell.cell_size, index->vid_file);
+
+                    index->vid_pos_ctr += curr_cell.cell_size;
+                }
+
+                if(curr_cell.file_buffer != NULL)
+                    flush_buffer_to_disk(index, &curr_cell);
+
+                // (todo) update stats
+            }
+            else
+                exit_with_failure("Error in index.c: Cannot write leaf cell to disk without filename!");
+        }
+    }
+
+    // write next level
+    if (!level->is_leaf && level->next != NULL)
+        level_write(index, level->next, file);
+
     return OK;
 }
 
@@ -266,7 +320,7 @@ enum response index_write(pexeso_index *index)
 enum response index_destroy(struct pexeso_index *index, struct level *level)
 {
     //  leaf level
-    if (level->is_leaf) 
+    if (level->is_leaf)
     {
         if (index->buffer_manager != NULL)
             destroy_buffer_manager(index);
@@ -278,18 +332,17 @@ enum response index_destroy(struct pexeso_index *index, struct level *level)
         index_destroy(index, level->next);
     }
 
-    for(int c = level->num_cells - 1; c >= 0; c--)
+    for (int c = level->num_cells - 1; c >= 0; c--)
     {
         // free center
         free(level->cells[c].center->values);
 
-        if(!level->is_first) // center vectors of cells in levels are malloc'd one at a time (check init_levels().)
+        if (!level->is_first) // center vectors of cells in levels are malloc'd one at a time (check init_levels().)
             free(level->cells[c].center);
-        
+
         // free filename
         if (level->cells[c].filename != NULL)
             free(level->cells[c].filename);
-
 
         // free file buffer
         if (level->cells[c].file_buffer != NULL)
@@ -302,11 +355,9 @@ enum response index_destroy(struct pexeso_index *index, struct level *level)
         // free vid
         if (level->cells[c].vid != NULL)
             free(level->cells[c].vid);
-
-
     }
-    
-    if(level->is_first) // center vectors of cells in first level are malloc'd all at once (check init_first_level().)
+
+    if (level->is_first) // center vectors of cells in first level are malloc'd all at once (check init_first_level().)
         free(level->cells->center);
     free(level->cells);
     free(level);

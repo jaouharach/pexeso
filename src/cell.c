@@ -118,12 +118,13 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, bool are_
         child_cells[c].parent = parent_cell;
         child_cells[c].num_child_cells = parent_cell->num_child_cells;
         child_cells[c].edge_length = parent_cell->edge_length / 2;
+        child_cells[c].level_id = children_level_id;
         child_cells[c].center = NULL;
         child_cells[c].cell_size = 0;
         child_cells[c].file_buffer = NULL;
         child_cells[c].filename = NULL;
         child_cells[c].children = NULL;
-        
+
         // printf("are leaf children = %s.\n", are_leaf_children ? "true" : "false");
         if(are_leaf_children)
         {
@@ -225,6 +226,7 @@ void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim
 void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
 {
     dest->parent = src->parent;
+    dest->level_id = src->level_id;
     // printf("cell parent address = %p\n", dest->parent);
     dest->edge_length = src->edge_length;
     for (int i = 0; i < num_dim; i++)

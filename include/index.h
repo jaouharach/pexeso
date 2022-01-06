@@ -54,16 +54,19 @@ response init_index(const char * root_directory,
 vector * get_extremity(vector * pivot_vectors, unsigned int num_dim);
 
 /* insert a vector in the index */
-response index_insert(pexeso_index *, vector *);
+response index_insert(struct pexeso_index *, vector *);
 
 /* print index in console */
-void print_index(pexeso_index * index);
+void print_index(struct pexeso_index * index);
 
 /* write index to disk */
-enum response index_write(pexeso_index *index);
+enum response index_write(struct pexeso_index *index);
 
 /* destroy index */
 enum response index_destroy(struct pexeso_index *index, struct level *level);
 
 /* destroy buffer manager */
 enum response destroy_buffer_manager(struct pexeso_index *index);
+
+/* write level to disk */
+enum response level_write(struct pexeso_index *index, struct level *level, FILE *file);
