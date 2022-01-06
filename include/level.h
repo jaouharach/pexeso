@@ -8,6 +8,7 @@ struct level {
   unsigned int num_cells;
   float cell_edge_length;
   bool is_leaf;
+  bool is_first;
   struct cell * cells;
   struct level * next; // next level
 };

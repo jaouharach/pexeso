@@ -23,6 +23,7 @@ response init_levels(pexeso_index *index)
         level * new_level = curr_level->next;
 
         new_level->id = id;
+        new_level->is_first = false;
         // if its the leaf level (bottom level)
         if(new_level->id == index->settings->num_levels)
         {
@@ -65,7 +66,7 @@ response init_levels(pexeso_index *index)
             curr_level->cells[i].children = &new_level->cells[curr_cell];
             for(int j = 0; j < curr_level->cells[i].num_child_cells; j++, curr_cell++)
             {
-                printf("++ Adding cell %d, center vector: \n", curr_cell);
+                // printf("++ Adding cell %d, center vector: \n", curr_cell);
                 cell_cpy(&new_level->cells[curr_cell], &temp_child_cells[j], index->settings->num_pivots);
                 print_vector(new_level->cells[curr_cell].center, index->settings->num_pivots);
 
@@ -103,7 +104,9 @@ response init_first_level(pexeso_index *index)
     index->first_level->num_cells = (unsigned int)abs(pow(2, index->settings->num_pivots)); // num_cells = 2 ^ (P * 1)
     index->first_level->cell_edge_length = pow((index->settings->pivot_space_volume / index->first_level->num_cells), (1.0/index->settings->num_pivots));
     index->first_level->next = NULL;
-    
+    index->first_level->is_leaf = false;
+    index->first_level->is_first = true;
+
     index->first_level->cells = malloc(sizeof(struct cell) * index->first_level->num_cells);
     if (index->first_level->cells == NULL)
         exit_with_failure("Error in main.c: Could not allocate memory for first level cells.");

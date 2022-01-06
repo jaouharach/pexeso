@@ -31,7 +31,7 @@ int main()
     /* index settings */
     unsigned int num_levels = 3;  // m
     unsigned int num_pivots = 2;  // number of pivots
-    unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30
+    unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
 
     /* read all vectors in the data set */
     printf("Reading dataset info...");
@@ -63,12 +63,6 @@ int main()
 
     printf("(OK)\n");
 
-    printf("\nPivot vectors (in metric space):\n");
-    for(int i = 0; i < num_pivots; i++)
-    {
-        printf("P%d:\n", i+1);
-        print_vector(&pivots_mtr[i], num_dim_metric_space);
-    }
 
     /* Transforming data set from metric to pivot space (create distance matrix) */
     printf("\n\nTransforming dataset to pivot space (compute the distance matrix)... ");
@@ -77,12 +71,6 @@ int main()
     /* map pivot vectors to pivot space pi --> pi' */
     vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
     
-    printf("\nPivot vectors (in pivot space):\n");
-    for(int i = 0; i < num_pivots; i++)
-    {
-        printf("P%d:\n", i+1);
-        print_vector(&pivots_ps[i], num_pivots);
-    }
 
     printf("(OK)\n");
 
@@ -91,7 +79,7 @@ int main()
     // vector * pivot_space_extremity = get_rand_vector(num_pivots);
     vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
     print_vector(pivot_space_extremity, num_pivots);
-
+    
     
     /* initialize index */
     printf("\n\nInitialize index... ");
@@ -115,6 +103,16 @@ int main()
     printf("\t\tPivot space volume = %f\n", index->settings->pivot_space_volume);
     printf("\t\tNumber of leaf cells = %d\n", index->settings->num_leaf_cells);
     printf("\t\tLeaf cell edge length = %f\n", index->settings->leaf_cell_edge_length);
+    printf("\t\tPivot vectors (in metric space):\n");
+    for(int i = 0; i < num_pivots; i++)
+    {
+        print_vector(&index->settings->pivots_mtr[i], num_dim_metric_space);
+    }
+    printf("\t\tPivot vectors (in pivot space):\n");
+    for(int i = 0; i < num_pivots; i++)
+    {
+        print_vector(&index->settings->pivots_ps[i], num_pivots);
+    }
     printf("--------------------------------------------------------------\n");
 
 
@@ -145,7 +143,7 @@ int main()
     if (!index_write(index))
         exit_with_failure("Error main.c:  Could not save the index to disk.\n");
     
-    
+
     /* destroy index */
     if (!index_destroy(index, index->first_level))
         exit_with_failure("Error main.c:  Could not destroy index.\n");
@@ -153,11 +151,11 @@ int main()
     // exit(1);
 
     // free index and index settings
-    for(int p = index->settings->num_pivots - 1; p >= 0; p++)
+    for(int p = index->settings->num_pivots - 1; p >= 0; p--)
         free(index->settings->pivots_mtr[p].values);
     free(index->settings->pivots_mtr);
 
-    for(int p = index->settings->num_pivots - 1; p >= 0; p++)
+    for(int p = index->settings->num_pivots - 1; p >= 0; p--)
         free(index->settings->pivots_ps[p].values);
     free(index->settings->pivots_ps);
 
@@ -166,6 +164,7 @@ int main()
 
     free(index->settings);
     free(index);
+
     return 0;
 }
 

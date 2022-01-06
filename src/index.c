@@ -206,6 +206,7 @@ void print_index(pexeso_index *index)
 /* write index to disk */
 enum response index_write(pexeso_index *index)
 {
+    
     printf(">>> Storing index : %s\n", index->settings->root_directory);
     // make root.idx file
     char *root_filename = malloc(sizeof(char) * (strlen(index->settings->root_directory) + 9));
@@ -219,7 +220,7 @@ enum response index_write(pexeso_index *index)
         exit_with_failure("Error in index.c: Couldn't open index file 'root.idx'.");
 
     free(root_filename);
-
+    
     // make vid.idx file
     if (index->settings->track_vector)
     {
@@ -235,6 +236,7 @@ enum response index_write(pexeso_index *index)
         index->vid_pos_ctr = 0;
 
         free(vid_filename);
+        
     }
 
     unsigned int num_leaf_cells = index->settings->num_leaf_cells;
@@ -256,7 +258,7 @@ enum response index_write(pexeso_index *index)
     // fwrite(&num_leaf_cells, sizeof(unsigned long long), 1, root_file);
 
     fclose(root_file);
-
+    fclose(index->vid_file);
     return OK;
 }
 
@@ -278,9 +280,12 @@ enum response index_destroy(struct pexeso_index *index, struct level *level)
 
     for(int c = level->num_cells - 1; c >= 0; c--)
     {
-        // free center vector values
+        // free center
         free(level->cells[c].center->values);
-        free(level->cells[c].center);
+
+        if(!level->is_first) // center vectors of cells in levels are malloc'd one at a time (check init_levels().)
+            free(level->cells[c].center);
+        
         // free filename
         if (level->cells[c].filename != NULL)
             free(level->cells[c].filename);
@@ -300,8 +305,9 @@ enum response index_destroy(struct pexeso_index *index, struct level *level)
 
 
     }
-    // free centers
-    free(level->cells->center);
+    
+    if(level->is_first) // center vectors of cells in first level are malloc'd all at once (check init_first_level().)
+        free(level->cells->center);
     free(level->cells);
     free(level);
 

@@ -225,7 +225,7 @@ void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim
 void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
 {
     dest->parent = src->parent;
-    printf("cell parent address = %p\n", dest->parent);
+    // printf("cell parent address = %p\n", dest->parent);
     dest->edge_length = src->edge_length;
     for (int i = 0; i < num_dim; i++)
         dest->center->values[i] = src->center->values[i];
@@ -269,6 +269,6 @@ enum response create_cell_filename(struct index_settings *settings, struct cell 
     l += sprintf(cell->filename+l ,"_%g", cell->edge_length);
     l += sprintf(cell->filename+l ,"_(%g,%g)", get_vector_magnitude(cell->center, settings->num_pivots), get_vector_mean(cell->center, settings->num_pivots));
 
-    printf("Cell filename = %s\n\n\n", cell->filename);
+    // printf("Cell filename = %s\n\n\n", cell->filename);
     return OK;
 }
