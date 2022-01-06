@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdbool.h>
 #include "../include/index.h"
 #include "../include/level.h"
 #include "../include/cell.h"
@@ -18,14 +19,15 @@ response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,str
         exit_with_failure("Error in cell.c:  Could not get the \
                      file buffer for this cell.");
 
-    
+    // printf("Buffered list size = %u\n", cell->file_buffer->buffered_list_size);
+
     if (cell->file_buffer == NULL)
         exit_with_failure("Error in cell.c:  Couldn't append vector to cell NULL file buffer for \
                      this cell after creating it.");
     
-    int idx = cell->file_buffer->buffered_list_size;
     int vector_length = index->settings->mtr_vector_length;
     int max_leaf_size = index->settings->max_leaf_size;
+    int idx = cell->file_buffer->buffered_list_size;
 
     if (idx == 0) // if buffered list is empty
     {
@@ -39,9 +41,6 @@ response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,str
 
     // get first address of memory block previously allocated for this cell
     cell->file_buffer->buffered_list[idx] = (v_type *) index->buffer_manager->current_record;
-    index->buffer_manager->current_record += sizeof(v_type) * vector_length;
-    index->buffer_manager->current_record_index++;
-
     if (cell->file_buffer->buffered_list[idx] == NULL)
         exit_with_failure("Error in cell.c:  Could not \
                          allocate memory for the vector in the buffer.");
@@ -51,6 +50,9 @@ response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,str
     {
         cell->file_buffer->buffered_list[idx][i] = vector->values[i];
     }
+
+    index->buffer_manager->current_record += sizeof(v_type) * vector_length;
+    index->buffer_manager->current_record_index++;
 
     cell->cell_size++;
     cell->file_buffer->buffered_list_size++;
@@ -85,40 +87,26 @@ cell *cell_route_to_closest_child(cell *parent_cell, vector *vector, unsigned in
     }
     return closest_child_cell;
 }
-
-/* initialize leaf cell */
-response to_leaf_cell(struct cell *cell, struct cell *parent, char *filename)
-{
-    cell->parent = parent;
-    cell->children = NULL;
-    cell->is_leaf = true;
-
-    cell->filename = filename;
-
-    cell->file_buffer = NULL;
-    // file_buffer_init(cell);
-
-    return OK;
-}
-
-/* initialize non leaf cell */
+/* initialize cell */
 response init_cell(cell *cell, float length, unsigned int num_child_cells)
 {
     cell->edge_length = length;
     cell->num_child_cells = num_child_cells;
     cell->is_leaf = false;
-
+    cell->cell_size = 0;
+    
     // null pointers
     cell->parent = NULL;
     cell->children = NULL;
     cell->center = NULL;
     cell->file_buffer = NULL;
     cell->filename = NULL;
+    cell->vid = NULL;
 
     return OK;
 }
 
-cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, index_settings *settings)
+cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, bool are_leaf_children, unsigned int children_level_id, index_settings *settings)
 {
     parent_cell->children = malloc(sizeof(struct cell) * num_child_cells);
     if (parent_cell->children == NULL)
@@ -126,11 +114,29 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, index_set
     cell *child_cells = parent_cell->children;
     for (int c = 0; c < num_child_cells; c++)
     {
+        // init child cell
         child_cells[c].parent = parent_cell;
         child_cells[c].num_child_cells = parent_cell->num_child_cells;
         child_cells[c].edge_length = parent_cell->edge_length / 2;
-        child_cells[c].is_leaf = false;
         child_cells[c].center = NULL;
+        child_cells[c].cell_size = 0;
+        child_cells[c].file_buffer = NULL;
+        child_cells[c].filename = NULL;
+        child_cells[c].children = NULL;
+        
+        printf("are leaf children = %s.\n", are_leaf_children ? "true" : "false");
+        if(are_leaf_children)
+        {
+            child_cells[c].is_leaf = are_leaf_children;
+            child_cells[c].vid = calloc(settings->max_leaf_size, sizeof(struct vid));
+        }
+        else
+        {
+            child_cells[c].is_leaf = are_leaf_children;
+            child_cells[c].vid = NULL;
+        }
+        
+
     }
     // the values of center vectors for child cells will vary (from parent center vector) in earch direction d(., pi) by (+/-) parent_cell->edge_length /4
     unsigned int ndc = settings->num_pivots * 2;
@@ -180,6 +186,14 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, index_set
         }
     }
 
+    // free memory
+    free(temp.values);
+    int num_sign_vectors = (int) pow(2, settings->num_pivots);
+    for(int s = num_sign_vectors - 1; s >= 0; s--)
+        free(sign_arr[s].values);
+    free(sign_arr);
+    free(distinct_coor);
+    
     return parent_cell->children;
 }
 /* create center vectors for all cells of the data space */
@@ -211,14 +225,19 @@ void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim
 void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
 {
     dest->parent = src->parent;
+    printf("cell parent address = %p\n", dest->parent);
     dest->edge_length = src->edge_length;
     for (int i = 0; i < num_dim; i++)
         dest->center->values[i] = src->center->values[i];
 
-    dest->children = NULL;
+    dest->is_leaf = src->is_leaf;
+    dest->children = src->children;
     dest->num_child_cells = src->num_child_cells;
     dest->filename = src->filename;
+    dest->cell_size = src->cell_size;
     dest->file_buffer = src->file_buffer;
+    dest->vid = src->vid;
+
 }
 /* create cell filename */
 
@@ -234,8 +253,11 @@ enum response create_cell_filename(struct index_settings *settings, struct cell 
         num vectors: number of vectors stored in leaf cell
         number of punctuation marks (underscores:3, parentheses:2, commas:2): total 7
     */
-    if(cell->filename != NULL)
-        exit_with_failure("Error in cell.c: Couldn't create cell filename, cell already has a filename!");
+    // if(cell->filename != NULL)
+    // {
+    //     printf("\n%s\n", cell->filename);
+    //     exit_with_failure("Error in cell.c: Couldn't create cell filename, cell already has a filename!");
+    // }
 
     int l = 0;
     cell->filename = malloc(sizeof(char) * (settings->max_filename_size));

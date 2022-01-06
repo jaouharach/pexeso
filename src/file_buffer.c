@@ -10,7 +10,6 @@ enum response file_buffer_init(struct cell *cell)
 {
     cell->file_buffer = NULL;
     cell->file_buffer = (struct file_buffer *)malloc(sizeof(struct file_buffer));
-
     if (cell->file_buffer == NULL)
         exit_with_failure("Error in file_buffer.c: Could not allocate memory for file buffer.\n");
 
@@ -66,7 +65,7 @@ enum response add_file_buffer_to_map(struct pexeso_index *index, struct cell *ce
         index->buffer_manager->file_map_tail = lastP->next;
     }
 
-    ++index->buffer_manager->file_map_size;
+    index->buffer_manager->file_map_size++;
 
     return OK;
 }

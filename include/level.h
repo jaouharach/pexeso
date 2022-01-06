@@ -9,7 +9,6 @@ struct level {
   float cell_edge_length;
   bool is_leaf;
   struct cell * cells;
-  struct level * prev; // previous level
   struct level * next; // next level
 };
 

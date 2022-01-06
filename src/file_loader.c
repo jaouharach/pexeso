@@ -143,8 +143,10 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
     if (read_files == 0)
         exit_with_failure("Error in index.c:  Could not find any binary file in binary files directory.\n");
 
+    // free memory
     free(vector->values);
     free(vector);
+    free(dir);
 
     return dataset;
 }
@@ -261,8 +263,10 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
     if (read_files == 0)
         exit_with_failure("Error in index.c:  Could not find any binary file in binary files directory.\n");
 
+    // free memory
     free(vector->values);
     free(vector);
+    free(dir);
 
     return OK;
 }
@@ -311,4 +315,6 @@ unsigned long long get_dataset_info(const char *bin_files_directory, unsigned lo
             *vector_length = v_len;
         }
     }
+    // free memory
+    free(dir);
 }

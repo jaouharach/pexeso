@@ -21,8 +21,8 @@ int main()
     unsigned int base = 32; // 32 bits to store numbers in binary files
     unsigned int mtr_vector_length = 3, num_dim_metric_space = 3;
     unsigned long long total_vectors = 0ull; // number of vectors in the whole data lake
-    unsigned int max_leaf_size = 30; // max vectors in one leaf cell
-    double buffered_memory_size = 2; // memory  allocated for file buffers (in MB)
+    unsigned int max_leaf_size = 76; // max vectors in one leaf cell
+    double buffered_memory_size = 30; // memory  allocated for file buffers (in MB)
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
 
     /* mode 0 = index dataset, 1 = query dataset */
@@ -31,7 +31,7 @@ int main()
     /* index settings */
     unsigned int num_levels = 3;  // m
     unsigned int num_pivots = 2;  // number of pivots
-    unsigned int fft_scale = 1;   // constant for finding |P| * c candidate pivots
+    unsigned int fft_scale = 1;   // constant for finding |P| * c candidate pivots, a good choice of c is approximately 30
 
     /* read all vectors in the data set */
     printf("Reading dataset info...");
@@ -53,7 +53,14 @@ int main()
     int dataset_dim [] = {total_vectors, num_dim_metric_space};
     int pivots_mtr_dim [] = {num_pivots, num_dim_metric_space};
 
+    // get pivot vector in from metric dataset
     vector * pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
+    
+    // free dataset
+    for(int dv = total_vectors - 1; dv >=0; dv--)
+        free(dataset[dv].values);
+    free(dataset);  
+
     printf("(OK)\n");
 
     printf("\nPivot vectors (in metric space):\n");
@@ -65,11 +72,18 @@ int main()
 
     /* Transforming data set from metric to pivot space (create distance matrix) */
     printf("\n\nTransforming dataset to pivot space (compute the distance matrix)... ");
-    vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, pivots_mtr, num_pivots);
+    // vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, pivots_mtr, num_pivots);
 
     /* map pivot vectors to pivot space pi --> pi' */
     vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
     
+    printf("\nPivot vectors (in pivot space):\n");
+    for(int i = 0; i < num_pivots; i++)
+    {
+        printf("P%d:\n", i+1);
+        print_vector(&pivots_ps[i], num_pivots);
+    }
+
     printf("(OK)\n");
 
     /* pivot space extremity */
@@ -81,18 +95,16 @@ int main()
     
     /* initialize index */
     printf("\n\nInitialize index... ");
+
     pexeso_index * index = (struct pexeso_index *) malloc(sizeof(struct pexeso_index));
     if (index == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for index!");
 
-    if (!init_index(
-        root_directory, num_pivots, pivot_space_extremity, 
-        num_levels, total_vectors, base, mtr_vector_length, 
-        buffered_memory_size, max_leaf_size, track_vector, index))
+    if (!init_index(root_directory, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
+                    num_levels, total_vectors, base, mtr_vector_length, 
+                    buffered_memory_size, max_leaf_size, track_vector, index))
         exit_with_failure("Error in main.c: Couldn't initialize index!");
 
-    index->settings->pivots_mtr = pivots_mtr;
-    index->settings->pivots_ps = pivots_ps;
     printf("(OK)\n");
 
     /* Display settings */
@@ -118,6 +130,8 @@ int main()
         exit_with_failure("Error in main.c: Couldn't initialize index levels!");
     printf("(OK)\n");
 
+    /* print index */
+    print_index(index);
 
     /* insert dataset in index */
     /* read all vectors in the data set */
@@ -125,16 +139,15 @@ int main()
     if (!index_binary_files(index, bin_files_directory, num_files, base))
         exit_with_failure("Error in main.c: Couldn't initialize first level!");
     printf("(OK)\n");
-    
 
-    /* print index */
-    print_index(index);
-    
-    exit(1);
 
+    /* write index to disk */
     if (!index_write(index))
         exit_with_failure("Error main.c:  Could not save the index to disk.\n");
-            
+    
+    /* destroy index */    
+    index_destroy(index, index->first_level);
+    
     return 0;
 }
 

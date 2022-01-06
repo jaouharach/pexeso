@@ -32,10 +32,19 @@ vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_piv
         }
     }
 
+    // free memory
+    for (int i = num_cp - 1; i >= 0 ; i--)
+        free(candidate_pivots[i].values);
     free(candidate_pivots);
+
+    for (int i = dataset_dim[0] - 1 ; i >= 0 ; i--)
+        free(dataset_ps[i].values);
     free(dataset_ps);
+
+    
     free(result);
     gsl_matrix_free(pcset);
+
     return pivots;
 }
 
@@ -52,7 +61,7 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
 
     for (int i = 0; i < k; i++)
     {
-        outliers[i].values = calloc(v_len, sizeof(v_type));
+        outliers[i].values = malloc(sizeof(v_type) * v_len);
         if(outliers[i].values == NULL)
             exit_with_failure("Error in select_pivots.c: Couldn't allocate memory for outlier values.");
 
@@ -85,7 +94,8 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
                 bsf_v = j;
             }
         }
-        outliers[i].values = data_set[bsf_v].values;
+        for(int v = 0; v < v_len; v++)
+            outliers[i].values[v] = data_set[bsf_v].values[v];
     }
     return outliers;
 }
@@ -180,46 +190,47 @@ gsl_matrix * empca(vector *data_set, unsigned int num_vectors, unsigned int dim,
     // repeat 20 times
     for (int i = 0; i < num_iteration; i++)
     {
-        // [(Ct * C) ^-1 * Ct] * data
+        // compute Ct
+        if(Ct != NULL) gsl_matrix_free(Ct);
         Ct = gsl_matrix_get_transpose(C, dim_c);        
-        
-        // printf("Ct matrix:\n");
-        // gsl_matrix_print(Ct, dim_ct);
 
-        x = gsl_matrix_product(
-                gsl_matrix_product(
-                    gsl_matrix_inverse(gsl_matrix_product(Ct, dim_ct, C, dim_c), dim_ct_mult_c),
-                    dim_ct_mult_c,
-                    Ct,
-                    dim_ct
-                ),
-                dim_ct,
-                data_t,
-                dim_data_t
-            );
+        // compute x, x = [(Ct * C) ^-1 * Ct] * data
+        if(x != NULL) gsl_matrix_free(x);
 
-        // printf("x matrix:\n");
-        // gsl_matrix_print(x, dim_x);
+        // (Ct * C) ^-1
+        gsl_matrix * Ct_C_inv = gsl_matrix_inverse(gsl_matrix_product(Ct, dim_ct, C, dim_c), dim_ct_mult_c);
+        // [(Ct * C) ^-1 * Ct]
+        gsl_matrix * Ct_C_inv_Ct = gsl_matrix_product(Ct_C_inv, dim_ct_mult_c, Ct, dim_ct);
+        // [(Ct * C) ^-1 * Ct] * data
+        x = gsl_matrix_product(Ct_C_inv_Ct,dim_ct, data_t, dim_data_t);
 
-        
+        // free memory
+        gsl_matrix_free(Ct_C_inv);
+        gsl_matrix_free(Ct_C_inv_Ct);
+
         // compute xt 
+        if(xt != NULL) gsl_matrix_free(xt);
+
         xt = gsl_matrix_get_transpose(x, dim_x);
 
-        // printf("xt matrix:\n");
-        // gsl_matrix_print(xt, dim_xt);
+        // compute C, C = (data * Xt) * (X * Xt) ^-1
+        if(C != NULL) gsl_matrix_free(C);
+        
+        // (X * Xt) ^-1
+        gsl_matrix * X_Xt_inv = gsl_matrix_inverse(gsl_matrix_product(x, dim_x, xt, dim_xt), dim_ct_mult_c);
+        // (data * Xt)
+        gsl_matrix * data_Xt = gsl_matrix_product(data_t, dim_data_t, xt, dim_xt);
+         // (data * Xt) * (X * Xt) ^-1
+        C = gsl_matrix_product(data_Xt, dim_c, X_Xt_inv, dim_ct_mult_c);
 
-        // (data * Xt) * (X * Xt) ^-1
-        C = gsl_matrix_product(
-                gsl_matrix_product(data_t, dim_data_t, xt, dim_xt),
-                dim_c,
-                gsl_matrix_inverse(gsl_matrix_product(x, dim_x, xt, dim_xt), dim_ct_mult_c),
-                dim_ct_mult_c
-            );
+        // free memory
+        gsl_matrix_free(X_Xt_inv);
+        gsl_matrix_free(data_Xt);
     }
     
 
     // orthonormalization of matrix C (SVD)
-    C = orthonormalization(C, dim_c, 1);
+    orthonormalization(C, dim_c, 1);
 
     // cov_matrix = Covariance matrix of (Ct * data)t
     int dim_ctd[] = {num_pc, num_vectors}; // dim of (Ct * data)
@@ -228,10 +239,12 @@ gsl_matrix * empca(vector *data_set, unsigned int num_vectors, unsigned int dim,
     int dim_v [] = {num_pc, num_pc};
 
     // compute Ct
+    if(Ct != NULL) gsl_matrix_free(Ct);
     Ct = gsl_matrix_get_transpose(C, dim_c);
 
-    // compute (Ct * data)t    
-    gsl_matrix * ct_mult_data_t = gsl_matrix_get_transpose(gsl_matrix_product(Ct, dim_ct, data_t, dim_data_t), dim_ctd);
+    // compute (Ct * data)t   
+    gsl_matrix * ct_mult_data =  gsl_matrix_product(Ct, dim_ct, data_t, dim_data_t);
+    gsl_matrix * ct_mult_data_t = gsl_matrix_get_transpose(ct_mult_data, dim_ctd);
 
     // compute covariance matrix
     gsl_matrix * cov_matrix = gsl_matrix_covariance(ct_mult_data_t, dim_ctdt);
@@ -257,24 +270,29 @@ gsl_matrix * empca(vector *data_set, unsigned int num_vectors, unsigned int dim,
     gsl_matrix_set_part(result, 1, 0, c_mult_vf, dim, num_pc);
 
     // assign eigen values for first row in result matrix
-    // gsl_matrix_set_row(result, 0,  eigen_vals);
-    gsl_matrix_set_row(result, 0,  vector_flip(eigen_vals, num_pc));
+    gsl_vector * eigen_vals_fliped = vector_flip(eigen_vals, num_pc);
+    gsl_matrix_set_row(result, 0,  eigen_vals_fliped);
 
-    // printf("Current result matrix:\n");
-    // gsl_matrix_print(result, dim_result);
+    gsl_matrix * result_t = gsl_matrix_get_transpose(result, dim_result);
 
-
+    // free memory
+    gsl_matrix_free(data);
+    gsl_matrix_free(data_t);
     gsl_matrix_free(C);
     gsl_matrix_free(Ct);
+    gsl_matrix_free(ct_mult_data);
     gsl_matrix_free(x);
     gsl_matrix_free(xt);
     gsl_matrix_free(V);
     gsl_matrix_free(Vf);
-
+    gsl_matrix_free(cov_matrix);
+    gsl_matrix_free(ct_mult_data_t);
+    gsl_vector_free(eigen_vals_fliped);
     gsl_vector_free(eigen_vals);
     gsl_eigen_symmv_free(w);
+    gsl_matrix_free(result);
 
-    return gsl_matrix_get_transpose(result, dim_result);
+    return result_t;
 }
 
 /* select pivots from the empca result (pc with highest projection on dataset)
@@ -289,10 +307,6 @@ int * select_pivots_by_pca_result_angle(gsl_matrix * pca_result, int *pca_result
     gsl_matrix * PC = gsl_matrix_alloc(num_pc+1, num_cols);
 
     gsl_matrix_set_part(PC, 1, 0, gsl_matrix_get_part(pca_result, 0, 1, num_pc, num_cols), num_pc, num_cols);
-
-    // printf("PC matrix:\n");
-    // gsl_matrix_print(PC, dim_pc);
-
 
     // convert matrix to positive matrix
     gsl_to_positive_matrix(PC, dim_pc);
@@ -309,13 +323,15 @@ int * select_pivots_by_pca_result_angle(gsl_matrix * pca_result, int *pca_result
         exit_with_failure("Error in select_pivots.c: Couldn't allocate memory for integer array.");
     
     gsl_matrix * pc_view = NULL;
+    gsl_matrix * PCt = gsl_matrix_get_transpose(PC, dim_pc);
 
     //for jth pc, find the ith axis d(., pi), on which the pc has the largest projection
     for(int i = 0; (i < num_cols) && (counter < num_pivots); i++)
     {
         for(int j = 1; (j <= num_pc) && (counter < num_pivots); j++)
             {
-                pc_view = gsl_matrix_sort_by_column(gsl_matrix_get_transpose(PC, dim_pc), dim_pc_t, j);
+                // PCt
+                pc_view = gsl_matrix_sort_by_column(PCt, dim_pc_t, j);
                 // printf("PCt matrix sorted by column %d:\n", j);
                 // gsl_matrix_print(pc_view, dim_pc_t);
                 
@@ -326,10 +342,15 @@ int * select_pivots_by_pca_result_angle(gsl_matrix * pca_result, int *pca_result
                     // printf("highest projection in row = %d\n", point);
                     counter ++;
                 }
-                // replace max value in column j with zero
-                gsl_matrix_set(pc_view, num_cols -1, j, 0);
+                // // replace max value in column j with zero
+                // gsl_matrix_set(pc_view, num_cols -1, j, 0);
+                gsl_matrix_free(pc_view);
             }
     }
+
+    // free memory
+    gsl_matrix_free(PC);
+    gsl_matrix_free(PCt);
 
     return result; // indecies of axis d(., pi) of which pcs have the highest projection 
 }

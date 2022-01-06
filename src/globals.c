@@ -82,6 +82,8 @@ vector * self_cartesian_product(int * array, unsigned int dim)
 {
     // number of results
     int n = (int) pow(2, dim);
+    int * bin_arr;
+
     // allocate memory for result
     vector * result = malloc(sizeof(struct vector)* n);
     for (int i = 0; i < n; i++)
@@ -90,11 +92,13 @@ vector * self_cartesian_product(int * array, unsigned int dim)
     // cartesian product arr x arr of dimention k
     for (int i = 0; i < n; i++)
     {
-        int * bin_arr = integer_to_binary_array(i, dim);
+        bin_arr = integer_to_binary_array(i, dim);
         for(int j = 0; j < dim; j++)
         {
             result[i].values[j] = (float) array[bin_arr[j]];
         }
+        // free memory
+        free(bin_arr);
     }
 
     return result;

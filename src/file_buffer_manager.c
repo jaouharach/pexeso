@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "../include/index.h"
 #include "../include/cell.h"
 #include "../include/file_buffer_manager.h"
@@ -31,37 +33,32 @@ enum response set_buffered_memory_size(struct pexeso_index *index)
     if (index == NULL)
         exit_with_failure("Error in file_buffer_manager.c: Cannot set the buffered memory for a NULL index.");
 
-    unsigned long buffered_memory_size_in_bytes = index->settings->buffered_memory_size * 1024 * 1024;
-    index->buffer_manager->max_buffered_size = (long)(buffered_memory_size_in_bytes / sizeof(v_type));
+    /*
+        memory used by the program is muchlarger than buffered_memory_size
+        in this version buffered_memory_size is used for string vectors only and it does not 
+        take into account memory required to store structs (file_buffer, cell, level ...)
+    */
+    unsigned long num_bytes = index->settings->buffered_memory_size * 1024 * 1024;
+    // max number of values that can be hold in buffer (not vector)
+    index->buffer_manager->max_buffered_size = (long)(num_bytes / sizeof(v_type));
 
-    unsigned int vector_size_in_bytes = sizeof(v_type) * index->settings->mtr_vector_length;
+    
+    unsigned long vector_size_in_bytes = sizeof(v_type) * index->settings->mtr_vector_length;
+    long max_buffered_vectors = (long)(num_bytes / vector_size_in_bytes);
+    
+    printf("max_buffered_vectors  = %lu\n", max_buffered_vectors);
+    printf("vector_size_in_bytes  = %lu\n", vector_size_in_bytes);
+    
 
-    // why multiply by 2 !!! (I didn't here)
-    unsigned long num_leaf_buffers = buffered_memory_size_in_bytes /
-                                     (unsigned long)(index->settings->max_leaf_size * vector_size_in_bytes);
-    unsigned long leaf_buffer_size = sizeof(struct file_buffer) + (sizeof(v_type *) * index->settings->max_leaf_size);
-
-    // total vector that can be stored in memory array = mem_array_size
-    long long mem_array_size = (long long)((buffered_memory_size_in_bytes -
-                                            leaf_buffer_size * num_leaf_buffers) /
-                                           vector_size_in_bytes);
-
-    index->buffer_manager->memory_array = calloc(mem_array_size, vector_size_in_bytes);
+    index->buffer_manager->memory_array = calloc(max_buffered_vectors, vector_size_in_bytes);
     if (index->buffer_manager->memory_array == NULL)
         exit_with_failure("Error in file_buffer_manager.c:"
-                          "Cannot allocate the requested buffer size.\n");
+                          " Cannot allocate the requested buffer size.\n");
 
     index->buffer_manager->current_record_index = 0;
-    index->buffer_manager->max_record_index = mem_array_size;
+    index->buffer_manager->max_record_index = max_buffered_vectors;
     index->buffer_manager->current_record = index->buffer_manager->memory_array;
 
-    // printf("buffered_memory_size_in_bytes  = %lu\n", buffered_memory_size_in_bytes);
-    // printf("max_buffered_size  = %llu\n", index->buffer_manager->max_buffered_size);
-    // printf("vector_size_in_bytes  = %u\n", vector_size_in_bytes);
-    // printf("num_leaf_buffers  = %lu\n", num_leaf_buffers);
-    // printf("num_leaf_buffers  = %lu, leaf_buffer_size = %lu\n", num_leaf_buffers, leaf_buffer_size);
-    // printf("mem_array_size  = %lld vectors\n", mem_array_size);
-    // exit(1);
 
     return OK;
 }
@@ -74,14 +71,23 @@ response get_file_buffer(struct pexeso_index *index, struct cell *cell)
             exit_with_failure("Error in file_buffer_manager.c: Could not initialize the file buffer \
                            for the node.\n");
 
+        if(cell->file_buffer == NULL)
+            exit_with_failure("Error in file_buffer_manager.c: Could not initialize the file buffer \
+                           for the node.\n");
+
         if (!add_file_buffer_to_map(index, cell))
             exit_with_failure("Error in file_buffer_manager.c: Could not add the file buffer \
                            to the map.\n");
+
+        if(cell->file_buffer == NULL)
+            exit_with_failure("Error in file_buffer_manager.c: Could not initialize the file buffer \
+                           for the node.\n");
     }
 
+    // if buffer limit has been reached
     // why * 2? 
-    int buffer_limit = index->buffer_manager->max_record_index - (2 * index->settings->max_leaf_size);
-    // if buffer limit has not been reached
+    int buffer_limit = index->buffer_manager->max_record_index;
+    
     if (index->buffer_manager->current_record_index > buffer_limit)
     {
         char *curr_time;
@@ -105,9 +111,10 @@ response get_file_buffer(struct pexeso_index *index, struct cell *cell)
 
             currP = currP->next;
         }
-        // memset(index->buffer_manager->memory_array, 0, index->buffer_manager->max_record_index);
+        memset(index->buffer_manager->memory_array, 0, index->buffer_manager->max_record_index);
         index->buffer_manager->current_record_index = 0;
         index->buffer_manager->current_record = index->buffer_manager->memory_array;
     }
+
     return OK;
 }

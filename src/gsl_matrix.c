@@ -12,7 +12,9 @@ gsl_matrix * gsl_matrix_inverse(gsl_matrix * input_matrix, int *dim)
     gsl_linalg_LU_decomp(input_matrix, p, &s); // Compute the LU decomposition of this matrix
     gsl_linalg_LU_invert(input_matrix, p, inverse_matrix); // Compute the  inverse of the LU decomposition
 
+    // free memory
     gsl_permutation_free(p);
+    gsl_matrix_free(input_matrix);
 
     return inverse_matrix;
 
@@ -321,14 +323,16 @@ gsl_matrix * orthonormalization(gsl_matrix *matrix_a, int *dim, int is_large_dat
     // int dim_v [] = {num_cols, num_cols};
     // gsl_matrix_print(V, dim_v);
 
-    gsl_vector_free(temp_column);
+    // free memory
     gsl_vector_free(column_ri);
     gsl_vector_free(S);
     gsl_matrix_free(result);
     gsl_matrix_free(V);
     gsl_matrix_free(X);
-
-    return U;
+    gsl_vector_free(work);
+    gsl_vector_free(temp_column);
+    gsl_vector_free(u_col_0);
+    
 }
 /* change values in a (h x w) sub matrix of the matrix starting at [row][col] */
 void gsl_matrix_set_part(gsl_matrix *matrix, unsigned int row, unsigned int col, gsl_matrix * changes, unsigned int height, unsigned int width)
@@ -339,6 +343,8 @@ void gsl_matrix_set_part(gsl_matrix *matrix, unsigned int row, unsigned int col,
             gsl_matrix_set(matrix, i+row, j+col, gsl_matrix_get(changes, i, j));
 
     }
+    // free memory
+    gsl_matrix_free(changes);
 }
 /* get a (h x w) sub matrix of the matrix starting at [row][col] */
 gsl_matrix * gsl_matrix_get_part(gsl_matrix *matrix, unsigned int row, unsigned int col, unsigned int height, unsigned int width)

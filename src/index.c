@@ -15,6 +15,8 @@
 /* initialize index */
 response init_index(const char *root_directory,
                     unsigned int num_pivots,
+                    vector *pivots_mtr,
+                    vector *pivots_ps,
                     vector *extremity,
                     unsigned int num_levels,
                     unsigned long long num_vectors,
@@ -39,7 +41,10 @@ response init_index(const char *root_directory,
 
     index->settings->root_directory = root_directory;
     index->settings->num_pivots = num_pivots; // number of dimensions is equal to the number of pivots
+    index->settings->pivots_mtr = pivots_mtr; // pivot vectors in metric space
+    index->settings->pivots_ps = pivots_ps;   // pivot vectors in pivot space
     index->settings->pivot_space_extremity = extremity;
+
     index->settings->num_levels = num_levels;
     index->settings->num_leaf_cells = pow(2, num_pivots * num_levels); // 2^(|P| * m) number of cells depends on num_pivots to ensure same length in all edges.
     index->settings->mtr_vector_length = mtr_vector_length;
@@ -117,12 +122,6 @@ response index_insert(pexeso_index *index, vector *vector)
 
     map_vector(vector, index->settings->mtr_vector_length, v_mapping, index->settings->pivots_mtr, index->settings->num_pivots);
 
-    // printf("current vector, ");
-    // printf("in metric space :\n");
-    // print_vector(vector, index->settings->mtr_vector_length);
-    // printf("in pivot space :\n");
-    // print_vector(v_mapping, index->settings->num_pivots);
-
     // find the closest cell in first level.
     float bsf = FLT_MAX;
     cell *cell = NULL;
@@ -151,6 +150,10 @@ response index_insert(pexeso_index *index, vector *vector)
     // append vector in metric format
     append_vector_to_cell(index, cell, vector);
 
+    // free memory
+    free(v_mapping->values);
+    free(v_mapping);
+
     return OK;
 }
 
@@ -173,20 +176,21 @@ void print_index(pexeso_index *index)
             printf("~~Center vector:");
             print_vector(level->cells[j].center, index->settings->num_pivots);
 
-            if(level->cells[j].cell_size == 0 && level->cells[j].children == NULL)
-                printf("(Empty leaf)\n");
-
-            else if (level->cells[j].children == NULL)
+            if (level->cells[j].children == NULL)
             {
-                printf("(Leaf cell), ");
-                printf("vectors list (total vectors = %u):\n", level->cells[j].cell_size);
-                for(int i = 0; i < level->cells[j].cell_size; i++)
-                {
-                    printf("(%u, %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_id);
-                }
+                if (level->is_leaf == false || level->cells[j].is_leaf == false)
+                    exit_with_failure("Not leaf level why cell has no children?!");
+                printf("(Leaf cell)!!!! ");
+                // printf("vectors list (total vectors = %u):\n", level->cells[j].cell_size);
+                // for(int i = 0; i < level->cells[j].cell_size; i++)
+                // {
+                //     printf("(%u, %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_id);
+                // }
             }
             else
             {
+                if (level->is_leaf == true || level->cells[j].is_leaf == true)
+                    exit_with_failure("Leaf cell with children?!");
                 printf("~~Children:\n");
                 for (int k = 0; k < level->cells[j].num_child_cells; k++)
                     print_vector(level->cells[j].children[k].center, index->settings->num_pivots);
@@ -247,10 +251,82 @@ enum response index_write(pexeso_index *index)
     fwrite(&total_records, sizeof(unsigned int), 1, root_file);
 
     // (todo) write cells and buffers
-    // dstree_level_write(index, index->first_level, root_file);
+    // level_write(index, index->first_level, root_file);
     // fseek(root_file, 0L, SEEK_SET);
     // fwrite(&num_leaf_cells, sizeof(unsigned long long), 1, root_file);
+
     fclose(root_file);
 
+    return OK;
+}
+
+/* destroy index */
+void index_destroy(struct pexeso_index *index, struct level *level)
+{
+    //  leaf level
+    if (level->is_leaf) 
+    {
+        if (index->buffer_manager != NULL)
+            destroy_buffer_manager(index);
+    }
+
+    // non leaf level
+    if (!level->is_leaf)
+    {
+        index_destroy(index, level->next);
+    }
+
+    for(int c = level->num_cells - 1; c >= 0; c--)
+    {
+        // free center vector values
+        free(level->cells[c].center->values);
+        
+        // free filename
+        if (level->cells[c].filename != NULL)
+            free(level->cells[c].filename);
+
+
+        // free file buffer
+        if (level->cells[c].file_buffer != NULL)
+        {
+            free(level->cells[c].file_buffer->buffered_list);
+            level->cells[c].file_buffer->buffered_list = NULL;
+            level->cells[c].file_buffer->buffered_list_size = 0;
+            free(level->cells[c].file_buffer);
+        }
+        // free vid
+        if (level->cells[c].vid != NULL)
+            free(level->cells[c].vid);
+
+
+    }
+    // free centers
+    free(level->cells->center);
+    free(level->cells);
+    free(level);
+}
+
+/* destroy buffer manager */
+enum response destroy_buffer_manager(struct pexeso_index *index)
+{
+
+    if (index->buffer_manager != NULL)
+    {
+        struct file_map *currP;
+        struct file_map *temp;
+
+        temp = NULL;
+        currP = index->buffer_manager->file_map;
+
+        while (currP != NULL)
+        {
+            temp = currP;
+            currP = currP->next;
+            free(temp);
+        }
+
+        free(index->buffer_manager->memory_array);
+        free(index->buffer_manager);
+    }
     return OK;
 }

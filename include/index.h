@@ -38,6 +38,8 @@ struct pexeso_index{
 
 response init_index(const char * root_directory,
                 unsigned int num_pivots,
+                vector * pivots_mtr, 
+                vector * pivots_ps,
                 vector * extremity,
                 unsigned int num_levels,
                 unsigned long long num_vectors,
@@ -59,3 +61,9 @@ void print_index(pexeso_index * index);
 
 /* write index to disk */
 enum response index_write(pexeso_index *index);
+
+/* destroy index */
+void index_destroy(struct pexeso_index *index, struct level *level);
+
+/* destroy buffer manager */
+enum response destroy_buffer_manager(struct pexeso_index *index);
