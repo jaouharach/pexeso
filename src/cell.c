@@ -60,7 +60,7 @@ response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,str
     index->buffer_manager->current_values_count += vector_length;
 
 
-    // (todo) track vector
+    // track vector
     if (index->settings->track_vector)
     {
         cell->vid[cell->cell_size - 1].table_id = vector->table_id;
@@ -273,4 +273,41 @@ enum response create_cell_filename(struct index_settings *settings, struct cell 
 
     // printf("Cell filename = %s\n\n\n", cell->filename);
     return OK;
+}
+
+/* get list of vector in cell */
+vector * get_vectors(struct cell * cell, unsigned int num_pivots)
+{
+    if(!cell->is_leaf)
+        exit_with_failure("Error in cell.c: Cannot get vectors of a non leaf cell!");
+
+    if(cell->cell_size == 0)
+        exit_with_failure("Error in cell.c: Cannot get vectors of an empty leaf cell!");
+
+    // if file buffer not in disk return vectors in file buffer
+    struct vector * cell_vectors = malloc(sizeof(struct vector) * cell->cell_size);
+    for(int i = 0; i < cell->cell_size; i++)
+        cell_vectors[i].values = malloc(sizeof(v_type) * num_pivots);
+
+    if(!cell->file_buffer->in_disk)
+    {
+        if(cell->cell_size != cell->file_buffer->buffered_list_size)
+            exit_with_failure("Error in cell.c: Cell buffer not in disk yet cell_size != buffered list size!");
+        
+        // copy cell vectors into list of vectors
+        for(int i = 0; i < cell->cell_size; i++)
+        {
+            for(int j = 0; j < num_pivots; j++)
+                cell_vectors[i].values[j] = cell->file_buffer->buffered_list[i][j];
+                cell_vectors[i].set_id = cell->vid[i].set_id;
+                cell_vectors[i].table_id = cell->vid[i].table_id;
+        }
+    }
+    // if file buffer is in disk load vectors from disk
+    else
+    {
+        // (todo)
+        exit_with_failure("Error in cell.c: load vectors from disk is not implemented!");
+    }
+    return cell_vectors;
 }

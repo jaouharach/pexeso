@@ -19,6 +19,9 @@ typedef struct vector vector;
 typedef struct file_buffer_manager file_buffer_manager;
 typedef struct file_buffer file_buffer;
 typedef struct file_map file_map;
+typedef struct candidate_pair candidate_pair;
+typedef struct matching_pair matching_pair;
+typedef struct query_result query_result;
 
 // vector id (used to track vector ids of all vectors in one cell)
 struct vid {
@@ -32,6 +35,7 @@ struct vector{
 	unsigned int set_id;
 	v_type * values;
 };
+
 
 // print error and exit program
 void exit_with_failure(char * message);

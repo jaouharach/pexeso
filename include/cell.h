@@ -34,3 +34,5 @@ void cell_cpy(cell *dest, cell *src, unsigned int num_dim);
 response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,struct vector *vector);
 /* create cell filename */
 enum response create_cell_filename(struct index_settings *settings, struct cell * cell);
+/* get list of vectors stored in cell */
+vector * get_vectors(struct cell * cell, unsigned int num_pivots);

@@ -186,7 +186,8 @@ void print_index(pexeso_index *index)
             {
                 if (level->is_leaf == false || level->cells[j].is_leaf == false)
                     exit_with_failure("Not leaf level why cell has no children?!");
-                printf("(Leaf cell) ");
+
+                printf("(Leaf cell) %s ", level->cells[j].is_leaf ? "true": "false");
                 printf("vectors list (total vectors = %u):\n", level->cells[j].cell_size);
                 for (int i = 0; i < level->cells[j].cell_size; i++)
                 {
@@ -201,7 +202,7 @@ void print_index(pexeso_index *index)
                 for (int k = 0; k < level->cells[j].num_child_cells; k++)
                     print_vector(level->cells[j].children[k].center, index->settings->num_pivots);
             }
-            printf("\nend of cell. ---------------------------------------------------------\n");
+            printf("\nend of cell. \n\n\n");
         }
         printf("end of level. ########################################################\n");
         level = level->next;
@@ -257,7 +258,7 @@ enum response index_write(pexeso_index *index)
     fwrite(&max_leaf_size, sizeof(unsigned int), 1, root_file);
     fwrite(&total_records, sizeof(unsigned int), 1, root_file);
 
-    // (todo) write cells and buffers
+    // write levels
     level_write(index, index->first_level, root_file);
     fseek(root_file, 0L, SEEK_SET);
     fwrite(&index->settings->num_levels, sizeof(unsigned int), 1, root_file);
