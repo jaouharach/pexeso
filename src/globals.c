@@ -160,12 +160,12 @@ v_type get_vector_magnitude(vector * vector, unsigned int v_len)
 }
 
 /* create directory, if directory exists ask user for action */
-enum response create_index_dir(const char * dir_path)
+enum response create_grid_dir(const char * dir_path)
 {
     struct stat sb;
     if (stat(dir_path, &sb) == 0 && S_ISDIR(sb.st_mode)) // if directory exists ask user for action
     {
-        fprintf(stderr, "Index root directory '%s' already exists!\n", dir_path);
+        fprintf(stderr, "Grid root directory '%s' already exists!\n", dir_path);
         return FAILED;
     }
 

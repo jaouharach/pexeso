@@ -11,8 +11,8 @@ typedef enum response {OK = 1, FAILED = 0} response;
 /* types */
 typedef float v_type; // vector values
 
-typedef struct pexeso_index pexeso_index;
-typedef struct index_settings index_settings;
+typedef struct grid grid;
+typedef struct grid_settings grid_settings;
 typedef struct level level;
 typedef struct cell cell;
 typedef struct vector vector;
@@ -75,4 +75,4 @@ v_type get_vector_mean(vector * vector, unsigned int v_len);
 v_type get_vector_magnitude(vector * vector, unsigned int v_len);
 
 /* create directory, if directory exists ask user for action */
-enum response create_index_dir(const char * dir_path);
+enum response create_grid_dir(const char * dir_path);

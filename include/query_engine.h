@@ -32,10 +32,10 @@ struct candidate_pair
 
 /* get candidate and matching cells of a query cell */
 enum response block(struct cell *query_cell, struct cell * r_cell, 
-            struct matching_pair * mpair, struct candidate_pair * cpair, struct index_settings * settings);
+            struct matching_pair * mpair, struct candidate_pair * cpair, struct grid_settings * settings);
 
-// void verify(struct pexeso_index *index, struct matching_pair * mpair, struct candidate_pair * cpair,
-//             v_type dist_threshold, unsigned int join_threshold);
+void verify(struct grid *index, struct matching_pair * mpair, struct candidate_pair * cpair,
+            v_type dist_threshold, unsigned int join_threshold);
 
 /* initialize query settings */
 struct query_settings * init_query_settings(v_type dist_threshold, unsigned int join_threshold);

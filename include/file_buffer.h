@@ -17,6 +17,6 @@ struct file_buffer {
 };
 
 enum response file_buffer_init(struct cell * );
-enum response flush_buffer_to_disk(struct pexeso_index *index, struct cell *cell);
-enum response clear_file_buffer(struct pexeso_index *index, struct cell * cell);
-enum response add_file_buffer_to_map(struct pexeso_index *index, struct cell *cell);
+enum response flush_buffer_to_disk(struct grid *grid, struct cell *cell);
+enum response clear_file_buffer(struct grid *grid, struct cell * cell);
+enum response add_file_buffer_to_map(struct grid *grid, struct cell *cell);

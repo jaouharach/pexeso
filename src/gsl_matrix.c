@@ -1,4 +1,4 @@
-#include "../include/index.h"
+#include "../include/hgrid.h"
 #include "../include/gsl_matrix.h"
 
 

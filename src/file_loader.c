@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include "../include/index.h"
+#include "../include/hgrid.h"
 #include "../include/file_loader.h"
 
 vector * load_binary_files(const char *bin_files_directory, unsigned long num_files, unsigned long long total_vectors, unsigned int base, unsigned int mtr_vector_length)
@@ -21,7 +21,7 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
     dir = opendir(bin_files_directory);
 
     if (dir == NULL)
-        exit_with_failure("Error in index.c: Unable to open binary files directory stream!\n");
+        exit_with_failure("Error in file_loader.c: Unable to open binary files directory stream!\n");
 
     // temp vector
     vector *vector = (struct vector *)malloc(sizeof(struct vector));
@@ -68,7 +68,7 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
 
             // check if vector length in file name matches vector length passed as argument
             if (vector_length != mtr_vector_length)
-                exit_with_failure("Error in file_loader.c:  number of dimentions in index settings does not match vector length in file.\n");
+                exit_with_failure("Error in file_loader.c:  number of dimentions in grid settings does not match vector length in file.\n");
 
             /* read binary file */
             FILE *bin_file = fopen(bin_file_path, "rb");
@@ -136,12 +136,12 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
                 }
             }
             if (fclose(bin_file))
-                exit_with_failure("Error in file_loaders.c: Could not close binary.\n");
+                exit_with_failure("Error in file_loader.c: Could not close binary.\n");
         }
     }
 
     if (read_files == 0)
-        exit_with_failure("Error in index.c:  Could not find any binary file in binary files directory.\n");
+        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory.\n");
 
     // free memory
     free(vector->values);
@@ -152,7 +152,7 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
 }
 
 /* index raw binary vectors (in metric space) */
-response index_binary_files(pexeso_index *index, const char *bin_files_directory, unsigned int num_files, unsigned int base)
+response index_binary_files(struct grid *grid, const char *bin_files_directory, unsigned int num_files, unsigned int base)
 {
     // printf("step 1.\n");
     unsigned int read_files = 0u; // numbre of read files so far
@@ -165,9 +165,9 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
     dir = opendir(bin_files_directory);
 
     if (dir == NULL)
-        exit_with_failure("Error in index.c: Unable to open binary files directory stream!\n");
+        exit_with_failure("Error in file_loader.c: Unable to open binary files directory stream!\n");
 
-    vector->values = (v_type *)malloc(sizeof(v_type) * index->settings->mtr_vector_length);
+    vector->values = (v_type *)malloc(sizeof(v_type) * grid->settings->mtr_vector_length);
 
     if (vector->values == NULL)
         exit_with_failure("Error in file_loader.c: Could not allocate memory for vector values.");
@@ -193,8 +193,8 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
             sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &vector_length);
 
             // check if vector length in file name matches vector length passed as argument
-            if (vector_length != index->settings->mtr_vector_length)
-                exit_with_failure("Error in file_loader.c:  number of dimentions in index settings does not match vector length in file.\n");
+            if (vector_length != grid->settings->mtr_vector_length)
+                exit_with_failure("Error in file_loader.c:  number of dimentions in grid settings does not match vector length in file.\n");
 
             /* read binary file */
             FILE *bin_file = fopen(bin_file_path, "rb");
@@ -203,7 +203,7 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
                 exit_with_failure("Error in file_loader.c: Binary file not found in directory!\n");
 
             /* Start processing file: read every vector in binary file */
-            int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * index->settings->mtr_vector_length) + nsets) / 8;
+            int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * grid->settings->mtr_vector_length) + nsets) / 8;
             printf("File size in bytes = %u\n\n", total_bytes);
 
             while (total_bytes)
@@ -223,15 +223,15 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
 
                     set_id += 1;
                 }
-                else if (i <= (unsigned int)num_vectors * index->settings->mtr_vector_length)
+                else if (i <= (unsigned int)num_vectors * grid->settings->mtr_vector_length)
                 {
                     // end of vector but still in current set
-                    if (j > index->settings->mtr_vector_length - 1)
+                    if (j > grid->settings->mtr_vector_length - 1)
                     {
                         j = 0;
-                        // insert vector in index
-                        if (!index_insert(index, vector))
-                            exit_with_failure("Error in file_loaders.c:  Could not add vector to the index.\n");
+                        // insert vector in grid
+                        if (!grid_insert(grid, vector))
+                            exit_with_failure("Error in file_loaders.c:  Could not add vector to the grid.\n");
                     }
 
                     fread((void *)(&val), sizeof(val), 1, bin_file);
@@ -240,11 +240,11 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
                     vector->values[j] = val;
 
                     // last value in last vector in current  set
-                    if (i == (unsigned int)num_vectors * index->settings->mtr_vector_length)
+                    if (i == (unsigned int)num_vectors * grid->settings->mtr_vector_length)
                     {
-                        // insert vector in index
-                        if (!index_insert(index, vector))
-                            exit_with_failure("Error in file_loader.c:  Could not add vector to the index.\n");
+                        // insert vector in grid
+                        if (!grid_insert(grid, vector))
+                            exit_with_failure("Error in file_loader.c:  Could not add vector to the grid.\n");
 
                         i = 0;
                         j = 0;
@@ -261,7 +261,7 @@ response index_binary_files(pexeso_index *index, const char *bin_files_directory
     }
 
     if (read_files == 0)
-        exit_with_failure("Error in index.c:  Could not find any binary file in binary files directory.\n");
+        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory.\n");
 
     // free memory
     free(vector->values);
@@ -293,7 +293,7 @@ unsigned long long get_dataset_info(const char *bin_files_directory, unsigned lo
     dir = opendir(bin_files_directory);
 
     if (dir == NULL)
-        exit_with_failure("Error in index.c: Unable to open binary files directory stream!\n");
+        exit_with_failure("Error in file_loader.c: Unable to open binary files directory stream!\n");
 
     // check every file in directory
     while ((dfile = readdir(dir)) != NULL) 

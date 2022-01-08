@@ -28,12 +28,12 @@ void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim
 cell * cell_route_to_closest_child (cell * parent_cell, vector * vector, unsigned int num_dim);
 response init_cell(cell *cell, float length, unsigned int num_child_cells); // initialize non leaf cell
 /* create child cells for a parent cell */
-cell * get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * children_level, index_settings *settings);
+cell * get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * children_level, struct grid_settings *settings);
 void cell_cpy(cell *dest, cell *src, unsigned int num_dim);
 /* append vector to cell */
-response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,struct vector *vector);
+response append_vector_to_cell(struct grid *grid, struct cell *cell,struct vector *vector);
 /* create cell filename */
-enum response create_cell_filename(struct index_settings *settings, struct cell * cell);
+enum response create_cell_filename(struct grid_settings *settings, struct cell * cell);
 /* get list of vectors stored in cell */
 vector * get_vectors(struct cell * cell, unsigned int num_pivots);
 /* get pointer to leaf cells of a given cell */

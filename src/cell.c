@@ -2,20 +2,20 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
-#include "../include/index.h"
+#include "../include/hgrid.h"
 #include "../include/level.h"
 #include "../include/cell.h"
 #include "../include/file_buffer_manager.h"
 #include "../include/file_buffer.h"
 
 /* append vector to cell */
-response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,struct vector *vector)
+response append_vector_to_cell(struct grid *grid, struct cell *cell,struct vector *vector)
 {
     // static int append_id = 0;
     // printf("append %d.\n\n\n", append_id+1);
     // append_id++;
 
-    if (!get_file_buffer(index, cell))
+    if (!get_file_buffer(grid, cell))
         exit_with_failure("Error in cell.c:  Could not get the \
                      file buffer for this cell.");
 
@@ -25,8 +25,8 @@ response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,str
         exit_with_failure("Error in cell.c:  Couldn't append vector to cell NULL file buffer for \
                      this cell after creating it.");
     
-    int vector_length = index->settings->mtr_vector_length;
-    int max_leaf_size = index->settings->max_leaf_size;
+    int vector_length = grid->settings->mtr_vector_length;
+    int max_leaf_size = grid->settings->max_leaf_size;
     int idx = cell->file_buffer->buffered_list_size;
 
     if (idx == 0) // if buffered list is empty
@@ -40,7 +40,7 @@ response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,str
     }
 
     // get first address of memory block previously allocated for this cell
-    cell->file_buffer->buffered_list[idx] = (v_type *) index->buffer_manager->current_record;
+    cell->file_buffer->buffered_list[idx] = (v_type *) grid->buffer_manager->current_record;
     if (cell->file_buffer->buffered_list[idx] == NULL)
         exit_with_failure("Error in cell.c:  Could not \
                          allocate memory for the vector in the buffer.");
@@ -51,17 +51,17 @@ response append_vector_to_cell(struct pexeso_index *index, struct cell *cell,str
         cell->file_buffer->buffered_list[idx][i] = vector->values[i];
     }
 
-    index->buffer_manager->current_record += sizeof(v_type) * vector_length;
-    index->buffer_manager->current_record_index++;
+    grid->buffer_manager->current_record += sizeof(v_type) * vector_length;
+    grid->buffer_manager->current_record_index++;
 
     cell->cell_size++;
     cell->file_buffer->buffered_list_size++;
-    index->total_records++;
-    index->buffer_manager->current_values_count += vector_length;
+    grid->total_records++;
+    grid->buffer_manager->current_values_count += vector_length;
 
 
     // track vector
-    if (index->settings->track_vector)
+    if (grid->settings->track_vector)
     {
         cell->vid[cell->cell_size - 1].table_id = vector->table_id;
         cell->vid[cell->cell_size - 1].set_id = vector->set_id;
@@ -106,7 +106,7 @@ response init_cell(cell *cell, float length, unsigned int num_child_cells)
     return OK;
 }
 
-cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * children_level, index_settings *settings)
+cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * children_level, struct grid_settings *settings)
 {
     parent_cell->children = malloc(sizeof(struct cell) * num_child_cells);
     if (parent_cell->children == NULL)
@@ -243,7 +243,7 @@ void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
 }
 /* create cell filename */
 
-enum response create_cell_filename(struct index_settings *settings, struct cell * cell)
+enum response create_cell_filename(struct grid_settings *settings, struct cell * cell)
 {
     /* 
         Each leaf cell has a file called: 

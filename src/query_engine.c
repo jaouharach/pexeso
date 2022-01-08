@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <float.h>
-#include "../include/index.h"
+#include "../include/hgrid.h"
 #include "../include/cell.h"
 #include "../include/query_engine.h"
 
 
 /* get candidate and matching cells of a query cell */
 enum response block(struct cell *query_cell, struct cell * root_cell, 
-            struct matching_pair * mpair, struct candidate_pair * cpair, struct index_settings * settings)
+            struct matching_pair * mpair, struct candidate_pair * cpair, struct grid_settings * settings)
 {
     v_type dist_threshold = 0;
     //forech child cell of query cell

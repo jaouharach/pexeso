@@ -24,6 +24,6 @@ struct file_map
   struct file_map *prev;
 };
 
-enum response init_file_buffer_manager(struct pexeso_index *index);
-enum response set_buffered_memory_size(struct pexeso_index * index);
-response get_file_buffer(struct pexeso_index *index, struct cell *cell);
+enum response init_file_buffer_manager(struct grid *grid);
+enum response set_buffered_memory_size(struct grid * grid);
+response get_file_buffer(struct grid *grid, struct cell *cell);

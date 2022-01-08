@@ -4,7 +4,7 @@
 #include <math.h>
 #include <limits.h>
 #include <string.h>
-#include "../include/index.h"
+#include "../include/hgrid.h"
 #include "../include/level.h"
 #include "../include/cell.h"
 #include "../include/file_buffer.h"
@@ -12,8 +12,8 @@
 #include "../include/gsl_matrix.h"
 #include "../include/select_pivots.h"
 
-/* initialize index */
-response init_index(const char *root_directory,
+/* initialize grid */
+response init_grid(const char *root_directory,
                     unsigned int num_pivots,
                     vector *pivots_mtr,
                     vector *pivots_ps,
@@ -26,54 +26,54 @@ response init_index(const char *root_directory,
                     unsigned int max_leaf_size,
                     unsigned int track_vector,
                     struct query_settings * query_settings,
-                    pexeso_index *index)
+                    struct grid *grid)
 {
-    // make index directory
-    if (!create_index_dir(root_directory))
-        exit_with_failure("Error in index.c: Couldn't create index directory!");
+    // make grid directory
+    if (!create_grid_dir(root_directory))
+        exit_with_failure("Error in hgrid.c: Couldn't create grid directory!");
 
-    // initialize index settings
-    index->settings = (index_settings *)malloc(sizeof(index_settings));
-    if (index->settings == NULL)
-        exit_with_failure("Error in index.c: Couldn't allocate memory for index settings!");
+    // initialize grid settings
+    grid->settings = (struct grid_settings *)malloc(sizeof(struct grid_settings));
+    if (grid->settings == NULL)
+        exit_with_failure("Error in hgrid.c: Couldn't allocate memory for grid settings!");
 
-    index->root = NULL;
-    index->first_level = NULL;
-    index->total_records = 0;
+    grid->root = NULL;
+    grid->first_level = NULL;
+    grid->total_records = 0;
 
-    index->settings->root_directory = root_directory;
-    index->settings->num_pivots = num_pivots; // number of dimensions is equal to the number of pivots
-    index->settings->pivots_mtr = pivots_mtr; // pivot vectors in metric space
-    index->settings->pivots_ps = pivots_ps;   // pivot vectors in pivot space
-    index->settings->pivot_space_extremity = extremity;
+    grid->settings->root_directory = root_directory;
+    grid->settings->num_pivots = num_pivots; // number of dimensions is equal to the number of pivots
+    grid->settings->pivots_mtr = pivots_mtr; // pivot vectors in metric space
+    grid->settings->pivots_ps = pivots_ps;   // pivot vectors in pivot space
+    grid->settings->pivot_space_extremity = extremity;
 
-    index->settings->num_levels = num_levels;
-    index->settings->num_leaf_cells = pow(2, num_pivots * num_levels); // 2^(|P| * m) number of cells depends on num_pivots to ensure same length in all edges.
-    index->settings->mtr_vector_length = mtr_vector_length;
-    index->total_records = num_vectors;
-    index->settings->base = base;                              // ex: base = 32 -> one metric vector value is read in 32 bits in a binary file
-    index->settings->max_num_child_cells = pow(2, num_pivots); // equals to number of cells in first level
-    index->settings->vector_size = (base / 8) * mtr_vector_length;
+    grid->settings->num_levels = num_levels;
+    grid->settings->num_leaf_cells = pow(2, num_pivots * num_levels); // 2^(|P| * m) number of cells depends on num_pivots to ensure same length in all edges.
+    grid->settings->mtr_vector_length = mtr_vector_length;
+    grid->total_records = num_vectors;
+    grid->settings->base = base;                              // ex: base = 32 -> one metric vector value is read in 32 bits in a binary file
+    grid->settings->max_num_child_cells = pow(2, num_pivots); // equals to number of cells in first level
+    grid->settings->vector_size = (base / 8) * mtr_vector_length;
 
-    index->settings->buffered_memory_size = buffered_memory_size; // amount of memory for file buffers (in MB)
-    index->settings->max_leaf_size = max_leaf_size;               // max number of vectors in one leaf cell
-    index->settings->track_vector = track_vector;
-    index->settings->query_settings = query_settings;
+    grid->settings->buffered_memory_size = buffered_memory_size; // amount of memory for file buffers (in MB)
+    grid->settings->max_leaf_size = max_leaf_size;               // max number of vectors in one leaf cell
+    grid->settings->track_vector = track_vector;
+    grid->settings->query_settings = query_settings;
 
     // track vid
-    index->vid_file = NULL;
-    index->vid_filename = NULL;
-    index->vid_pos_ctr = 0;
+    grid->vid_file = NULL;
+    grid->vid_filename = NULL;
+    grid->vid_pos_ctr = 0;
 
     // volume of the pivot space = multiplication of all extremity coordinates.
-    index->settings->pivot_space_volume = 1.0;
+    grid->settings->pivot_space_volume = 1.0;
     for (int i = 0; i < num_pivots; i++)
     {
-        index->settings->pivot_space_volume *= fabs(extremity->values[i]);
+        grid->settings->pivot_space_volume *= fabs(extremity->values[i]);
     }
 
     // leaf cell edge length = (V / num_leaf_cells) ^ 1/|P|
-    index->settings->leaf_cell_edge_length = pow((index->settings->pivot_space_volume / index->settings->num_leaf_cells), (1.0 / num_pivots));
+    grid->settings->leaf_cell_edge_length = pow((grid->settings->pivot_space_volume / grid->settings->num_leaf_cells), (1.0 / num_pivots));
 
     /* 
         Each leaf cell has a file called: 
@@ -89,11 +89,11 @@ response init_index(const char *root_directory,
     float center_vector_size = ceil(log10(INT_MAX)) * 2;
     // float num_vectors_size = ceil(log10(SHRT_MAX) + 1);
 
-    index->settings->max_filename_size = 2 + edge_length_size + center_vector_size + 5;
+    grid->settings->max_filename_size = 2 + edge_length_size + center_vector_size + 5;
 
     // initialize file buffer manager
-    if (!init_file_buffer_manager(index))
-        exit_with_failure("Error in index.c: Could not initialize the file buffer manager for this index.");
+    if (!init_file_buffer_manager(grid))
+        exit_with_failure("Error in hgrid.c: Could not initialize the file buffer manager for this grid.");
 
     return OK;
 }
@@ -117,46 +117,46 @@ vector *get_extremity(vector *pivot_vectors, unsigned int num_pivots)
     return pivot_space_extremity;
 }
 
-/* insert vector in index */
-response index_insert(pexeso_index *index, vector *vector)
+/* insert vector in grid */
+response grid_insert(struct grid *grid, vector *vector)
 {
     // get vector mapping in pivot space v -> v'
     struct vector *v_mapping = malloc(sizeof(struct vector));
     if (v_mapping == NULL)
-        exit_with_failure("Error in index.c: Couldn't allocate memory for vector mapping.");
-    v_mapping->values = malloc(sizeof(v_type) * index->settings->num_pivots);
+        exit_with_failure("Error in hgrid.c: Couldn't allocate memory for vector mapping.");
+    v_mapping->values = malloc(sizeof(v_type) * grid->settings->num_pivots);
     if (v_mapping->values == NULL)
-        exit_with_failure("Error in index.c: Couldn't allocate memory for values of vector mapping.");
+        exit_with_failure("Error in hgrid.c: Couldn't allocate memory for values of vector mapping.");
 
-    map_vector(vector, index->settings->mtr_vector_length, v_mapping, index->settings->pivots_mtr, index->settings->num_pivots);
+    map_vector(vector, grid->settings->mtr_vector_length, v_mapping, grid->settings->pivots_mtr, grid->settings->num_pivots);
 
     // find the closest cell in first level.
     float bsf = FLT_MAX;
     cell *cell = NULL;
-    for (int c = 0; c < index->first_level->num_cells; c++)
+    for (int c = 0; c < grid->first_level->num_cells; c++)
     {
-        float d = euclidean_distance(v_mapping, index->first_level->cells[c].center, index->settings->num_pivots);
+        float d = euclidean_distance(v_mapping, grid->first_level->cells[c].center, grid->settings->num_pivots);
         if (d <= bsf)
         {
             bsf = d;
-            cell = &index->first_level->cells[c];
+            cell = &grid->first_level->cells[c];
         }
     }
 
     // loop children of cell untill you find closest leaf cell.
     while (!cell->is_leaf)
     {
-        cell = cell_route_to_closest_child(cell, v_mapping, index->settings->num_pivots);
+        cell = cell_route_to_closest_child(cell, v_mapping, grid->settings->num_pivots);
 
         if (cell == NULL)
-            exit_with_failure("Error in index.c: Could not route to closest child cell.\n");
+            exit_with_failure("Error in hgrid.c: Could not route to closest child cell.\n");
     }
 
     // printf("append vector to leaf cell with center :\n");
-    // print_vector(cell->center, index->settings->num_pivots);
+    // print_vector(cell->center, grid->settings->num_pivots);
 
     // append vector in metric format
-    append_vector_to_cell(index, cell, vector);
+    append_vector_to_cell(grid, cell, vector);
 
     // free memory
     free(v_mapping->values);
@@ -165,14 +165,14 @@ response index_insert(pexeso_index *index, vector *vector)
     return OK;
 }
 
-/* print index in console */
-void print_index(pexeso_index *index)
+/* print grid in console */
+void print_grid(struct grid *grid)
 {
-    printf("DISPLAY PEXESO INDEX...\n");
+    printf("DISPLAY PEXESO HGRID...\n");
     printf("|       |       |       \n");
     printf("V       V       V       \n\n\n");
-    level *level = index->root;
-    for (int i = 0; i <= index->settings->num_levels; i++)
+    level *level = grid->root;
+    for (int i = 0; i <= grid->settings->num_levels; i++)
     {
         printf("Level %u:\n", level->id);
         printf("\tNumber of cells = %u\n", level->num_cells);
@@ -182,7 +182,7 @@ void print_index(pexeso_index *index)
         {
             printf("*****************************(Cell %d)********************************\n", j + 1);
             printf("~~Center vector:");
-            print_vector(level->cells[j].center, index->settings->num_pivots);
+            print_vector(level->cells[j].center, grid->settings->num_pivots);
 
             if (level->cells[j].children == NULL)
             {
@@ -202,56 +202,56 @@ void print_index(pexeso_index *index)
                     exit_with_failure("Leaf cell with children?!");
                 printf("~~Children:\n");
                 for (int k = 0; k < level->cells[j].num_child_cells; k++)
-                    print_vector(level->cells[j].children[k].center, index->settings->num_pivots);
+                    print_vector(level->cells[j].children[k].center, grid->settings->num_pivots);
             }
             printf("\nend of cell. \n\n\n");
         }
         printf("############################################################\n");
         level = level->next;
     }
-    printf("end of index.\n");
+    printf("end of grid.\n");
 }
 
-/* write index to disk */
-enum response index_write(pexeso_index *index)
+/* write grid to disk */
+enum response grid_write(struct grid *grid)
 {
     // (todo) update fct to write root level
-    printf(">>> Storing index : %s\n", index->settings->root_directory);
+    printf(">>> Storing grid : %s\n", grid->settings->root_directory);
     // make root.idx file
-    char *root_filename = malloc(sizeof(char) * (strlen(index->settings->root_directory) + 9));
+    char *root_filename = malloc(sizeof(char) * (strlen(grid->settings->root_directory) + 9));
     if (root_filename == NULL)
-        exit_with_failure("Error in index.c: Couldn't allocate memory for root file name.");
-    root_filename = strcpy(root_filename, index->settings->root_directory);
+        exit_with_failure("Error in hgrid.c: Couldn't allocate memory for root file name.");
+    root_filename = strcpy(root_filename, grid->settings->root_directory);
     root_filename = strcat(root_filename, "root.idx\0");
 
     FILE *root_file = fopen(root_filename, "wb");
     if (root_file == NULL)
-        exit_with_failure("Error in index.c: Couldn't open index file 'root.idx'.");
+        exit_with_failure("Error in hgrid.c: Couldn't open grid file 'root.idx'.");
 
     free(root_filename);
 
     // make vid.idx file
-    if (index->settings->track_vector)
+    if (grid->settings->track_vector)
     {
         //open vid.edx
-        char *vid_filename = malloc(sizeof(char) * (strlen(index->settings->root_directory) + 8));
+        char *vid_filename = malloc(sizeof(char) * (strlen(grid->settings->root_directory) + 8));
         if (vid_filename == NULL)
-            exit_with_failure("Error in index.c: Couldn't allocate memory for root.idx");
-        strcpy(vid_filename, index->settings->root_directory);
+            exit_with_failure("Error in hgrid.c: Couldn't allocate memory for root.idx");
+        strcpy(vid_filename, grid->settings->root_directory);
         strcat(vid_filename, "vid.idx\0");
-        index->vid_file = fopen(vid_filename, "wb");
-        if (index->vid_file == NULL)
-            exit_with_failure("Error in index.c: Couldn't open vid.idx");
-        index->vid_pos_ctr = 0;
+        grid->vid_file = fopen(vid_filename, "wb");
+        if (grid->vid_file == NULL)
+            exit_with_failure("Error in hgrid.c: Couldn't open vid.idx");
+        grid->vid_pos_ctr = 0;
 
         free(vid_filename);
     }
 
-    unsigned int num_leaf_cells = index->settings->num_leaf_cells;
-    unsigned int mtr_vector_length = index->settings->mtr_vector_length;
-    unsigned int max_leaf_size = index->settings->max_leaf_size;
-    double buffered_memory_size = index->settings->buffered_memory_size;
-    unsigned long long total_records = index->total_records;
+    unsigned int num_leaf_cells = grid->settings->num_leaf_cells;
+    unsigned int mtr_vector_length = grid->settings->mtr_vector_length;
+    unsigned int max_leaf_size = grid->settings->max_leaf_size;
+    double buffered_memory_size = grid->settings->buffered_memory_size;
+    unsigned long long total_records = grid->total_records;
 
     // write settings
     fwrite(&num_leaf_cells, sizeof(unsigned long long), 1, root_file);
@@ -261,17 +261,17 @@ enum response index_write(pexeso_index *index)
     fwrite(&total_records, sizeof(unsigned int), 1, root_file);
 
     // write levels
-    level_write(index, index->first_level, root_file);
+    level_write(grid, grid->first_level, root_file);
     fseek(root_file, 0L, SEEK_SET);
-    fwrite(&index->settings->num_levels, sizeof(unsigned int), 1, root_file);
+    fwrite(&grid->settings->num_levels, sizeof(unsigned int), 1, root_file);
 
     fclose(root_file);
-    fclose(index->vid_file);
+    fclose(grid->vid_file);
     return OK;
 }
 
 /* write level cells to disk */
-enum response level_write(struct pexeso_index *index, struct level *level, FILE *file)
+enum response level_write(struct grid *grid, struct level *level, FILE *file)
 {
     fwrite(&(level->is_first), sizeof(unsigned char), 1, file);
     fwrite(&(level->is_leaf), sizeof(unsigned char), 1, file);
@@ -292,47 +292,47 @@ enum response level_write(struct pexeso_index *index, struct level *level, FILE 
                 fwrite(&(curr_cell.cell_size), sizeof(short), 1, file);
 
                 
-                if (index->settings->track_vector)
+                if (grid->settings->track_vector)
                 {
-                    curr_cell.vid_pos = index->vid_pos_ctr;
+                    curr_cell.vid_pos = grid->vid_pos_ctr;
                     // save vids to file
                     fwrite(&(curr_cell.vid_pos), sizeof(unsigned int), 1, file);
-                    fwrite(curr_cell.vid, sizeof(struct vid), curr_cell.cell_size, index->vid_file);
+                    fwrite(curr_cell.vid, sizeof(struct vid), curr_cell.cell_size, grid->vid_file);
 
-                    index->vid_pos_ctr += curr_cell.cell_size;
+                    grid->vid_pos_ctr += curr_cell.cell_size;
                 }
 
                 if(curr_cell.file_buffer != NULL)
-                    flush_buffer_to_disk(index, &curr_cell);
+                    flush_buffer_to_disk(grid, &curr_cell);
 
                 // (todo) update stats
             }
             else
-                exit_with_failure("Error in index.c: Cannot write leaf cell to disk without filename!");
+                exit_with_failure("Error in hgrid.c: Cannot write leaf cell to disk without filename!");
         }
     }
 
     // write next level
     if (!level->is_leaf && level->next != NULL)
-        level_write(index, level->next, file);
+        level_write(grid, level->next, file);
 
     return OK;
 }
 
-/* destroy index */
-enum response index_destroy(struct pexeso_index *index, struct level *level)
+/* destroy grid */
+enum response grid_destroy(struct grid *grid, struct level *level)
 {
     //  leaf level
     if (level->is_leaf)
     {
-        if (index->buffer_manager != NULL)
-            destroy_buffer_manager(index);
+        if (grid->buffer_manager != NULL)
+            destroy_buffer_manager(grid);
     }
 
     // non leaf level
     if (!level->is_leaf)
     {
-        index_destroy(index, level->next);
+        grid_destroy(grid, level->next);
     }
 
     for (int c = level->num_cells - 1; c >= 0; c--)
@@ -369,16 +369,16 @@ enum response index_destroy(struct pexeso_index *index, struct level *level)
 }
 
 /* destroy buffer manager */
-enum response destroy_buffer_manager(struct pexeso_index *index)
+enum response destroy_buffer_manager(struct grid *grid)
 {
 
-    if (index->buffer_manager != NULL)
+    if (grid->buffer_manager != NULL)
     {
         struct file_map *currP;
         struct file_map *temp;
 
         temp = NULL;
-        currP = index->buffer_manager->file_map;
+        currP = grid->buffer_manager->file_map;
 
         while (currP != NULL)
         {
@@ -387,8 +387,8 @@ enum response destroy_buffer_manager(struct pexeso_index *index)
             free(temp);
         }
 
-        free(index->buffer_manager->memory_array);
-        free(index->buffer_manager);
+        free(grid->buffer_manager->memory_array);
+        free(grid->buffer_manager);
     }
     return OK;
 }

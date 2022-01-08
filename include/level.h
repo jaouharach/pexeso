@@ -15,6 +15,6 @@ struct level {
 };
 
 /* initialize root level */
-enum response init_root(pexeso_index *index);
-enum response init_first_level(pexeso_index * index);
-enum response init_levels(pexeso_index * index);
+enum response init_root(struct grid *index);
+enum response init_first_level(struct grid * index);
+enum response init_levels(struct grid * index);

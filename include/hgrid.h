@@ -3,7 +3,7 @@
 #include <dirent.h>
 #include "globals.h"
 
-struct index_settings {
+struct grid_settings {
     const char * root_directory;
     vector * pivots_mtr; // pivot vectors in metric space  
     vector * pivots_ps; // pivot vectors in pivot space  
@@ -24,11 +24,12 @@ struct index_settings {
     struct query_settings * query_settings; // distance threshold tau, joinability threshold T ...
 };
 
-struct pexeso_index{
+/* hierarchical grid structure */
+struct grid{
   unsigned long long total_records; // total vectors to be indexed
   struct level * root; // root level, num cells  = 1.
   struct level * first_level;
-  struct index_settings * settings;
+  struct grid_settings * settings;
   struct file_buffer_manager * buffer_manager;
 
   //file to track vector ids 
@@ -38,7 +39,7 @@ struct pexeso_index{
   struct vid * vid_cache;
 };
 
-response init_index(const char * root_directory,
+response init_grid(const char * root_directory,
                 unsigned int num_pivots,
                 vector * pivots_mtr, 
                 vector * pivots_ps,
@@ -51,25 +52,25 @@ response init_index(const char * root_directory,
                 unsigned int max_leaf_size,
                 unsigned int track_vector,
                 struct query_settings * query_settings,
-                pexeso_index * index);
+                struct grid * grid);
 
 /* get the farthest vector in the pivot space */
 vector * get_extremity(vector * pivot_vectors, unsigned int num_dim);
 
-/* insert a vector in the index */
-response index_insert(struct pexeso_index *, vector *);
+/* insert a vector in the grid */
+response grid_insert(struct grid *, vector *);
 
-/* print index in console */
-void print_index(struct pexeso_index * index);
+/* print grid in console */
+void print_grid(struct grid * grid);
 
-/* write index to disk */
-enum response index_write(struct pexeso_index *index);
+/* write grid to disk */
+enum response grid_write(struct grid *grid);
 
-/* destroy index */
-enum response index_destroy(struct pexeso_index *index, struct level *level);
+/* destroy grid */
+enum response grid_destroy(struct grid *grid, struct level *level);
 
 /* destroy buffer manager */
-enum response destroy_buffer_manager(struct pexeso_index *index);
+enum response destroy_buffer_manager(struct grid *grid);
 
 /* write level to disk */
-enum response level_write(struct pexeso_index *index, struct level *level, FILE *file);
+enum response level_write(struct grid *grid, struct level *level, FILE *file);

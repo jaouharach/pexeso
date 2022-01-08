@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/index.h"
+#include "../include/hgrid.h"
 #include "../include/cell.h"
 #include "../include/file_buffer.h"
 #include "../include/file_buffer_manager.h"
@@ -27,31 +27,31 @@ enum response file_buffer_init(struct cell *cell)
 }
 
 /* add file buffer to file map */
-enum response add_file_buffer_to_map(struct pexeso_index *index, struct cell *cell)
+enum response add_file_buffer_to_map(struct grid *grid, struct cell *cell)
 {
     // printf("Adding file_buffer of cell to map.\n");
-    int idx = index->buffer_manager->file_map_size;
+    int idx = grid->buffer_manager->file_map_size;
 
     // first file
     if (idx == 0)
     {
-        index->buffer_manager->file_map = malloc(sizeof(struct file_map));
-        if (index->buffer_manager->file_map == NULL)
+        grid->buffer_manager->file_map = malloc(sizeof(struct file_map));
+        if (grid->buffer_manager->file_map == NULL)
             exit_with_failure("Error in file_buffer_manager.c:"
                               "Could not allocate memory for the file map.\n");
 
-        index->buffer_manager->file_map[idx].file_buffer = cell->file_buffer;
-        cell->file_buffer->position_in_map = &index->buffer_manager->file_map[idx];
+        grid->buffer_manager->file_map[idx].file_buffer = cell->file_buffer;
+        cell->file_buffer->position_in_map = &grid->buffer_manager->file_map[idx];
 
-        index->buffer_manager->file_map[idx].prev = NULL;
-        index->buffer_manager->file_map[idx].next = NULL;
+        grid->buffer_manager->file_map[idx].prev = NULL;
+        grid->buffer_manager->file_map[idx].next = NULL;
 
-        index->buffer_manager->file_map_tail = index->buffer_manager->file_map;
+        grid->buffer_manager->file_map_tail = grid->buffer_manager->file_map;
     }
     else
     {
-        struct file_map *currP = index->buffer_manager->file_map;
-        struct file_map *lastP = index->buffer_manager->file_map_tail;
+        struct file_map *currP = grid->buffer_manager->file_map;
+        struct file_map *lastP = grid->buffer_manager->file_map_tail;
 
         lastP->next = malloc(sizeof(struct file_map));
         if (lastP->next == NULL)
@@ -62,15 +62,15 @@ enum response add_file_buffer_to_map(struct pexeso_index *index, struct cell *ce
 
         lastP->next->prev = lastP;
         lastP->next->next = NULL;
-        index->buffer_manager->file_map_tail = lastP->next;
+        grid->buffer_manager->file_map_tail = lastP->next;
     }
 
-    index->buffer_manager->file_map_size++;
+    grid->buffer_manager->file_map_size++;
 
     return OK;
 }
 
-enum response flush_buffer_to_disk(struct pexeso_index *index, struct cell *cell)
+enum response flush_buffer_to_disk(struct grid *grid, struct cell *cell)
 {
     //is this file flush properly out1/06_R_0_(160,192,0.738156)_9
     if (cell->file_buffer->buffered_list_size > 0)
@@ -80,10 +80,10 @@ enum response flush_buffer_to_disk(struct pexeso_index *index, struct cell *cell
             exit_with_failure("Error in file_buffer.c: Cannot flush the node to disk. "
                               "It does not have a filename.");
 
-        int full_size = strlen(index->settings->root_directory) + strlen(cell->filename) + 1;
+        int full_size = strlen(grid->settings->root_directory) + strlen(cell->filename) + 1;
 
         char *full_filename = malloc(sizeof(char) * full_size);
-        full_filename = strcpy(full_filename, index->settings->root_directory);
+        full_filename = strcpy(full_filename, grid->settings->root_directory);
         full_filename = strcat(full_filename, cell->filename);
         full_filename = strcat(full_filename, "\0");
 
@@ -97,7 +97,7 @@ enum response flush_buffer_to_disk(struct pexeso_index *index, struct cell *cell
 
         for (int i = 0; i < num_vectors; ++i)
         {
-            if (!fwrite(cell->file_buffer->buffered_list[i], sizeof(v_type), index->settings->mtr_vector_length, vector_file))
+            if (!fwrite(cell->file_buffer->buffered_list[i], sizeof(v_type), grid->settings->mtr_vector_length, vector_file))
                 exit_with_failure("Error in file_buffer.c: Could not "
                                   "write the timeseries to file.\n");
         }
@@ -108,7 +108,7 @@ enum response flush_buffer_to_disk(struct pexeso_index *index, struct cell *cell
 
         cell->file_buffer->disk_count += num_vectors;
 
-        if (!clear_file_buffer(index, cell))
+        if (!clear_file_buffer(grid, cell))
             exit_with_failure("Error in file_buffer.c: Flushing node to disk.. "
                               "Could not clear the buffer.");
 
@@ -120,7 +120,7 @@ enum response flush_buffer_to_disk(struct pexeso_index *index, struct cell *cell
     return OK;
 }
 
-enum response clear_file_buffer(struct pexeso_index *index, struct cell *cell)
+enum response clear_file_buffer(struct grid *grid, struct cell *cell)
 {
 
     if ((cell->file_buffer) == NULL)
