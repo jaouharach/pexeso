@@ -7,9 +7,10 @@
 #include "../include/cell.h"
 #include "../include/file_buffer_manager.h"
 #include "../include/file_buffer.h"
+#include "../include/inv_index.h"
 
 /* append vector to cell */
-response append_vector_to_cell(struct grid *grid, struct cell *cell,struct vector *vector)
+response append_vector_to_cell(struct grid *grid, struct inv_index * index, struct cell *cell,struct vector *vector)
 {
     // static int append_id = 0;
     // printf("append %d.\n\n\n", append_id+1);
@@ -64,10 +65,10 @@ response append_vector_to_cell(struct grid *grid, struct cell *cell,struct vecto
     if (grid->settings->track_vector)
     {
         cell->vid[cell->cell_size - 1].table_id = vector->table_id;
-        cell->vid[cell->cell_size - 1].set_id = vector->set_id;
+        cell->vid[cell->cell_size - 1].set_pos = vector->set_id;
     }
-
-    
+    // add entry: set_id -> {cell} to inverted index    
+    inv_index_append_entry(index, vector->table_id, vector->set_id, cell);
 
     return OK;
 }
@@ -299,7 +300,7 @@ vector * get_vectors(struct cell * cell, unsigned int num_pivots)
         {
             for(int j = 0; j < num_pivots; j++)
                 cell_vectors[i].values[j] = cell->file_buffer->buffered_list[i][j];
-                cell_vectors[i].set_id = cell->vid[i].set_id;
+                cell_vectors[i].set_id = cell->vid[i].set_pos;
                 cell_vectors[i].table_id = cell->vid[i].table_id;
         }
     }

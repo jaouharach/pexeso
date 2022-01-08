@@ -31,7 +31,7 @@ response init_cell(cell *cell, float length, unsigned int num_child_cells); // i
 cell * get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * children_level, struct grid_settings *settings);
 void cell_cpy(cell *dest, cell *src, unsigned int num_dim);
 /* append vector to cell */
-response append_vector_to_cell(struct grid *grid, struct cell *cell,struct vector *vector);
+response append_vector_to_cell(struct grid *grid, struct inv_index * index, struct cell *cell,struct vector *vector);
 /* create cell filename */
 enum response create_cell_filename(struct grid_settings *settings, struct cell * cell);
 /* get list of vectors stored in cell */

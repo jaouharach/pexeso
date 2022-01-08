@@ -11,6 +11,8 @@
 #include "../include/file_buffer.h"
 #include "../include/file_buffer_manager.h"
 #include "../include/query_engine.h"
+#include "../include/inv_index.h"
+
 
 vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
 int main()
@@ -145,23 +147,30 @@ int main()
     
     /* insert dataset in grid */
     /* read all vectors in the data set */
-    printf("Index dataset vectors...");
-    if (!index_binary_files(grid, bin_files_directory, num_files, base))
+    printf("Index dataset vectors and build inverted index...");
+    struct inv_index * index = malloc(sizeof(struct inv_index));
+    if (!index_binary_files(grid, index, bin_files_directory, num_files, base))
         exit_with_failure("Error in main.c: Couldn't initialize first level!");
     printf("(OK)\n");
 
     /* print grid */
-    print_grid(grid);
+    dump_grid_to_console(grid);
+
+    /* print inverted index */
+    dump_inv_index_to_console(index);
 
     /* write grid to disk */
     if (!grid_write(grid))
         exit_with_failure("Error main.c:  Could not save the grid to disk.\n");
     
-
     /* destroy grid */
     if (!grid_destroy(grid, grid->root))
-        exit_with_failure("Error main.c:  Could not destroy grid.\n");
+        exit_with_failure("Error main.c: Could not destroy grid.\n");
     
+    /* destroy inverted index */
+    if(!inv_index_destroy(index))
+        exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
+
     // exit(1);
 
     // free grid and grid settings

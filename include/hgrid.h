@@ -39,7 +39,7 @@ struct grid{
   struct vid * vid_cache;
 };
 
-response init_grid(const char * root_directory,
+enum response init_grid(const char * root_directory,
                 unsigned int num_pivots,
                 vector * pivots_mtr, 
                 vector * pivots_ps,
@@ -58,10 +58,10 @@ response init_grid(const char * root_directory,
 vector * get_extremity(vector * pivot_vectors, unsigned int num_dim);
 
 /* insert a vector in the grid */
-response grid_insert(struct grid *, vector *);
+enum response grid_insert(struct grid *, struct inv_index *, vector *);
 
 /* print grid in console */
-void print_grid(struct grid * grid);
+void dump_grid_to_console(struct grid * grid);
 
 /* write grid to disk */
 enum response grid_write(struct grid *grid);

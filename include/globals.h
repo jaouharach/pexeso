@@ -23,11 +23,17 @@ typedef struct candidate_pair candidate_pair;
 typedef struct matching_pair matching_pair;
 typedef struct query_result query_result;
 typedef struct query_settings query_settings;
+typedef struct inv_index inv_index;
 
 // vector id (used to track vector ids of all vectors in one cell)
 struct vid {
   unsigned int table_id;
-  unsigned int set_id;
+  unsigned int set_pos;
+};
+// vid (vector id) and sid (set id) are the same 
+struct sid {
+  unsigned int table_id;
+  unsigned int set_pos;
 };
 
 // vector

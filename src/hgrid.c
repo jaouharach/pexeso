@@ -13,7 +13,7 @@
 #include "../include/select_pivots.h"
 
 /* initialize grid */
-response init_grid(const char *root_directory,
+enum response init_grid(const char *root_directory,
                     unsigned int num_pivots,
                     vector *pivots_mtr,
                     vector *pivots_ps,
@@ -118,7 +118,7 @@ vector *get_extremity(vector *pivot_vectors, unsigned int num_pivots)
 }
 
 /* insert vector in grid */
-response grid_insert(struct grid *grid, vector *vector)
+enum response grid_insert(struct grid *grid, struct inv_index * index, vector *vector)
 {
     // get vector mapping in pivot space v -> v'
     struct vector *v_mapping = malloc(sizeof(struct vector));
@@ -156,7 +156,7 @@ response grid_insert(struct grid *grid, vector *vector)
     // print_vector(cell->center, grid->settings->num_pivots);
 
     // append vector in metric format
-    append_vector_to_cell(grid, cell, vector);
+    append_vector_to_cell(grid, index, cell, vector);
 
     // free memory
     free(v_mapping->values);
@@ -166,11 +166,13 @@ response grid_insert(struct grid *grid, vector *vector)
 }
 
 /* print grid in console */
-void print_grid(struct grid *grid)
+void dump_grid_to_console(struct grid *grid)
 {
-    printf("DISPLAY PEXESO HGRID...\n");
-    printf("|       |       |       \n");
-    printf("V       V       V       \n\n\n");
+    printf("\t\t::  DISPLAY HGRID  ::\n");
+    printf("\t\t|       |       |       \n");
+    printf("\t\t|       |       |       \n");
+    printf("\t\t|       |       |       \n");
+    printf("\t\tV       V       V       \n\n\n");
     level *level = grid->root;
     for (int i = 0; i <= grid->settings->num_levels; i++)
     {
@@ -193,7 +195,7 @@ void print_grid(struct grid *grid)
                 printf("vectors list (total vectors = %u):\n", level->cells[j].cell_size);
                 for (int i = 0; i < level->cells[j].cell_size; i++)
                 {
-                    printf("(%u, %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_id);
+                    printf("(%u, %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_pos);
                 }
             }
             else
@@ -209,7 +211,7 @@ void print_grid(struct grid *grid)
         printf("############################################################\n");
         level = level->next;
     }
-    printf("end of grid.\n");
+    printf("\t\t::  END OF HGRID  ::\n");
 }
 
 /* write grid to disk */

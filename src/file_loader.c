@@ -152,7 +152,7 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
 }
 
 /* index raw binary vectors (in metric space) */
-response index_binary_files(struct grid *grid, const char *bin_files_directory, unsigned int num_files, unsigned int base)
+response index_binary_files(struct grid *grid, struct inv_index * index, const char *bin_files_directory, unsigned int num_files, unsigned int base)
 {
     // printf("step 1.\n");
     unsigned int read_files = 0u; // numbre of read files so far
@@ -230,7 +230,7 @@ response index_binary_files(struct grid *grid, const char *bin_files_directory, 
                     {
                         j = 0;
                         // insert vector in grid
-                        if (!grid_insert(grid, vector))
+                        if (!grid_insert(grid, index, vector))
                             exit_with_failure("Error in file_loaders.c:  Could not add vector to the grid.\n");
                     }
 
@@ -243,7 +243,7 @@ response index_binary_files(struct grid *grid, const char *bin_files_directory, 
                     if (i == (unsigned int)num_vectors * grid->settings->mtr_vector_length)
                     {
                         // insert vector in grid
-                        if (!grid_insert(grid, vector))
+                        if (!grid_insert(grid, index, vector))
                             exit_with_failure("Error in file_loader.c:  Could not add vector to the grid.\n");
 
                         i = 0;
