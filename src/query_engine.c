@@ -5,7 +5,7 @@
 #include "../include/query_engine.h"
 
 
-
+/* get candidate and matching cells of a query cell */
 enum response block(struct cell *query_cell, struct cell * root_cell, 
             struct matching_pair * mpair, struct candidate_pair * cpair, struct index_settings * settings)
 {

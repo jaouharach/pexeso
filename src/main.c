@@ -126,6 +126,12 @@ int main()
 
     /* Build levels */
     printf("\n\nBuild levels... ");
+    if(!init_root(index))
+        exit_with_failure("Error in main.c: Couldn't initialize root level!");
+
+    if(index->root == NULL)
+        exit_with_failure("Error in main.c: root level not initialized for index!");    
+
     if (!init_first_level(index))
         exit_with_failure("Error in main.c: Couldn't initialize first level!");
 
@@ -153,7 +159,7 @@ int main()
     
 
     /* destroy index */
-    if (!index_destroy(index, index->first_level))
+    if (!index_destroy(index, index->root))
         exit_with_failure("Error main.c:  Could not destroy index.\n");
     
     // exit(1);

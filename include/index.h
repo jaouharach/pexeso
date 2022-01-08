@@ -26,6 +26,7 @@ struct index_settings {
 
 struct pexeso_index{
   unsigned long long total_records; // total vectors to be indexed
+  struct level * root; // root level, num cells  = 1.
   struct level * first_level;
   struct index_settings * settings;
   struct file_buffer_manager * buffer_manager;

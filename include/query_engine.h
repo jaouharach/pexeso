@@ -30,10 +30,11 @@ struct candidate_pair
     unsigned int num_candidates; // number of candidate cells (cells that couldn't be filtered)
 };
 
+/* get candidate and matching cells of a query cell */
 enum response block(struct cell *query_cell, struct cell * r_cell, 
             struct matching_pair * mpair, struct candidate_pair * cpair, struct index_settings * settings);
 
-// void verify(struct pexeso_index *index, struct matching_pair * mpair, struct candiadate_pair * cpair,
+// void verify(struct pexeso_index *index, struct matching_pair * mpair, struct candidate_pair * cpair,
 //             v_type dist_threshold, unsigned int join_threshold);
 
 /* initialize query settings */

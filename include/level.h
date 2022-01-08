@@ -9,9 +9,12 @@ struct level {
   float cell_edge_length;
   bool is_leaf;
   bool is_first;
+  bool is_root;
   struct cell * cells;
   struct level * next; // next level
 };
 
-response init_first_level(pexeso_index * index);
-response init_levels(pexeso_index * index);
+/* initialize root level */
+enum response init_root(pexeso_index *index);
+enum response init_first_level(pexeso_index * index);
+enum response init_levels(pexeso_index * index);

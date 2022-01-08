@@ -37,6 +37,7 @@ response init_index(const char *root_directory,
     if (index->settings == NULL)
         exit_with_failure("Error in index.c: Couldn't allocate memory for index settings!");
 
+    index->root = NULL;
     index->first_level = NULL;
     index->total_records = 0;
 
@@ -170,8 +171,8 @@ void print_index(pexeso_index *index)
     printf("DISPLAY PEXESO INDEX...\n");
     printf("|       |       |       \n");
     printf("V       V       V       \n\n\n");
-    level *level = index->first_level;
-    for (int i = 0; i < index->settings->num_levels; i++)
+    level *level = index->root;
+    for (int i = 0; i <= index->settings->num_levels; i++)
     {
         printf("Level %u:\n", level->id);
         printf("\tNumber of cells = %u\n", level->num_cells);
@@ -205,7 +206,7 @@ void print_index(pexeso_index *index)
             }
             printf("\nend of cell. \n\n\n");
         }
-        printf("end of level. ########################################################\n");
+        printf("############################################################\n");
         level = level->next;
     }
     printf("end of index.\n");
@@ -214,7 +215,7 @@ void print_index(pexeso_index *index)
 /* write index to disk */
 enum response index_write(pexeso_index *index)
 {
-
+    // (todo) update fct to write root level
     printf(">>> Storing index : %s\n", index->settings->root_directory);
     // make root.idx file
     char *root_filename = malloc(sizeof(char) * (strlen(index->settings->root_directory) + 9));
@@ -339,7 +340,7 @@ enum response index_destroy(struct pexeso_index *index, struct level *level)
         // free center
         free(level->cells[c].center->values);
 
-        if (!level->is_first) // center vectors of cells in levels are malloc'd one at a time (check init_levels().)
+        if (!level->is_first || level->is_root) // center vectors of cells in levels are malloc'd one at a time (check init_levels().)
             free(level->cells[c].center);
 
         // free filename

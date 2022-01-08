@@ -22,6 +22,7 @@ typedef struct file_map file_map;
 typedef struct candidate_pair candidate_pair;
 typedef struct matching_pair matching_pair;
 typedef struct query_result query_result;
+typedef struct query_settings query_settings;
 
 // vector id (used to track vector ids of all vectors in one cell)
 struct vid {

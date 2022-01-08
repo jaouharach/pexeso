@@ -6,11 +6,11 @@
 #include "../include/cell.h"
 
 /* initialize levels */
-response init_levels(pexeso_index *index)
+enum response init_levels(pexeso_index *index)
 {
     level * curr_level = index->first_level;
     // initialize levels of the index startin from the second level
-    for (int id = 2; id <= index->settings->num_levels; id++)
+    for (int id = index->first_level->id + 1; id <= index->settings->num_levels; id++)
     {
         if((curr_level->next != NULL))
             exit_with_failure("Error in level.c: Something went wrong, next level should be NULL!");
@@ -23,11 +23,12 @@ response init_levels(pexeso_index *index)
         level * new_level = curr_level->next;
 
         new_level->id = id;
+        new_level->is_root = false;
         new_level->is_first = false;
         // if its the leaf level (bottom level)
         if(new_level->id == index->settings->num_levels)
         {
-            printf("level %u is leaf!\n", new_level->id);
+            // printf("level %u is leaf!\n", new_level->id);
             new_level->is_leaf = true;
         }
             
@@ -66,7 +67,7 @@ response init_levels(pexeso_index *index)
             curr_level->cells[i].children = &new_level->cells[curr_cell];
             for(int j = 0; j < curr_level->cells[i].num_child_cells; j++, curr_cell++)
             {
-                // printf("++ Adding cell %d, center vector: \n", curr_cell);
+                printf("++ cell %d isleaf: %s\n", j, index->root->cells[0].children[j].is_leaf ? "true" : "false");
                 cell_cpy(&new_level->cells[curr_cell], &temp_child_cells[j], index->settings->num_pivots);
                 print_vector(new_level->cells[curr_cell].center, index->settings->num_pivots);
 
@@ -91,28 +92,35 @@ response init_levels(pexeso_index *index)
 }
 
 /* initialize leaf level */
-response init_first_level(pexeso_index *index)
+enum response init_first_level(pexeso_index *index)
 {
+    if(index->root == NULL)
+        exit_with_failure("Error in level.c: NULL pointer to root level please run init_root_level() first.");
+    
     int i, j;
-
     /* allocate memory for level */
     index->first_level = (struct level *)malloc(sizeof(struct level));
     if (index->first_level == NULL)
-        exit_with_failure("Error in main.c: Could not allocate memory for level.");
+        exit_with_failure("Error in level.c: Could not allocate memory for level.");
+
+    // link first level and root level
+    index->root->next = index->first_level;
 
     index->first_level->id = 1;
     index->first_level->num_cells = (unsigned int)abs(pow(2, index->settings->num_pivots)); // num_cells = 2 ^ (P * 1)
     index->first_level->cell_edge_length = pow((index->settings->pivot_space_volume / index->first_level->num_cells), (1.0/index->settings->num_pivots));
     index->first_level->next = NULL;
-    index->first_level->is_leaf = false;
+    
+    index->first_level->is_root = false;
     index->first_level->is_first = true;
+    index->first_level->is_leaf = false;
 
     index->first_level->cells = malloc(sizeof(struct cell) * index->first_level->num_cells);
     if (index->first_level->cells == NULL)
-        exit_with_failure("Error in main.c: Could not allocate memory for first level cells.");
+        exit_with_failure("Error in level.c: Could not allocate memory for first level cells.");
 
     printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
-    printf("\nLevel 1, num_cells = %d, cell_edge_length = %f\n", index->first_level->num_cells, index->first_level->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
+    printf("\nLevel %u, num_cells = %d, cell_edge_length = %f\n", index->first_level->id, index->first_level->num_cells, index->first_level->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
 
     /* create cells in first level */
     for(int c = 0; c < index->first_level->num_cells; c++)
@@ -135,6 +143,9 @@ response init_first_level(pexeso_index *index)
         index->first_level->cells[i].center = &center_vectors[i];
         index->first_level->cells[i].level = index->first_level;
     }
+
+    // link cells in first level to parent cell in root level
+    index->root->cells[0].children = index->first_level->cells;
 
     /*
         ndc = number of distinct cooridantes = number of child cells per parent cell = number of cells in the first level 
@@ -169,7 +180,54 @@ response init_first_level(pexeso_index *index)
     create_center_vectors(distinct_coordinates, ndc, index->settings->num_pivots,
                         index->settings->num_pivots, center_vectors, temp, 0);
 
+    printf("\n-> Making child cells for root cell\n");
+    for(int j = 0; j < index->root->cells[0].num_child_cells; j++)
+    {
+        printf("++ cell %d isleaf: %s\n", j, index->root->cells[0].children[j].is_leaf ? "true" : "false");
+        print_vector(index->root->cells[0].children[j].center, index->settings->num_pivots);
+    }
     free(temp.values);
     free(distinct_coordinates);
+    return OK;
+}
+
+/* initialize root level */
+enum response init_root(pexeso_index *index)
+{
+    /* allocate memory for level */
+    index->root = (struct level *)malloc(sizeof(struct level));
+    if (index->root == NULL)
+        exit_with_failure("Error in level.c: Could not allocate memory for root.");
+
+    level * root = index->root;
+    root->id = 0;
+    root->num_cells = 1; // root level has one cell
+    root->cell_edge_length = pow((index->settings->pivot_space_volume / root->num_cells), (1.0/index->settings->num_pivots));
+    // root->cell_edge_length = index->settings->pivot_space_extremity->values[0];
+    root->next = NULL;
+    
+    root->is_root = true;
+    root->is_first = false;
+    root->is_leaf = false;
+
+    unsigned int num_child_cells = (unsigned int)abs(pow(2, index->settings->num_pivots));
+    root->cells = malloc(sizeof(struct cell) * root->num_cells);
+    if (root->cells == NULL)
+        exit_with_failure("Error in level.c: Could not allocate memory for first level cells.");
+
+    printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
+    printf("\nLevel %u, num_cells = %d, cell_edge_length = %f\n", root->id, root->num_cells, root->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
+
+    /* create cells in root level */
+    init_cell(&root->cells[0], root->cell_edge_length, num_child_cells);
+    root->cells[0].level = index->root;
+    root->cells[0].center = malloc(sizeof(struct vector));
+    root->cells[0].center->values = malloc(sizeof(v_type) * index->settings->num_pivots);
+    
+    for(int i = 0; i < index->settings->num_pivots; i++)
+    {
+        root->cells[0].center->values[i] = index->settings->pivot_space_extremity->values[0]/2;
+    }
+
     return OK;
 }
