@@ -1,5 +1,5 @@
-To compile:                         gcc globals.c select_pivots.c gsl_matrix.c index.c level.c cell.c file_buffer.c file_loader.c file_buffer_manager.c main.c -o ../bin/pexeso -lm -g -lgsl -lgslcblas
-debug with valgrind:                valgrind  --undef-value-errors=no ../bin/pexeso
+To compile:                         gcc globals.c select_pivots.c gsl_matrix.c index.c level.c cell.c file_buffer.c file_loader.c file_buffer_manager.c query_engine.c main.c -o ../bin/pexeso -lm -g -lgsl -lgslcblas
+debug with valgrind:                valgrind  --undef-value-errors=no --leak-check=full --show-leak-kinds=all ../bin/pexeso
 Binary conversion:                  little indian.
 Base:
 Number of bytes for integer:        4 (32 bits)

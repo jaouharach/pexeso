@@ -106,7 +106,7 @@ response init_cell(cell *cell, float length, unsigned int num_child_cells)
     return OK;
 }
 
-cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, bool are_leaf_children, unsigned int children_level_id, index_settings *settings)
+cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * children_level, index_settings *settings)
 {
     parent_cell->children = malloc(sizeof(struct cell) * num_child_cells);
     if (parent_cell->children == NULL)
@@ -118,22 +118,22 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, bool are_
         child_cells[c].parent = parent_cell;
         child_cells[c].num_child_cells = parent_cell->num_child_cells;
         child_cells[c].edge_length = parent_cell->edge_length / 2;
-        child_cells[c].level_id = children_level_id;
+        child_cells[c].level = children_level;
         child_cells[c].center = NULL;
         child_cells[c].cell_size = 0;
         child_cells[c].file_buffer = NULL;
         child_cells[c].filename = NULL;
         child_cells[c].children = NULL;
 
-        // printf("are leaf children = %s.\n", are_leaf_children ? "true" : "false");
-        if(are_leaf_children)
+        // printf("are leaf children = %s.\n", children_level->is_leaf ? "true" : "false");
+        if(children_level->is_leaf)
         {
-            child_cells[c].is_leaf = are_leaf_children;
+            child_cells[c].is_leaf = true;
             child_cells[c].vid = calloc(settings->max_leaf_size, sizeof(struct vid));
         }
         else
         {
-            child_cells[c].is_leaf = are_leaf_children;
+            child_cells[c].is_leaf = false;
             child_cells[c].vid = NULL;
         }
         
@@ -226,7 +226,7 @@ void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim
 void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
 {
     dest->parent = src->parent;
-    dest->level_id = src->level_id;
+    dest->level = src->level;
     // printf("cell parent address = %p\n", dest->parent);
     dest->edge_length = src->edge_length;
     for (int i = 0; i < num_dim; i++)
@@ -266,7 +266,7 @@ enum response create_cell_filename(struct index_settings *settings, struct cell 
     if(cell->filename == NULL)
         exit_with_failure("Error in cell.c: Couldn't allocate memory for cell filename.");
 
-    l += sprintf(cell->filename+l ,"%02d", cell->level_id);
+    l += sprintf(cell->filename+l ,"%02d", cell->level->id);
     // l += sprintf(cell->filename+l ,"%s", "_");
     l += sprintf(cell->filename+l ,"_%g", cell->edge_length);
     l += sprintf(cell->filename+l ,"_(%g,%g)", get_vector_magnitude(cell->center, settings->num_pivots), get_vector_mean(cell->center, settings->num_pivots));
@@ -310,4 +310,34 @@ vector * get_vectors(struct cell * cell, unsigned int num_pivots)
         exit_with_failure("Error in cell.c: load vectors from disk is not implemented!");
     }
     return cell_vectors;
+}
+
+/* get pointer to leaf cells of a given cell */
+void get_leaf_cells(struct cell * cell, struct cell ** leaves, unsigned int * num_leaves)
+{
+    // if first call is with a leaf cell, leaf cell has no child cells
+    if(cell->is_leaf && num_leaves == 0)
+        exit_with_failure("Error in cell.c: Cannot find leaf cell for a leaf cell! a leaf cell has no child cells.");
+    
+    // a non leaf cell must have children
+    if(cell->is_leaf == false && cell->num_child_cells == 0)
+        exit_with_failure("Error in cell.c: Something went wrong, non leaf cell has no children.");
+
+    // if a leaf cell is reached add it to list of leaves
+    if(cell->is_leaf)
+    {
+        leaves = realloc(leaves, sizeof(struct cell *) * (*num_leaves + 1));
+        leaves[*num_leaves] = cell;
+        *num_leaves = *num_leaves + 1;
+
+        return;
+    }
+    else
+    {
+        // go over all children of cell and collect lead cells 
+        for(int i = 0; i < cell->num_child_cells; i++)
+        {   
+            get_leaf_cells(&cell->children[i], leaves, num_leaves);
+        }
+    }
 }

@@ -59,7 +59,7 @@ response init_levels(pexeso_index *index)
             if(&curr_level->cells[i] == NULL)
                 exit_with_failure("Error in level.c: Fatal, current cell in current level is a null point.");
             
-            struct cell * temp_child_cells = get_child_cells(&curr_level->cells[i], curr_level->cells[i].num_child_cells, new_level->is_leaf, new_level->id, index->settings);
+            struct cell * temp_child_cells = get_child_cells(&curr_level->cells[i], curr_level->cells[i].num_child_cells, new_level, index->settings);
             if(temp_child_cells == NULL)
                 exit_with_failure("Error in level.c: NULL pointer to child cells.");
             // // link child cells to next level
@@ -133,7 +133,7 @@ response init_first_level(pexeso_index *index)
         
         // link center vector to cell in first_level
         index->first_level->cells[i].center = &center_vectors[i];
-        index->first_level->cells[i].level_id = index->first_level->id;
+        index->first_level->cells[i].level = index->first_level;
     }
 
     /*

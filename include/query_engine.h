@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include "index.h"
-#include "cell.h"
 
 // a query result returns all cells with matching vectors to the query vector.
 struct query_result
@@ -12,25 +10,34 @@ struct query_result
     struct vid *vector_ids;
 };
 
+struct query_settings
+{
+    unsigned int join_threshold; // T 
+    v_type dist_threshold; // tau
+};
+
 struct matching_pair
 {
-    struct vector * q; // query vector
-    struct cell * cells;
+    struct vector ** query_vectors; // query vectors
+    struct cell ** cells;
     unsigned int num_match; // number of matching cells.
 };
 
 struct candidate_pair
 {
-    struct vector * q; // query vector
-    struct cell * cells;
+    struct  vector ** query_vectors; // query vectors
+    struct cell ** cells; // pointers to cells in the index
     unsigned int num_candidates; // number of candidate cells (cells that couldn't be filtered)
 };
 
-// void block(struct cell *query_cell, struct cell * r_cell, 
-//             struct matching_pair * mpair, struct candiadate_pair * cpair);
+enum response block(struct cell *query_cell, struct cell * r_cell, 
+            struct matching_pair * mpair, struct candidate_pair * cpair, struct index_settings * settings);
+
 // void verify(struct pexeso_index *index, struct matching_pair * mpair, struct candiadate_pair * cpair,
 //             v_type dist_threshold, unsigned int join_threshold);
 
+/* initialize query settings */
+struct query_settings * init_query_settings(v_type dist_threshold, unsigned int join_threshold);
 /* 
     Given two vectors q and x, a set P of pivot vectors, a distance function d, 
     and a threshold τ, if there exists a pivot p ∈ P such that d(x, p) +d(q, p) ≤ τ,
@@ -82,3 +89,9 @@ enum response cell_cell_match(struct cell * cell, struct cell * query_cell,
 
 /* min rectagle query region RQR of a query in query_cell for pivot p */
 v_type min_RQR(struct cell * query_cell, unsigned int num_pivots, int p,  v_type dist_threshold);
+
+/* add candidate pair */
+enum response add_candidate_pair(struct candidate_pair *cpair, struct vector * query_vector, struct cell *candidate);
+
+/* add candidate pair */
+enum response add_matching_pair(struct matching_pair *mpair, struct vector * query_vector, struct cell *match);

@@ -25,6 +25,7 @@ response init_index(const char *root_directory,
                     double buffered_memory_size,
                     unsigned int max_leaf_size,
                     unsigned int track_vector,
+                    struct query_settings * query_settings,
                     pexeso_index *index)
 {
     // make index directory
@@ -56,7 +57,7 @@ response init_index(const char *root_directory,
     index->settings->buffered_memory_size = buffered_memory_size; // amount of memory for file buffers (in MB)
     index->settings->max_leaf_size = max_leaf_size;               // max number of vectors in one leaf cell
     index->settings->track_vector = track_vector;
-
+    index->settings->query_settings = query_settings;
 
     // track vid
     index->vid_file = NULL;

@@ -21,6 +21,7 @@ struct index_settings {
     double buffered_memory_size;
     unsigned int max_leaf_size; // max number of vectors stored in one leaf cell
     unsigned int track_vector; // (value = 0 / 1) track data vector id or not, vector id = (table_id, column_id) 
+    struct query_settings * query_settings; // distance threshold tau, joinability threshold T ...
 };
 
 struct pexeso_index{
@@ -48,6 +49,7 @@ response init_index(const char * root_directory,
                 double buffered_memory_size,
                 unsigned int max_leaf_size,
                 unsigned int track_vector,
+                struct query_settings * query_settings,
                 pexeso_index * index);
 
 /* get the farthest vector in the pivot space */

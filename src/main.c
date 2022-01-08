@@ -10,6 +10,7 @@
 #include "../include/select_pivots.h"
 #include "../include/file_buffer.h"
 #include "../include/file_buffer_manager.h"
+#include "../include/query_engine.h"
 
 vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
 int main()
@@ -32,6 +33,11 @@ int main()
     unsigned int num_levels = 3;  // m
     unsigned int num_pivots = 2;  // number of pivots
     unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
+
+    /* query settings */
+    unsigned int join_threshold = 1; // T 
+    v_type dist_threshold = 0; // tau
+
 
     /* read all vectors in the data set */
     printf("Reading dataset info...");
@@ -80,9 +86,10 @@ int main()
     vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
     print_vector(pivot_space_extremity, num_pivots);
     
-    
+
     /* initialize index */
     printf("\n\nInitialize index... ");
+    struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold);
 
     pexeso_index * index = (struct pexeso_index *) malloc(sizeof(struct pexeso_index));
     if (index == NULL)
@@ -90,7 +97,8 @@ int main()
 
     if (!init_index(root_directory, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, total_vectors, base, mtr_vector_length, 
-                    buffered_memory_size, max_leaf_size, track_vector, index))
+                    buffered_memory_size, max_leaf_size, track_vector, 
+                    query_settings, index))
         exit_with_failure("Error in main.c: Couldn't initialize index!");
 
     printf("(OK)\n");
@@ -162,6 +170,7 @@ int main()
     free(index->settings->pivot_space_extremity->values);
     free(index->settings->pivot_space_extremity);
 
+    free(index->settings->query_settings);
     free(index->settings);
     free(index);
 
