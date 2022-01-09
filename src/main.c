@@ -11,7 +11,8 @@
 #include "../include/file_buffer.h"
 #include "../include/file_buffer_manager.h"
 #include "../include/query_engine.h"
-#include "../include/inv_index.h"
+// #include "../include/inv_index.h"
+#include "../include/map.h"
 
 
 vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
@@ -131,26 +132,31 @@ int main()
     if(!init_root(grid))
         exit_with_failure("Error in main.c: Couldn't initialize root level!");
 
-    if(grid->root == NULL)
-        exit_with_failure("Error in main.c: root level not initialized for grid!");    
-
     if (!init_first_level(grid))
         exit_with_failure("Error in main.c: Couldn't initialize first level!");
-
-    if(grid->first_level == NULL)
-        exit_with_failure("Error in main.c: first level not initialized for grid!");    
 
     if (!init_levels(grid))
         exit_with_failure("Error in main.c: Couldn't initialize grid levels!");
     printf("(OK)\n");
 
     
-    /* insert dataset in grid */
-    /* read all vectors in the data set */
+    /* insert dataset in grid (read and index all vectors in the data set) */
     printf("Index dataset vectors and build inverted index...");
     struct inv_index * index = malloc(sizeof(struct inv_index));
+    if(index == NULL)
+        exit_with_failure("Error in main.c: Couldn't allocate memory for inverted index.");
+
     if (!index_binary_files(grid, index, bin_files_directory, num_files, base))
-        exit_with_failure("Error in main.c: Couldn't initialize first level!");
+        exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
+    printf("(OK)\n");
+
+    printf("Build match and mismatch map...");
+    struct match_map * match_map = malloc(sizeof(struct match_map));
+    if(match_map == NULL)
+        exit_with_failure("Error in main.c: Couldn't allocate memory for match map.");
+
+    if (!init_match_map(index, match_map))
+        exit_with_failure("Error in main.c: Couldn't initialize match map!");
     printf("(OK)\n");
 
     /* print grid */
@@ -158,6 +164,9 @@ int main()
 
     /* print inverted index */
     dump_inv_index_to_console(index);
+
+    /* print match map */
+    dump_match_map_to_console(match_map);
 
     /* write grid to disk */
     if (!grid_write(grid))
@@ -171,7 +180,9 @@ int main()
     if(!inv_index_destroy(index))
         exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
 
-    // exit(1);
+    /* destroy match map */
+    if(!match_map_destroy(match_map))
+        exit_with_failure("Error main.c: Couldn't destroy match map.\n");
 
     // free grid and grid settings
     for(int p = grid->settings->num_pivots - 1; p >= 0; p--)

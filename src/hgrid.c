@@ -168,18 +168,16 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
 /* print grid in console */
 void dump_grid_to_console(struct grid *grid)
 {
-    printf("\t\t::  DISPLAY HGRID  ::\n");
-    printf("\t\t|       |       |       \n");
-    printf("\t\t|       |       |       \n");
-    printf("\t\t|       |       |       \n");
-    printf("\t\tV       V       V       \n\n\n");
+    printf("\n\n\n\t.................................\n");
+    printf("\n\n\n\t::          HGRID              ::\n");
+    printf("\t.................................\n\n\n");
+    printf("|\n|\n|\nv\n");
     level *level = grid->root;
     for (int i = 0; i <= grid->settings->num_levels; i++)
     {
         printf("Level %u:\n", level->id);
         printf("\tNumber of cells = %u\n", level->num_cells);
-        printf("\tCell edge length = %f\n", level->cell_edge_length);
-        printf("#####################################################################\n");
+        printf("\tCell edge length = %f\n\n", level->cell_edge_length);
         for (int j = 0; j < level->num_cells; j++)
         {
             printf("*****************************(Cell %d)********************************\n", j + 1);
@@ -206,12 +204,12 @@ void dump_grid_to_console(struct grid *grid)
                 for (int k = 0; k < level->cells[j].num_child_cells; k++)
                     print_vector(level->cells[j].children[k].center, grid->settings->num_pivots);
             }
-            printf("\nend of cell. \n\n\n");
+            printf("---\n\n");
         }
-        printf("############################################################\n");
+        printf("|\n|\n|\nv\n");
         level = level->next;
     }
-    printf("\t\t::  END OF HGRID  ::\n");
+    printf("\n\t>>>  END OF HGRID  <<<\n\n\n");
 }
 
 /* write grid to disk */

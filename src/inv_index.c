@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/hgrid.h"
-#include "../include/cell.h"
 #include "../include/inv_index.h"
+#include "../include/cell.h"
 
 /* add entry to inverted index */
 enum response inv_index_append_entry(struct inv_index * index, unsigned int table_id, unsigned int set_pos, struct cell * cell)
@@ -98,18 +98,16 @@ bool has_entry(struct inv_index * index, unsigned int entry_idx, struct cell * c
 }
 
 /* print inverted index */
-enum response dump_inv_index_to_console(struct inv_index *index)
+void dump_inv_index_to_console(struct inv_index *index)
 {
-    printf("\t\t::  DISPLAY INVERTED INDEX  ::\n");
-    printf("\t\t|       |       |       |\n");
-    printf("\t\t|       |       |       |\n");
-    printf("\t\t|       |       |       |\n");
-    printf("\t\tV       V       V       V\n\n\n");
+    printf("\n\n\n\t...............................\n");
+    printf("\t::      INVERTED INDEX       ::\n");
+    printf("\t...............................\n\n\n");
     for(int e = 0; e < index->num_entries; e++)
     {
         struct entry * curr_entry = &index->entries[e];
 
-        printf("%d: (%u, %u) => {", e, curr_entry->id->table_id, curr_entry->id->set_pos);
+        printf("\t%d: (%u, %u) => {", e, curr_entry->id->table_id, curr_entry->id->set_pos);
         for(int c = 0; c < curr_entry->num_cells; c++)
         {
             if(c == curr_entry->num_cells - 1)
@@ -121,9 +119,8 @@ enum response dump_inv_index_to_console(struct inv_index *index)
         }
         printf("}\n");
     }
-    printf("\t\t::  END OF HGRID  ::\n");
+    printf("\n\t>>>  END OF INVERTED INDEX  <<<\n\n\n");
 
-    return OK;
 }
 
 /* destroy inverted index */

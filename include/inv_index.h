@@ -23,7 +23,7 @@ bool has_entry(struct inv_index * index, unsigned int entry_idx, struct cell * c
 int has_set(struct inv_index * index, unsigned int table_id, unsigned int set_pos);
 
 /* print inverted index */
-enum response dump_inv_index_to_console(struct inv_index *index);
+void dump_inv_index_to_console(struct inv_index *index);
 
 /* destroy inverted index */
 enum response inv_index_destroy(struct inv_index *index);

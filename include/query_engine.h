@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "../include/inv_index.h"
 
 // a query result returns all cells with matching vectors to the query vector.
 struct query_result
@@ -34,8 +35,9 @@ struct candidate_pair
 enum response block(struct cell *query_cell, struct cell * r_cell, 
             struct matching_pair * mpair, struct candidate_pair * cpair, struct grid_settings * settings);
 
-void verify(struct grid *index, struct matching_pair * mpair, struct candidate_pair * cpair,
-            v_type dist_threshold, unsigned int join_threshold);
+/* verify candiate pairs */
+enum response verify(struct grid *grid, struct matching_pair * mpair, struct candidate_pair * cpair,
+            struct inv_index *index, v_type dist_threshold, unsigned int join_threshold);
 
 /* initialize query settings */
 struct query_settings * init_query_settings(v_type dist_threshold, unsigned int join_threshold);

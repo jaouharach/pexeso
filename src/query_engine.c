@@ -4,6 +4,21 @@
 #include "../include/cell.h"
 #include "../include/query_engine.h"
 
+/* verify candiate pairs */
+enum response verify(struct grid * grid, struct matching_pair * mpair, struct candidate_pair * cpair,
+            struct inv_index * index, v_type dist_threshold, unsigned int join_threshold)
+{
+    for(int m = 0; m < mpair->num_match;  m++)
+    {
+        // update match map for columns in c
+    }
+
+    for(int c = 0; c < cpair->num_candidates;  c++)
+    {
+        
+    }
+    return OK;
+}
 
 /* get candidate and matching cells of a query cell */
 enum response block(struct cell *query_cell, struct cell * root_cell, 
