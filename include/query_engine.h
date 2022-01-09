@@ -35,12 +35,22 @@ struct candidate_pair
 enum response block(struct cell *query_cell, struct cell * r_cell, 
             struct matching_pair * mpair, struct candidate_pair * cpair, struct grid_settings * settings);
 
-/* verify candiate pairs */
-enum response verify(struct grid *grid, struct matching_pair * mpair, struct candidate_pair * cpair,
-            struct inv_index *index, v_type dist_threshold, unsigned int join_threshold);
+enum response verify(struct grid * grid, struct matching_pair * mpair, struct candidate_pair * cpair,
+            struct inv_index * index, struct match_map * match_map, v_type dist_threshold, unsigned int join_threshold, unsigned int query_set_size);
 
 /* initialize query settings */
 struct query_settings * init_query_settings(v_type dist_threshold, unsigned int join_threshold);
+
+/* 
+    Given two vectors q and x, a set P of pivot vectors, a distance function d, 
+    and a threshold τ.
+    if q matches x, then d(q, p) − τ ≤ d(x, p) ≤ d(q, p) + τ
+    note: q and v are in pivot space.
+    return OK if vector doesn't satisfy: d(q, p) − τ ≤ d(x, p) ≤ d(q, p) + τ
+*/
+enum response pivot_filter(struct vector * q, struct vector * x, 
+                            unsigned int num_pivots, v_type dist_threshold);
+                            
 /* 
     Given two vectors q and x, a set P of pivot vectors, a distance function d, 
     and a threshold τ, if there exists a pivot p ∈ P such that d(x, p) +d(q, p) ≤ τ,

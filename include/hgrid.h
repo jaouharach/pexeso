@@ -18,7 +18,8 @@ struct grid_settings {
     unsigned int mtr_vector_length; // vector length (number of dimensions) in metric space
     unsigned int vector_size; // vector size = (base/8) x vector length (in bytes)
     unsigned int max_filename_size; // each leaf cell is stored in one file 
-    double buffered_memory_size;
+    double mtr_buffered_memory_size; // memory array size for metric space memory array
+    double ps_buffered_memory_size; // memory array size for pivot space memory array
     unsigned int max_leaf_size; // max number of vectors stored in one leaf cell
     unsigned int track_vector; // (value = 0 / 1) track data vector id or not, vector id = (table_id, column_id) 
     struct query_settings * query_settings; // distance threshold tau, joinability threshold T ...
@@ -39,20 +40,21 @@ struct grid{
   struct vid * vid_cache;
 };
 
-enum response init_grid(const char * root_directory,
-                unsigned int num_pivots,
-                vector * pivots_mtr, 
-                vector * pivots_ps,
-                vector * extremity,
-                unsigned int num_levels,
-                unsigned long long num_vectors,
-                unsigned int base,
-                unsigned int mtr_vector_length,
-                double buffered_memory_size,
-                unsigned int max_leaf_size,
-                unsigned int track_vector,
-                struct query_settings * query_settings,
-                struct grid * grid);
+enum response init_grid(const char *root_directory,
+                    unsigned int num_pivots,
+                    vector *pivots_mtr,
+                    vector *pivots_ps,
+                    vector *extremity,
+                    unsigned int num_levels,
+                    unsigned long long num_vectors,
+                    unsigned int base,
+                    unsigned int mtr_vector_length,
+                    double mtr_buffered_memory_size,
+                    double ps_buffered_memory_size,
+                    unsigned int max_leaf_size,
+                    unsigned int track_vector,
+                    struct query_settings * query_settings,
+                    struct grid *grid);
 
 /* get the farthest vector in the pivot space */
 vector * get_extremity(vector * pivot_vectors, unsigned int num_dim);

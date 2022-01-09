@@ -10,7 +10,7 @@
 #include "../include/inv_index.h"
 
 /* append vector to cell */
-response append_vector_to_cell(struct grid *grid, struct inv_index * index, struct cell *cell,struct vector *vector)
+response append_vector_to_cell(struct grid *grid, struct inv_index * index, struct cell *cell,struct vector *vector, struct vector * v_mapping)
 {
     // static int append_id = 0;
     // printf("append %d.\n\n\n", append_id+1);
@@ -26,39 +26,55 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
         exit_with_failure("Error in cell.c:  Couldn't append vector to cell NULL file buffer for \
                      this cell after creating it.");
     
-    int vector_length = grid->settings->mtr_vector_length;
+    int mtr_vector_length = grid->settings->mtr_vector_length;
+    int ps_vector_length = grid->settings->num_pivots;
     int max_leaf_size = grid->settings->max_leaf_size;
     int idx = cell->file_buffer->buffered_list_size;
 
     if (idx == 0) // if buffered list is empty
     {
-        cell->file_buffer->buffered_list = NULL;
-        cell->file_buffer->buffered_list = malloc(sizeof(struct ts_type *) * max_leaf_size);
+        cell->file_buffer->mtr_buffered_list = NULL;
+        cell->file_buffer->ps_buffered_list = NULL;
+        
+        cell->file_buffer->mtr_buffered_list = malloc(sizeof(struct v_type *) * max_leaf_size);
+        cell->file_buffer->ps_buffered_list = malloc(sizeof(struct v_type *) * max_leaf_size);
 
-        if (cell->file_buffer->buffered_list == NULL)
-            exit_with_failure("Error in cell.c:  Could not \
-                                allocate memory for the buffered list.");
+        if (cell->file_buffer->mtr_buffered_list == NULL || cell->file_buffer->ps_buffered_list == NULL)
+            exit_with_failure("Error in cell.c: Could not allocate memory for the buffered list.");
     }
 
     // get first address of memory block previously allocated for this cell
-    cell->file_buffer->buffered_list[idx] = (v_type *) grid->buffer_manager->current_record;
-    if (cell->file_buffer->buffered_list[idx] == NULL)
+    cell->file_buffer->mtr_buffered_list[idx] = (v_type *) grid->buffer_manager->current_mtr_record;
+    if (cell->file_buffer->mtr_buffered_list[idx] == NULL)
         exit_with_failure("Error in cell.c:  Could not \
                          allocate memory for the vector in the buffer.");
 
+    // get first address of memory block previously allocated for this cell
+    cell->file_buffer->ps_buffered_list[idx] = (v_type *) grid->buffer_manager->current_ps_record;
+    if (cell->file_buffer->ps_buffered_list[idx] == NULL)
+        exit_with_failure("Error in cell.c:  Could not \
+                         allocate memory for the vector in the buffer.");
+
+
     // copy vector values to buffered list
-    for (int i = 0; i < vector_length; ++i)
+    for (int i = 0; i < mtr_vector_length; ++i)
     {
-        cell->file_buffer->buffered_list[idx][i] = vector->values[i];
+        cell->file_buffer->mtr_buffered_list[idx][i] = vector->values[i];
+    }
+    for (int i = 0; i < ps_vector_length; ++i)
+    {
+        cell->file_buffer->ps_buffered_list[idx][i] = v_mapping->values[i];
     }
 
-    grid->buffer_manager->current_record += sizeof(v_type) * vector_length;
-    grid->buffer_manager->current_record_index++;
+    grid->buffer_manager->current_mtr_record += sizeof(v_type) * mtr_vector_length;
+    grid->buffer_manager->current_mtr_record_index++;
+
+    grid->buffer_manager->current_mtr_record += sizeof(v_type) * ps_vector_length;
+    grid->buffer_manager->current_ps_record_index++;
 
     cell->cell_size++;
     cell->file_buffer->buffered_list_size++;
     grid->total_records++;
-    grid->buffer_manager->current_values_count += vector_length;
 
 
     // track vector
@@ -277,7 +293,7 @@ enum response create_cell_filename(struct grid_settings *settings, struct cell *
 }
 
 /* get list of vector in cell */
-vector * get_vectors(struct cell * cell, unsigned int num_pivots)
+vector * get_vectors_mtr(struct cell * cell, unsigned int vector_length_mtr)
 {
     if(!cell->is_leaf)
         exit_with_failure("Error in cell.c: Cannot get vectors of a non leaf cell!");
@@ -288,7 +304,7 @@ vector * get_vectors(struct cell * cell, unsigned int num_pivots)
     // if file buffer not in disk return vectors in file buffer
     struct vector * cell_vectors = malloc(sizeof(struct vector) * cell->cell_size);
     for(int i = 0; i < cell->cell_size; i++)
-        cell_vectors[i].values = malloc(sizeof(v_type) * num_pivots);
+        cell_vectors[i].values = malloc(sizeof(v_type) * vector_length_mtr);
 
     if(!cell->file_buffer->in_disk)
     {
@@ -298,18 +314,98 @@ vector * get_vectors(struct cell * cell, unsigned int num_pivots)
         // copy cell vectors into list of vectors
         for(int i = 0; i < cell->cell_size; i++)
         {
-            for(int j = 0; j < num_pivots; j++)
-                cell_vectors[i].values[j] = cell->file_buffer->buffered_list[i][j];
+            for(int j = 0; j < vector_length_mtr; j++)
+                cell_vectors[i].values[j] = cell->file_buffer->mtr_buffered_list[i][j];
                 cell_vectors[i].set_id = cell->vid[i].set_pos;
                 cell_vectors[i].table_id = cell->vid[i].table_id;
         }
     }
     // if file buffer is in disk load vectors from disk
     else
+        exit_with_failure("Error in cell.c: can't get vectors, cell's file buffer is disk!");
+
+    return cell_vectors;
+}
+
+/* get list of vector in cell (in pivot space) */
+vector * get_vectors_ps(struct cell * cell, unsigned int vector_length_mtr)
+{
+    if(!cell->is_leaf)
+        exit_with_failure("Error in cell.c: Cannot get vectors of a non leaf cell!");
+
+    if(cell->cell_size == 0)
+        exit_with_failure("Error in cell.c: Cannot get vectors of an empty leaf cell!");
+
+    // if file buffer not in disk return vectors in file buffer
+    struct vector * cell_vectors = malloc(sizeof(struct vector) * cell->cell_size);
+    for(int i = 0; i < cell->cell_size; i++)
+        cell_vectors[i].values = malloc(sizeof(v_type) * vector_length_mtr);
+
+    if(!cell->file_buffer->in_disk)
     {
-        // (todo)
-        exit_with_failure("Error in cell.c: load vectors from disk is not implemented!");
+        if(cell->cell_size != cell->file_buffer->buffered_list_size)
+            exit_with_failure("Error in cell.c: Cell buffer not in disk yet cell_size != buffered list size!");
+        
+        // copy cell vectors into list of vectors
+        for(int i = 0; i < cell->cell_size; i++)
+        {
+            for(int j = 0; j < vector_length_mtr; j++)
+                cell_vectors[i].values[j] = cell->file_buffer->ps_buffered_list[i][j];
+                cell_vectors[i].set_id = cell->vid[i].set_pos;
+                cell_vectors[i].table_id = cell->vid[i].table_id;
+        }
     }
+    // if file buffer is in disk load vectors from disk
+    else
+        exit_with_failure("Error in cell.c: can't get vectors, cell's file buffer is disk!");
+
+    return cell_vectors;
+}
+
+/* get vector tuples (vectors in metric and ps space) */
+// (v1, v1'), (v2, v2'), (v3, v3')
+struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings * settings)
+{
+    if(!cell->is_leaf)
+        exit_with_failure("Error in cell.c: Cannot get vectors of a non leaf cell!");
+
+    if(cell->cell_size == 0)
+        exit_with_failure("Error in cell.c: Cannot get vectors of an empty leaf cell!");
+
+    // if file buffer not in disk return vectors in file buffer
+    struct vector_tuple * cell_vectors = malloc(sizeof(struct vector_tuple) * cell->cell_size);
+    for(int i = 0; i < cell->cell_size; i++)
+    {
+        cell_vectors[i].mtr_vector = malloc(sizeof(struct vector));
+        cell_vectors[i].mtr_vector->values = malloc(sizeof(v_type) * settings->mtr_vector_length);
+        cell_vectors[i].ps_vector->values = malloc(sizeof(v_type) * settings->num_pivots);
+
+    }
+
+    if(!cell->file_buffer->in_disk)
+    {
+        if(cell->cell_size != cell->file_buffer->buffered_list_size)
+            exit_with_failure("Error in cell.c: Cell buffer not in disk yet cell_size != buffered list size!");
+        
+        // copy cell vectors into list of vector tuples
+        for(int i = 0; i < cell->cell_size; i++)
+        {
+            for(int j = 0; j < settings->mtr_vector_length; j++)
+                cell_vectors[i].mtr_vector->values[j] = cell->file_buffer->mtr_buffered_list[i][j];
+            
+            for(int j = 0; j < settings->num_pivots; j++)
+                cell_vectors[i].mtr_vector->values[j] = cell->file_buffer->ps_buffered_list[i][j];
+            
+            cell_vectors[i].mtr_vector->set_id = cell->vid[i].set_pos;
+            cell_vectors[i].mtr_vector->table_id = cell->vid[i].table_id;
+            cell_vectors[i].ps_vector->set_id = cell->vid[i].set_pos;
+            cell_vectors[i].ps_vector->table_id = cell->vid[i].table_id;
+        }
+    }
+    // if file buffer is in disk load vectors from disk
+    else
+        exit_with_failure("Error in cell.c: can't get vectors, cell's file buffer is disk!");
+
     return cell_vectors;
 }
 

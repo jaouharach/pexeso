@@ -16,6 +16,7 @@ typedef struct grid_settings grid_settings;
 typedef struct level level;
 typedef struct cell cell;
 typedef struct vector vector;
+typedef struct vector_tuple vector_tuple;
 typedef struct file_buffer_manager file_buffer_manager;
 typedef struct file_buffer file_buffer;
 typedef struct file_map file_map;
@@ -44,6 +45,10 @@ struct vector{
 	v_type * values;
 };
 
+struct vector_tuple{
+	vector * mtr_vector;
+  vector * ps_vector;
+};
 
 // print error and exit program
 void exit_with_failure(char * message);
@@ -83,3 +88,6 @@ v_type get_vector_magnitude(vector * vector, unsigned int v_len);
 
 /* create directory, if directory exists ask user for action */
 enum response create_grid_dir(const char * dir_path);
+
+/* compare two pointers, returns true if both pointers point to the same object */
+bool pointer_cmp(void * p1, void * p2);

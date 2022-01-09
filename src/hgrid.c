@@ -22,7 +22,8 @@ enum response init_grid(const char *root_directory,
                     unsigned long long num_vectors,
                     unsigned int base,
                     unsigned int mtr_vector_length,
-                    double buffered_memory_size,
+                    double mtr_buffered_memory_size,
+                    double ps_buffered_memory_size,
                     unsigned int max_leaf_size,
                     unsigned int track_vector,
                     struct query_settings * query_settings,
@@ -55,7 +56,9 @@ enum response init_grid(const char *root_directory,
     grid->settings->max_num_child_cells = pow(2, num_pivots); // equals to number of cells in first level
     grid->settings->vector_size = (base / 8) * mtr_vector_length;
 
-    grid->settings->buffered_memory_size = buffered_memory_size; // amount of memory for file buffers (in MB)
+    grid->settings->mtr_buffered_memory_size = mtr_buffered_memory_size; // amount of memory for file buffers (metric vectors) (in MB)
+    grid->settings->ps_buffered_memory_size = ps_buffered_memory_size; // amount of memory for file buffers (pivot space vector) (in MB)
+
     grid->settings->max_leaf_size = max_leaf_size;               // max number of vectors in one leaf cell
     grid->settings->track_vector = track_vector;
     grid->settings->query_settings = query_settings;
@@ -156,7 +159,7 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
     // print_vector(cell->center, grid->settings->num_pivots);
 
     // append vector in metric format
-    append_vector_to_cell(grid, index, cell, vector);
+    append_vector_to_cell(grid, index, cell, vector, v_mapping);
 
     // free memory
     free(v_mapping->values);
@@ -250,12 +253,14 @@ enum response grid_write(struct grid *grid)
     unsigned int num_leaf_cells = grid->settings->num_leaf_cells;
     unsigned int mtr_vector_length = grid->settings->mtr_vector_length;
     unsigned int max_leaf_size = grid->settings->max_leaf_size;
-    double buffered_memory_size = grid->settings->buffered_memory_size;
+    double mtr_buffered_memory_size = grid->settings->mtr_buffered_memory_size;
+    double ps_buffered_memory_size = grid->settings->ps_buffered_memory_size;
     unsigned long long total_records = grid->total_records;
 
     // write settings
     fwrite(&num_leaf_cells, sizeof(unsigned long long), 1, root_file);
-    fwrite(&buffered_memory_size, sizeof(double), 1, root_file);
+    fwrite(&mtr_buffered_memory_size, sizeof(double), 1, root_file);
+    fwrite(&ps_buffered_memory_size, sizeof(double), 1, root_file);
     fwrite(&mtr_vector_length, sizeof(unsigned int), 1, root_file);
     fwrite(&max_leaf_size, sizeof(unsigned int), 1, root_file);
     fwrite(&total_records, sizeof(unsigned int), 1, root_file);
@@ -350,8 +355,10 @@ enum response grid_destroy(struct grid *grid, struct level *level)
         // free file buffer
         if (level->cells[c].file_buffer != NULL)
         {
-            free(level->cells[c].file_buffer->buffered_list);
-            level->cells[c].file_buffer->buffered_list = NULL;
+            free(level->cells[c].file_buffer->mtr_buffered_list);
+            free(level->cells[c].file_buffer->ps_buffered_list);
+            level->cells[c].file_buffer->mtr_buffered_list = NULL;
+            level->cells[c].file_buffer->ps_buffered_list = NULL;
             level->cells[c].file_buffer->buffered_list_size = 0;
             free(level->cells[c].file_buffer);
         }
@@ -387,7 +394,8 @@ enum response destroy_buffer_manager(struct grid *grid)
             free(temp);
         }
 
-        free(grid->buffer_manager->memory_array);
+        free(grid->buffer_manager->mtr_memory_array);
+        free(grid->buffer_manager->ps_memory_array);
         free(grid->buffer_manager);
     }
     return OK;

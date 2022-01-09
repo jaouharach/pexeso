@@ -15,7 +15,9 @@ enum response file_buffer_init(struct cell *cell)
 
     cell->file_buffer->in_disk = false;
 
-    cell->file_buffer->buffered_list = NULL;
+    cell->file_buffer->mtr_buffered_list = NULL;
+    cell->file_buffer->ps_buffered_list = NULL;
+
     cell->file_buffer->buffered_list_size = 0;
 
     cell->file_buffer->cell = cell;
@@ -70,6 +72,7 @@ enum response add_file_buffer_to_map(struct grid *grid, struct cell *cell)
     return OK;
 }
 
+/* only flushes vectors in metric space */
 enum response flush_buffer_to_disk(struct grid *grid, struct cell *cell)
 {
     //is this file flush properly out1/06_R_0_(160,192,0.738156)_9
@@ -97,7 +100,8 @@ enum response flush_buffer_to_disk(struct grid *grid, struct cell *cell)
 
         for (int i = 0; i < num_vectors; ++i)
         {
-            if (!fwrite(cell->file_buffer->buffered_list[i], sizeof(v_type), grid->settings->mtr_vector_length, vector_file))
+            // (todo) flush vectors in pivot space
+            if (!fwrite(cell->file_buffer->mtr_buffered_list[i], sizeof(v_type), grid->settings->mtr_vector_length, vector_file))
                 exit_with_failure("Error in file_buffer.c: Could not "
                                   "write the timeseries to file.\n");
         }
@@ -127,10 +131,14 @@ enum response clear_file_buffer(struct grid *grid, struct cell *cell)
         exit_with_failure("Error in file_buffer.c: Cannot clear a NULL buffer.\n");
     else
     {
-        if (cell->file_buffer->buffered_list != NULL)
-            free(cell->file_buffer->buffered_list);
+        if (cell->file_buffer->mtr_buffered_list != NULL)
+            free(cell->file_buffer->mtr_buffered_list);
 
-        cell->file_buffer->buffered_list = NULL;
+        if (cell->file_buffer->ps_buffered_list != NULL)
+            free(cell->file_buffer->ps_buffered_list);
+
+        cell->file_buffer->mtr_buffered_list = NULL;
+        cell->file_buffer->ps_buffered_list = NULL;
         cell->file_buffer->buffered_list_size = 0;
     }
 

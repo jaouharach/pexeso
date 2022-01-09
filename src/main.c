@@ -10,9 +10,9 @@
 #include "../include/select_pivots.h"
 #include "../include/file_buffer.h"
 #include "../include/file_buffer_manager.h"
+#include "../include/match_map.h"
 #include "../include/query_engine.h"
 // #include "../include/inv_index.h"
-#include "../include/map.h"
 
 
 vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
@@ -26,7 +26,9 @@ int main()
     unsigned int mtr_vector_length = 3, num_dim_metric_space = 3;
     unsigned long long total_vectors = 0ull; // number of vectors in the whole data lake
     unsigned int max_leaf_size = 76; // max vectors in one leaf cell
-    double buffered_memory_size = 30; // memory  allocated for file buffers (in MB)
+    double mtr_buffered_memory_size = 30; // memory  allocated for file buffers (in MB)
+    double ps_buffered_memory_size = 3; // memory  allocated for file buffers (in MB)
+
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
 
     /* mode 0 = grid dataset, 1 = query dataset */
@@ -100,7 +102,7 @@ int main()
 
     if (!init_grid(root_directory, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, total_vectors, base, mtr_vector_length, 
-                    buffered_memory_size, max_leaf_size, track_vector, 
+                    mtr_buffered_memory_size, ps_buffered_memory_size, max_leaf_size, track_vector, 
                     query_settings, grid))
         exit_with_failure("Error in main.c: Couldn't initialize grid!");
 

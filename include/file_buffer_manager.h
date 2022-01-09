@@ -7,14 +7,17 @@ struct file_buffer_manager
   struct file_map *file_map_tail;
   int file_map_size;
 
-  unsigned long long max_buffered_size; // max number of v_type values that can be hold in memory in all file buffers
-  long long current_values_count; // number of vectors currently in memory
-  //   long batch_remove_size;
+  // memory array for metric space vectors
+  char *mtr_memory_array;
+  char *current_mtr_record; // next vector to be loaded in mtr_memory_array
+  int current_mtr_record_index; 
+  int max_mtr_record_index;
 
-  char *memory_array;
-  char *current_record; // next vector to be loaded in memory_array
-  int current_record_index; 
-  int max_record_index;
+  // memory array for pivot space vectors
+  char *ps_memory_array;
+  char *current_ps_record; // next vector to be loaded in ps_memory_array
+  int current_ps_record_index; 
+  int max_ps_record_index;
 };
 
 struct file_map

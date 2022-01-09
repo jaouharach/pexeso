@@ -172,3 +172,19 @@ enum response create_grid_dir(const char * dir_path)
     mkdir(dir_path, 0777);
     return OK;
 }
+
+/* compare two pointers, returns true if both pointers point to the same object */
+bool pointer_cmp(void * p1, void * p2)
+{
+    if
+    (
+        (p1 <= p2 && p1 >= p2) == true
+        &&
+        (p1 < p2) == false 
+        &&
+        (p1 > p2) == false
+    )
+    return true;
+
+    return false;
+}

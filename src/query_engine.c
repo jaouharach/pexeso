@@ -2,20 +2,108 @@
 #include <float.h>
 #include "../include/hgrid.h"
 #include "../include/cell.h"
+#include "../include/match_map.h"
 #include "../include/query_engine.h"
 
 /* verify candiate pairs */
 enum response verify(struct grid * grid, struct matching_pair * mpair, struct candidate_pair * cpair,
-            struct inv_index * index, v_type dist_threshold, unsigned int join_threshold)
-{
+            struct inv_index * index, struct match_map * match_map, v_type dist_threshold, unsigned int join_threshold, unsigned int query_set_size)
+{   
+    // update match map for every set in a matching cell
     for(int m = 0; m < mpair->num_match;  m++)
     {
-        // update match map for columns in c
+        struct cell * match_cell = mpair->cells[m];
+        // get columns in match_cell
+        for(int e = 0; e < index->num_entries; e++)
+        {
+            struct entry * curr_entry = &index->entries[e];
+            int set_entry_idx = has_set_entry(match_map, curr_entry);
+            for(int c = 0; c < curr_entry->num_cells; c++)
+            {
+                // if set in matching cell (both point to the same cell)
+                if(pointer_cmp(match_cell, curr_entry->cells[c]))
+                {
+                    //update match map for current set of entry cuur_entry
+                    match_map->match_count[set_entry_idx]++;
+                    // update_match_count(match_map, curr_entry);
+                }
+            }
+        }
+
     }
 
+    // verify candidates
     for(int c = 0; c < cpair->num_candidates;  c++)
     {
+        struct cell * candidate_cell = cpair->cells[c];
+        struct vector * query_vector = cpair->query_vectors[c]; // in ps
         
+        // get columns in candidate_cell
+        for(int e = 0; e < index->num_entries; e++)
+        {
+            struct entry * curr_entry = &index->entries[e];
+            // for every set in the inverted index
+            for(int c = 0; c < curr_entry->num_cells; c++)
+            {
+                // if set in candidate cell (both point to the same cell)
+                if(pointer_cmp(candidate_cell, curr_entry->cells[c]))
+                {
+                    int set_entry_idx = has_set_entry(match_map, curr_entry);
+
+                    if(set_entry_idx == -1)
+                        exit_with_failure("Error in query_engine.c: Set entry not in match map!");
+
+                    if(match_map->joinable[set_entry_idx] == true)
+                        continue;
+
+                    // lemma 7:
+                    if(query_set_size - match_map->mismatch_count[set_entry_idx] < join_threshold)
+                        continue;
+                    // get vector in candidate cell (in metric space)
+                    struct vector_tuple * candidate_vectors = get_vector_tuples(candidate_cell, grid->settings);
+                    for(int v = 0; v < candidate_cell->cell_size; v++)
+                    {
+                        // if vector belongs to set (curr entry)
+                        if (candidate_vectors[v].mtr_vector->set_id == curr_entry->id->set_pos 
+                        && candidate_vectors[v].mtr_vector->table_id == curr_entry->id->table_id)
+                        {
+                            // if candidate vector can be filtered by lemma 1
+                            if(pivot_filter(query_vector, candidate_vectors[v].ps_vector, 
+                            grid->settings->num_pivots, dist_threshold))
+                            {
+                                // update mismatch count of curr set
+                                match_map->mismatch_count[set_entry_idx]++;
+                            }
+
+                            // vector can be matched with q by lemma 2
+                            else if (pivot_match(query_vector, candidate_vectors[v].ps_vector, 
+                            grid->settings->num_pivots, dist_threshold))
+                            {
+                                // update match count of curr set
+                                match_map->match_count[set_entry_idx]++;
+                            }
+                            else
+                            {
+                                // compute euclidean distance between v and q in metric space
+                                v_type d = euclidean_distance(candidate_vectors[v].mtr_vector, 
+                                candidate_vectors[v].mtr_vector, grid->settings->mtr_vector_length);
+                                if(d <= dist_threshold)
+                                    match_map->match_count[set_entry_idx]++;
+                                else
+                                    match_map->mismatch_count[set_entry_idx]++;
+                                
+                            }
+                        }
+                        if(match_map->match_count[set_entry_idx] > join_threshold)
+                        {
+                            // mark current set (curr_entry) as joinable
+                            match_map->joinable[set_entry_idx] = true;
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
     }
     return OK;
 }
@@ -37,17 +125,19 @@ enum response block(struct cell *query_cell, struct cell * root_cell,
             if(cq->is_leaf && cr->is_leaf)
             {
                 if(cq->cell_size != 0 && cr->cell_size != 0) // cell are not empty
-                {
-                    struct vector * query_vector = get_vectors(cq, settings->num_pivots);
+                {   
+                    // query vector in pivot space
+                    struct vector * query_vector = get_vectors_ps(cq, settings->mtr_vector_length);
+
                     for(int q = 0; q < cq->cell_size; q++)
                     {   
-                        // cr is a match of q
+                        // cr is a match of q by lemma 5
                         if(vector_cell_match(&query_vector[q], cr, settings->num_pivots, dist_threshold))
                         {
                             // add cr to matching_pair
                             add_matching_pair(mpair, &query_vector[q], cr);
                         }
-                        // if cr cannot be pruned
+                        // if cr cannot be pruned by lemma 3
                         else if(!vector_cell_filter(&query_vector[q], cr, settings->num_pivots, dist_threshold))
                         {
                             // add cr to candidate_pair
@@ -58,17 +148,13 @@ enum response block(struct cell *query_cell, struct cell * root_cell,
             }
             else
             {
+                // lemma 6
                 if(cell_cell_match(cq, cr, settings->num_pivots, dist_threshold))
                 {   
-                    /* 
-                        mPair ← mPair ∪ <q, { c }>, for each vector q ∈ cq 
-                        and leaf cell c ∈ cr
-                        (todo)
-                    */
                     struct cell ** cr_leaves = NULL;
                     unsigned int  * num_cr_leaves  = 0;
                     get_leaf_cells(cr, cr_leaves, num_cr_leaves);
-                    struct vector * query_vector = get_vectors(cq, settings->num_pivots);
+                    struct vector * query_vector = get_vectors_ps(cq, settings->num_pivots);
 
                     for(int q = 0; q < cq->cell_size; q++)
                     {   
@@ -79,7 +165,7 @@ enum response block(struct cell *query_cell, struct cell * root_cell,
                     }
 
                 }
-                // cr cannot be pruned
+                // lemma 4: cr cannot be pruned
                 else if (!cell_cell_filter(cq, cr, settings->num_pivots, dist_threshold))
                 {
                     block(cq, cr, mpair, cpair, settings);
@@ -101,14 +187,37 @@ struct query_settings * init_query_settings(v_type dist_threshold, unsigned int 
 }
 /* 
     Given two vectors q and x, a set P of pivot vectors, a distance function d, 
+    and a threshold τ.
+    if q matches x, then d(q, p) − τ ≤ d(x, p) ≤ d(q, p) + τ
+    note: q and v are in pivot space.
+    return OK if vector doesn't satisfy: d(q, p) − τ ≤ d(x, p) ≤ d(q, p) + τ
+*/
+enum response pivot_filter(struct vector * q, struct vector * x, 
+                            unsigned int num_pivots, v_type dist_threshold)
+{
+    // find pivot such that d(q, p) − τ ≤ d(x, p) ≤ d(q, p) + τ
+    bool filter = true;
+    for(int p = 0; p < num_pivots; p++)
+    {
+        if(
+            ((q->values[p] - dist_threshold) <= x->values[p])
+            &&
+            ((q->values[p] + dist_threshold) >= x->values[p])
+        )
+            filter = false;
+    }
+    return filter ? OK : FAILED;
+}
+/* 
+    Given two vectors q and x, a set P of pivot vectors, a distance function d, 
     and a threshold τ, if there exists a pivot p ∈ P such that d(x, p) +d(q, p) ≤ τ,
     then q matches x.
+    note: q and v are in pivot space.
 */
 enum response pivot_match(struct vector * q, struct vector * x, 
                             unsigned int num_pivots, v_type dist_threshold)
 {
-    // find pivot such that d(q, p) − τ ≤ d(x, p) ≤ d(q, p) + τ
-
+    // find pivot such that d(x, p) +d(q, p) ≤ τ
     for(int p = 0; p < num_pivots; p++)
     {
         if((x->values[p] + q->values[p]) <= dist_threshold)
@@ -198,7 +307,7 @@ enum response cell_cell_match(struct cell * cell, struct cell * query_cell,
 v_type min_RQR(struct cell * query_cell, unsigned int num_pivots, int p,  v_type dist_threshold)
 {
     v_type min_rqr = FLT_MAX;
-    struct vector * query_vectors = get_vectors(query_cell, num_pivots);
+    struct vector * query_vectors = get_vectors_ps(query_cell, num_pivots);
     for(int i = 0; i < query_cell->cell_size; i++)
     {
         // lead vectors stored in cell

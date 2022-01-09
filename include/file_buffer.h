@@ -8,7 +8,8 @@ struct file_buffer {
   unsigned int disk_count; // number of vector in disk
   struct file_map * position_in_map; //the buffer points back to its position in file map
   
-  v_type ** buffered_list; // list of vectors
+  v_type ** mtr_buffered_list; // list of vector (values) in metric space
+  v_type ** ps_buffered_list; // list of vectors (values) in pivot space
   unsigned int buffered_list_size;   // number of vectors currently stored in this buffer
 
   bool in_disk; // false by default

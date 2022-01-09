@@ -2,7 +2,8 @@
 
 // match and mismatch map
 struct match_map {
-    struct sid ** id; // pointer to set id in inverted index
+    struct entry ** set_entry; // pointer to set entry in inverted index
+    bool * joinable;
     unsigned int * match_count;
     unsigned int * mismatch_count;
     unsigned int num_sets;
@@ -12,14 +13,13 @@ struct match_map {
 enum response init_match_map(struct inv_index * index, struct match_map * map);
 
 /* update match count for a given set */
-enum response update_match_count(struct match_map * map, struct sid * set_id);
+enum response update_match_count(struct match_map * map, struct entry * set_entry);
 
 /* update mismatch count for a given set */
-enum response update_mismatch_count(struct match_map * map, struct sid * set_id);
+enum response update_mismatch_count(struct match_map * map, struct entry * set_entry);
 
 /* check if set id is in map */
-int has_sid(struct match_map * map, struct sid * id);
-
+int has_set_entry(struct match_map * map, struct entry * set_entry);
 /* print map */
 void dump_match_map_to_console(struct match_map * map);
 
