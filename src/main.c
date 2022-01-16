@@ -144,7 +144,6 @@ int main()
     printf("Index dataset vectors and build inverted index...");
     struct inv_index * index = malloc(sizeof(struct inv_index));
     index->num_entries = 0;
-
     if(index == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for inverted index.");
 

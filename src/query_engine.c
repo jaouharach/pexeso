@@ -16,23 +16,18 @@ enum response verify(struct grid * grid, struct matching_pair * mpair, struct ca
     for(int m = 0; m < mpair->num_match;  m++)
     {
         struct cell * match_cell = mpair->cells[m];
-        // get columns in match_cell
-        for(int e = 0; e < index->num_entries; e++)
-        {
-            struct entry * curr_entry = &index->entries[e];
-            int set_entry_idx = has_set_entry(match_map, curr_entry);
-            for(int c = 0; c < curr_entry->num_cells; c++)
-            {
-                // if set in matching cell (both point to the same cell)
-                if(pointer_cmp(match_cell, curr_entry->cells[c]))
-                {
-                    //update match map for current set of entry cuur_entry
-                    match_map->match_count[set_entry_idx]++;
-                    // update_match_count(match_map, curr_entry);
-                }
-            }
-        }
 
+        // get entry of matching cell in inverted index
+        int entry_idx = has_cell(index, match_cell);
+        if(entry_idx == -1)
+            exit_with_failure("Error in query_engine.c: inverted index doesn't has entry fro matching cell!");
+
+        struct entry * curr_entry = &index->entries[entry_idx];
+        for(int s = 0; s < curr_entry->num_sets; s++)
+        {
+            //update match count for all sets in matching cell
+            update_match_count(match_map, curr_entry->sets[s]);
+        }
     }
 
     // verify candidates
@@ -41,69 +36,67 @@ enum response verify(struct grid * grid, struct matching_pair * mpair, struct ca
         struct cell * candidate_cell = cpair->cells[c];
         struct vector * query_vector = cpair->query_vectors[c]; // in ps
         
-        // get columns in candidate_cell
-        for(int e = 0; e < index->num_entries; e++)
+        int entry_idx = has_cell(index, candidate_cell);
+        if(entry_idx == -1)
+            exit_with_failure("Error in query_engine.c: inverted index doesn't has entry fro matching cell!");
+
+        // find entry of candidate cell in inverted index
+        struct entry * candidate_cell_entry = &index->entries[entry_idx];
+
+        // get sets (columns) in candidate_cell
+        // for every set in candidate cell
+        for(int s = 0; s < candidate_cell_entry->num_sets; s++)
         {
-            struct entry * curr_entry = &index->entries[e];
-            // for every set in the inverted index
-            for(int c = 0; c < curr_entry->num_cells; c++)
+            struct sid * curr_set = candidate_cell_entry->sets[s];
+            if(curr_set == NULL)
+                exit_with_failure("Error in query_engine.c: NULL set in candidate entry!");
+            
+            // set id position in match map
+            int set_idx = has_set(match_map, curr_set);
+            // lemma 7: skip set if it cannot be joinable on "join_threshold" vectors
+            if(query_set_size - match_map->mismatch_count[set_idx] < join_threshold)
+                continue;
+
+            // get vector (in metric and pivot space) in candidate cell (in metric space)
+            struct vector_tuple * candidate_vectors = get_vector_tuples(candidate_cell, grid->settings);
+            for(int v = 0; v < candidate_cell->cell_size; v++)
             {
-                // if set in candidate cell (both point to the same cell)
-                if(pointer_cmp(candidate_cell, curr_entry->cells[c]))
+                // if vector belongs to set (curr set)
+                if (candidate_vectors[v].mtr_vector->set_id == curr_set->set_pos 
+                && candidate_vectors[v].mtr_vector->table_id == curr_set->table_id)
                 {
-                    int set_entry_idx = has_set_entry(match_map, curr_entry);
-
-                    if(set_entry_idx == -1)
-                        exit_with_failure("Error in query_engine.c: Set entry not in match map!");
-
-                    if(match_map->joinable[set_entry_idx] == true)
-                        continue;
-
-                    // lemma 7:
-                    if(query_set_size - match_map->mismatch_count[set_entry_idx] < join_threshold)
-                        continue;
-                    // get vector in candidate cell (in metric space)
-                    struct vector_tuple * candidate_vectors = get_vector_tuples(candidate_cell, grid->settings);
-                    for(int v = 0; v < candidate_cell->cell_size; v++)
+                    // if candidate vector can be filtered by lemma 1
+                    if(pivot_filter(query_vector, candidate_vectors[v].ps_vector, 
+                    grid->settings->num_pivots, dist_threshold))
                     {
-                        // if vector belongs to set (curr entry)
-                        if (candidate_vectors[v].mtr_vector->set_id == curr_entry->id->set_pos 
-                        && candidate_vectors[v].mtr_vector->table_id == curr_entry->id->table_id)
-                        {
-                            // if candidate vector can be filtered by lemma 1
-                            if(pivot_filter(query_vector, candidate_vectors[v].ps_vector, 
-                            grid->settings->num_pivots, dist_threshold))
-                            {
-                                // update mismatch count of curr set
-                                match_map->mismatch_count[set_entry_idx]++;
-                            }
-
-                            // vector can be matched with q by lemma 2
-                            else if (pivot_match(query_vector, candidate_vectors[v].ps_vector, 
-                            grid->settings->num_pivots, dist_threshold))
-                            {
-                                // update match count of curr set
-                                match_map->match_count[set_entry_idx]++;
-                            }
-                            else
-                            {
-                                // compute euclidean distance between v and q in metric space
-                                v_type d = euclidean_distance(candidate_vectors[v].mtr_vector, 
-                                candidate_vectors[v].mtr_vector, grid->settings->mtr_vector_length);
-                                if(d <= dist_threshold)
-                                    match_map->match_count[set_entry_idx]++;
-                                else
-                                    match_map->mismatch_count[set_entry_idx]++;
-                                
-                            }
-                        }
-                        if(match_map->match_count[set_entry_idx] > join_threshold)
-                        {
-                            // mark current set (curr_entry) as joinable
-                            match_map->joinable[set_entry_idx] = true;
-                            continue;
-                        }
+                        // update mismatch count of curr set
+                        match_map->mismatch_count[set_idx]++;
                     }
+
+                    // vector can be matched with q by lemma 2
+                    else if (pivot_match(query_vector, candidate_vectors[v].ps_vector, 
+                    grid->settings->num_pivots, dist_threshold))
+                    {
+                        // update match count of curr set
+                        match_map->match_count[set_idx]++;
+                    }
+                    else
+                    {
+                        // compute euclidean distance between v and q in metric space
+                        v_type d = euclidean_distance(candidate_vectors[v].mtr_vector, 
+                        candidate_vectors[v].mtr_vector, grid->settings->mtr_vector_length);
+                        if(d <= dist_threshold)
+                            match_map->match_count[set_idx]++;
+                        else
+                            match_map->mismatch_count[set_idx]++;
+                        
+                    }
+                }
+                if(match_map->match_count[set_idx] > join_threshold)
+                {
+                    // mark current set (curr_entry) as joinable
+                    match_map->joinable[set_idx] = true;
+                    continue;
                 }
             }
         }

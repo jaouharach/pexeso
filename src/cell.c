@@ -84,7 +84,7 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
         cell->vid[cell->cell_size - 1].set_pos = vector->set_id;
     }
     // add entry: set_id -> {cell} to inverted index    
-    inv_index_append_entry(index, vector->table_id, vector->set_id, cell);
+    inv_index_append_entry(index, cell, vector->table_id, vector->set_id);
 
     return OK;
 }
