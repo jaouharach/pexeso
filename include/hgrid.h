@@ -69,7 +69,10 @@ void dump_grid_to_console(struct grid * grid);
 enum response grid_write(struct grid *grid);
 
 /* destroy grid */
-enum response grid_destroy(struct grid *grid, struct level *level);
+enum response grid_destroy(struct grid *grid);
+
+/* destroy grid levels*/
+enum response grid_destroy_level(struct grid *grid, struct level *level);
 
 /* destroy buffer manager */
 enum response destroy_buffer_manager(struct grid *grid);

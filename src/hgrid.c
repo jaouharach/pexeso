@@ -51,7 +51,6 @@ enum response init_grid(const char *root_directory,
     grid->settings->num_levels = num_levels;
     grid->settings->num_leaf_cells = pow(2, num_pivots * num_levels); // 2^(|P| * m) number of cells depends on num_pivots to ensure same length in all edges.
     grid->settings->mtr_vector_length = mtr_vector_length;
-    grid->total_records = num_vectors;
     grid->settings->base = base;                              // ex: base = 32 -> one metric vector value is read in 32 bits in a binary file
     grid->settings->max_num_child_cells = pow(2, num_pivots); // equals to number of cells in first level
     grid->settings->vector_size = (base / 8) * mtr_vector_length;
@@ -127,11 +126,16 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
     struct vector *v_mapping = malloc(sizeof(struct vector));
     if (v_mapping == NULL)
         exit_with_failure("Error in hgrid.c: Couldn't allocate memory for vector mapping.");
+    
+    v_mapping->set_id = vector->set_id;
+    v_mapping->table_id = vector->table_id;
+
     v_mapping->values = malloc(sizeof(v_type) * grid->settings->num_pivots);
     if (v_mapping->values == NULL)
         exit_with_failure("Error in hgrid.c: Couldn't allocate memory for values of vector mapping.");
 
     map_vector(vector, grid->settings->mtr_vector_length, v_mapping, grid->settings->pivots_mtr, grid->settings->num_pivots);
+    
 
     // find the closest cell in first level.
     float bsf = FLT_MAX;
@@ -172,7 +176,7 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
 void dump_grid_to_console(struct grid *grid)
 {
     printf("\n\n\n\t.................................\n");
-    printf("\n\n\n\t::          HGRID              ::\n");
+    printf("\t::          HGRID              ::\n");
     printf("\t.................................\n\n\n");
     printf("|\n|\n|\nv\n");
     level *level = grid->root;
@@ -324,8 +328,8 @@ enum response level_write(struct grid *grid, struct level *level, FILE *file)
     return OK;
 }
 
-/* destroy grid */
-enum response grid_destroy(struct grid *grid, struct level *level)
+/* destroy grid levels*/
+enum response grid_destroy_level(struct grid *grid, struct level *level)
 {
     //  leaf level
     if (level->is_leaf)
@@ -337,7 +341,7 @@ enum response grid_destroy(struct grid *grid, struct level *level)
     // non leaf level
     if (!level->is_leaf)
     {
-        grid_destroy(grid, level->next);
+        grid_destroy_level(grid, level->next);
     }
 
     for (int c = level->num_cells - 1; c >= 0; c--)
@@ -371,6 +375,28 @@ enum response grid_destroy(struct grid *grid, struct level *level)
         free(level->cells->center);
     free(level->cells);
     free(level);
+
+    return OK;
+}
+enum response grid_destroy(struct grid *grid)
+{
+    grid_destroy_level(grid, grid->root);
+
+    // free grid and grid settings
+    for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
+        free(grid->settings->pivots_mtr[p].values);
+    free(grid->settings->pivots_mtr);
+
+    for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
+        free(grid->settings->pivots_ps[p].values);
+    free(grid->settings->pivots_ps);
+
+    free(grid->settings->pivot_space_extremity->values);
+    free(grid->settings->pivot_space_extremity);
+
+    free(grid->settings->query_settings);
+    free(grid->settings);
+    free(grid);
 
     return OK;
 }

@@ -215,9 +215,8 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * c
     return parent_cell->children;
 }
 /* create center vectors for all cells of the data space */
-void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, vector *center_vectors, vector temp, int append_at)
+void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, vector *center_vectors, vector temp, int append_at, int *curr_vector)
 {
-    static int curr_vector = 0;
     if (ndc == 0)
     {
         exit_with_failure("Error in cell.c: Couldn'l initialize center vector!\n");
@@ -227,8 +226,8 @@ void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim
     {
         // add temp to sub_array
         for (int x = 0; x < dim; x++)
-            center_vectors[curr_vector].values[x] = temp.values[x];
-        curr_vector++;
+            center_vectors[*curr_vector].values[x] = temp.values[x];
+        *curr_vector = *curr_vector + 1;
         return;
     }
 
@@ -236,7 +235,7 @@ void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim
     {
         // add distinct_coordinates[j] to temp values
         temp.values[append_at] = distinct_coordinates[j];
-        create_center_vectors(distinct_coordinates, ndc, k - 1, dim, center_vectors, temp, append_at + 1);
+        create_center_vectors(distinct_coordinates, ndc, k - 1, dim, center_vectors, temp, append_at + 1, curr_vector);
     }
 }
 
@@ -296,7 +295,7 @@ enum response create_cell_filename(struct grid_settings *settings, struct cell *
 vector * get_vectors_mtr(struct cell * cell, unsigned int vector_length_mtr)
 {
     if(!cell->is_leaf)
-        exit_with_failure("Error in cell.c: Cannot get vectors of a non leaf cell!");
+        exit_with_failure("Error in cell.c: Cannot get metric vectors of a non leaf cell!");
 
     if(cell->cell_size == 0)
         exit_with_failure("Error in cell.c: Cannot get vectors of an empty leaf cell!");
@@ -328,10 +327,10 @@ vector * get_vectors_mtr(struct cell * cell, unsigned int vector_length_mtr)
 }
 
 /* get list of vector in cell (in pivot space) */
-vector * get_vectors_ps(struct cell * cell, unsigned int vector_length_mtr)
+vector * get_vectors_ps(struct cell * cell, unsigned int num_pivots)
 {
     if(!cell->is_leaf)
-        exit_with_failure("Error in cell.c: Cannot get vectors of a non leaf cell!");
+        exit_with_failure("Error in cell.c: Cannot get pivot space vectors of a non leaf cell!");
 
     if(cell->cell_size == 0)
         exit_with_failure("Error in cell.c: Cannot get vectors of an empty leaf cell!");
@@ -339,7 +338,7 @@ vector * get_vectors_ps(struct cell * cell, unsigned int vector_length_mtr)
     // if file buffer not in disk return vectors in file buffer
     struct vector * cell_vectors = malloc(sizeof(struct vector) * cell->cell_size);
     for(int i = 0; i < cell->cell_size; i++)
-        cell_vectors[i].values = malloc(sizeof(v_type) * vector_length_mtr);
+        cell_vectors[i].values = malloc(sizeof(v_type) * num_pivots);
 
     if(!cell->file_buffer->in_disk)
     {
@@ -349,10 +348,10 @@ vector * get_vectors_ps(struct cell * cell, unsigned int vector_length_mtr)
         // copy cell vectors into list of vectors
         for(int i = 0; i < cell->cell_size; i++)
         {
-            for(int j = 0; j < vector_length_mtr; j++)
+            for(int j = 0; j < num_pivots; j++)
                 cell_vectors[i].values[j] = cell->file_buffer->ps_buffered_list[i][j];
-                cell_vectors[i].set_id = cell->vid[i].set_pos;
-                cell_vectors[i].table_id = cell->vid[i].table_id;
+            cell_vectors[i].set_id = cell->vid[i].set_pos;
+            cell_vectors[i].table_id = cell->vid[i].table_id;
         }
     }
     // if file buffer is in disk load vectors from disk
@@ -367,7 +366,7 @@ vector * get_vectors_ps(struct cell * cell, unsigned int vector_length_mtr)
 struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings * settings)
 {
     if(!cell->is_leaf)
-        exit_with_failure("Error in cell.c: Cannot get vectors of a non leaf cell!");
+        exit_with_failure("Error in cell.c: Cannot get vector tuples of a non leaf cell!");
 
     if(cell->cell_size == 0)
         exit_with_failure("Error in cell.c: Cannot get vectors of an empty leaf cell!");
@@ -437,4 +436,37 @@ void get_leaf_cells(struct cell * cell, struct cell ** leaves, unsigned int * nu
             get_leaf_cells(&cell->children[i], leaves, num_leaves);
         }
     }
+}
+
+
+/* get list of vector in the sub leaf cells of a non leaf cell (in pivot space) */
+vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, long unsigned int * num_vectors)
+{
+    if(cell->is_leaf)
+        exit_with_failure("Error in cell.c: To get vectors in a leaf cell call function get_vectors_ps()");
+
+
+    struct cell ** leaves = NULL;
+    unsigned int  * num_leaves  = 0;
+    get_leaf_cells(cell, leaves, num_leaves);
+
+    *num_vectors = 0;
+    // if file buffer not in disk return vectors in file buffer
+    struct vector * cell_vectors = NULL;
+    
+    for(int i = 0; i < *num_leaves; i++)
+    {
+        cell_vectors = realloc(cell_vectors, sizeof(struct vector) * (*num_vectors));
+        for(int j = *num_vectors; j < (leaves[i]->cell_size + *num_vectors); j++)
+        {
+            cell_vectors[j].values = malloc(sizeof(v_type) * num_pivots);
+            for(int j = 0; j < num_pivots; j++)
+                cell_vectors[i].values[j] = cell->file_buffer->ps_buffered_list[i][j];
+            
+            cell_vectors[i].set_id = cell->vid[i].set_pos;
+            cell_vectors[i].table_id = cell->vid[i].table_id;
+        }
+        *num_vectors = *num_vectors + leaves[i]->cell_size;
+    }
+    return cell_vectors;
 }

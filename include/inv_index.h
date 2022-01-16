@@ -13,6 +13,14 @@ struct entry {
     // struct vector * vectors;
 };
 
+// (todo) reverse index order cell -> sets
+
+// struct entry {
+//     struct cell * cell;
+//     struct sid ** sets;
+//     unsigned int sets;
+// };
+
 /* add entry to inverted index */
 enum response inv_index_append_entry(struct inv_index * index, unsigned int table_id, unsigned int set_pos, struct cell * cell);
 

@@ -7,8 +7,11 @@
 
 /* verify candiate pairs */
 enum response verify(struct grid * grid, struct matching_pair * mpair, struct candidate_pair * cpair,
-            struct inv_index * index, struct match_map * match_map, v_type dist_threshold, unsigned int join_threshold, unsigned int query_set_size)
+            struct inv_index * index, struct match_map * match_map, unsigned int query_set_size)
 {   
+    v_type dist_threshold = grid->settings->query_settings->dist_threshold;
+    unsigned int join_threshold = grid->settings->query_settings->join_threshold;
+
     // update match map for every set in a matching cell
     for(int m = 0; m < mpair->num_match;  m++)
     {
@@ -153,17 +156,25 @@ enum response block(struct cell *query_cell, struct cell * root_cell,
                 {   
                     struct cell ** cr_leaves = NULL;
                     unsigned int  * num_cr_leaves  = 0;
+                    printf("cc");
                     get_leaf_cells(cr, cr_leaves, num_cr_leaves);
-                    struct vector * query_vector = get_vectors_ps(cq, settings->num_pivots);
 
-                    for(int q = 0; q < cq->cell_size; q++)
-                    {   
-                        for(int l = 0; l < *num_cr_leaves; l++)
-                            // add cr to matching_pair
-                            add_matching_pair(mpair, &query_vector[q], cr_leaves[l]);
-                            
+                    struct cell ** cq_leaves = NULL;
+                    unsigned int  * num_cq_leaves  = 0;
+                    get_leaf_cells(cq, cq_leaves, num_cq_leaves);
+
+                    for(int ql = 0; ql < *num_cq_leaves; ql++)
+                    {
+                        struct vector * query_vector = get_vectors_ps(cq_leaves[ql], settings->num_pivots);
+
+                        for(int q = 0; q < cq->cell_size; q++)
+                        {   
+                            for(int l = 0; l < *num_cr_leaves; l++)
+                                // add cr to matching_pair
+                                add_matching_pair(mpair, &query_vector[q], cr_leaves[l]);
+                                
+                        }
                     }
-
                 }
                 // lemma 4: cr cannot be pruned
                 else if (!cell_cell_filter(cq, cr, settings->num_pivots, dist_threshold))
@@ -307,15 +318,19 @@ enum response cell_cell_match(struct cell * cell, struct cell * query_cell,
 v_type min_RQR(struct cell * query_cell, unsigned int num_pivots, int p,  v_type dist_threshold)
 {
     v_type min_rqr = FLT_MAX;
-    struct vector * query_vectors = get_vectors_ps(query_cell, num_pivots);
-    for(int i = 0; i < query_cell->cell_size; i++)
+    long unsigned int num_vectors = 0;
+
+    struct vector * query_vectors = get_sub_cells_vectors_ps(query_cell, num_pivots, &num_vectors);
+
+    printf("tt\n");
+    for(int i = 0; i < num_vectors; i++)
     {
         // lead vectors stored in cell
         if(dist_threshold - query_vectors[i].values[p] < min_rqr)
                 min_rqr = dist_threshold - query_vectors[i].values[p];
     }
     
-    for(int i = 0; i < query_cell->cell_size; i++)
+    for(int i = 0; i < num_vectors; i++)
         free(query_vectors[i].values);
     free(query_vectors);
 
@@ -360,4 +375,30 @@ enum response add_matching_pair(struct matching_pair *mpair, struct vector * q, 
     // add pointer to new candidate pair
     mpair->query_vectors[num_matches] = q; 
     mpair->cells[num_matches] = cell;
+}
+
+/* destroy matching pair */
+enum response destroy_matching_pairs(struct matching_pair *mpair)
+{
+    if(mpair == NULL)
+        exit_with_failure("Error in query_engine.c: NULL pointer to matching pairs!");
+
+    // allocate memory for new pair
+    free(mpair->cells);
+    free(mpair->query_vectors);
+    free(mpair);
+    mpair = NULL;
+}
+
+/* destroy candidate pair */
+enum response destroy_candidate_pairs(struct candidate_pair *cpair)
+{
+    if(cpair == NULL)
+        exit_with_failure("Error in query_engine.c: NULL pointer to matching pairs!");
+
+    // allocate memory for new pair
+    free(cpair->cells);
+    free(cpair->query_vectors);
+    free(cpair);
+    cpair = NULL;
 }

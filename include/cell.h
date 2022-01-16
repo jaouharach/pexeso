@@ -24,7 +24,7 @@ struct cell {
 };
 
 /* initialize center vectors: ndc = number of distinct coordinates, k = vector length,  dim = vector length */
-void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, vector * center_vectors, vector temp, int append_at);
+void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim, vector * center_vectors, vector temp, int append_at, int *curr_vector);
 
 cell * cell_route_to_closest_child (cell * parent_cell, vector * vector, unsigned int num_dim);
 
@@ -51,3 +51,6 @@ void get_leaf_cells(struct cell * cell, struct cell ** leaves, unsigned int * nu
 /* get vector tuples (vectors in metric and ps space) */
 // (v1, v1'), (v2, v2'), (v3, v3')
 struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings * settings);
+
+/* get list of vector in the sub leaf cells of a non leaf cell (in pivot space) */
+vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, long unsigned int * num_vectors);

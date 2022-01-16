@@ -36,8 +36,8 @@ enum response block(struct cell *query_cell, struct cell * r_cell,
             struct matching_pair * mpair, struct candidate_pair * cpair, struct grid_settings * settings);
 
 enum response verify(struct grid * grid, struct matching_pair * mpair, struct candidate_pair * cpair,
-            struct inv_index * index, struct match_map * match_map, v_type dist_threshold, unsigned int join_threshold, unsigned int query_set_size);
-
+            struct inv_index * index, struct match_map * match_map, unsigned int query_set_size);
+            
 /* initialize query settings */
 struct query_settings * init_query_settings(v_type dist_threshold, unsigned int join_threshold);
 
@@ -108,3 +108,9 @@ enum response add_candidate_pair(struct candidate_pair *cpair, struct vector * q
 
 /* add candidate pair */
 enum response add_matching_pair(struct matching_pair *mpair, struct vector * query_vector, struct cell *match);
+
+/* destroy candidate pair */
+enum response destroy_candidate_pairs(struct candidate_pair *cpair);
+
+/* destroy matching pair */
+enum response destroy_matching_pairs(struct matching_pair *mpair);

@@ -173,8 +173,9 @@ enum response init_first_level(struct grid *grid)
     if (temp.values == NULL)
         exit_with_failure("Error in level.c: Could not allocate memory for temp vector.\n");
 
+    int curr_vector = 0;
     create_center_vectors(distinct_coordinates, ndc, grid->settings->num_pivots,
-                        grid->settings->num_pivots, center_vectors, temp, 0);
+                        grid->settings->num_pivots, center_vectors, temp, 0, &curr_vector);
 
     printf("\n-> Making child cells for root cell\n");
     for(int j = 0; j < grid->root->cells[0].num_child_cells; j++)

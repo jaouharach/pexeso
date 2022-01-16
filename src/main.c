@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <math.h>
 #include "../include/hgrid.h"
 #include "../include/level.h"
 #include "../include/cell.h"
@@ -13,22 +11,26 @@
 #include "../include/match_map.h"
 #include "../include/query_engine.h"
 // #include "../include/inv_index.h"
+#include "../include/pexeso.h"
 
 
 vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
 int main()
 {
     /* dataset */
-    const char *root_directory = "/home/jaouhara/Projects/pexeso-debbug/pexeso/grid/";
+    const char *root_directory = "/home/jaouhara/Projects/pexeso-debbug/pexeso/Hgrid/";
     const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binary_files/"; //target directory
+    const char * bin_query_file_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binary_files/query/"; //target directory
+
     unsigned long num_files = 0ul;
     unsigned int base = 32; // 32 bits to store numbers in binary files
-    unsigned int mtr_vector_length = 3, num_dim_metric_space = 3;
+    unsigned int mtr_vector_length = 3, num_dim_metric_space = 3, mtr_query_vector_length = 3;
     unsigned long long total_vectors = 0ull; // number of vectors in the whole data lake
+    unsigned int total_query_vectors = 0u; // query size
     unsigned int max_leaf_size = 76; // max vectors in one leaf cell
     double mtr_buffered_memory_size = 30; // memory  allocated for file buffers (in MB)
     double ps_buffered_memory_size = 3; // memory  allocated for file buffers (in MB)
-
+    
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
 
     /* mode 0 = grid dataset, 1 = query dataset */
@@ -75,14 +77,10 @@ int main()
     printf("(OK)\n");
 
 
-    /* Transforming data set from metric to pivot space (create distance matrix) */
-    printf("\n\nTransforming dataset to pivot space (compute the distance matrix)... ");
-    // vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, pivots_mtr, num_pivots);
-
     /* map pivot vectors to pivot space pi --> pi' */
+    printf("\n\nTransforming pivots to pivot space (compute the distance matrix)... ");
     vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
-    
-
+    // vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, pivots_mtr, num_pivots);
     printf("(OK)\n");
 
     /* pivot space extremity */
@@ -145,6 +143,8 @@ int main()
     /* insert dataset in grid (read and index all vectors in the data set) */
     printf("Index dataset vectors and build inverted index...");
     struct inv_index * index = malloc(sizeof(struct inv_index));
+    index->num_entries = 0;
+
     if(index == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for inverted index.");
 
@@ -152,7 +152,7 @@ int main()
         exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
     printf("(OK)\n");
 
-    printf("Build match and mismatch map...");
+    printf("\n\nBuild match and mismatch map...");
     struct match_map * match_map = malloc(sizeof(struct match_map));
     if(match_map == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for match map.");
@@ -160,6 +160,9 @@ int main()
     if (!init_match_map(index, match_map))
         exit_with_failure("Error in main.c: Couldn't initialize match map!");
     printf("(OK)\n");
+
+    // /* querying */
+    // pexeso(bin_query_file_directory, grid, index, match_map);
 
     /* print grid */
     dump_grid_to_console(grid);
@@ -175,7 +178,7 @@ int main()
         exit_with_failure("Error main.c:  Could not save the grid to disk.\n");
     
     /* destroy grid */
-    if (!grid_destroy(grid, grid->root))
+    if (!grid_destroy(grid))
         exit_with_failure("Error main.c: Could not destroy grid.\n");
     
     /* destroy inverted index */
@@ -186,21 +189,7 @@ int main()
     if(!match_map_destroy(match_map))
         exit_with_failure("Error main.c: Couldn't destroy match map.\n");
 
-    // free grid and grid settings
-    for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
-        free(grid->settings->pivots_mtr[p].values);
-    free(grid->settings->pivots_mtr);
-
-    for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
-        free(grid->settings->pivots_ps[p].values);
-    free(grid->settings->pivots_ps);
-
-    free(grid->settings->pivot_space_extremity->values);
-    free(grid->settings->pivot_space_extremity);
-
-    free(grid->settings->query_settings);
-    free(grid->settings);
-    free(grid);
+    
 
     return 0;
 }
