@@ -5,7 +5,7 @@ struct inv_index {
     unsigned long long num_entries; // number of leaf cells with an entry in inverted index
     unsigned long long num_distinct_sets; // number of unique set ids in inverted index
     struct entry * entries; // cell entries cell --> {set1, set2, ...}
-    struct sid * sets; // unique sets indexed in inverted index
+    struct sid * distinct_sets; // unique sets indexed in inverted index
 };
 
 // struct entry {
@@ -19,7 +19,7 @@ struct inv_index {
 
 struct entry {
     struct cell * cell; // one cell
-    struct sid ** sets; // multiple sets, point to sets in inverted index
+    unsigned long long  * sets; // multiple sets, eatch set is the idx of set id in inverted index
     unsigned int num_sets;
 };
 

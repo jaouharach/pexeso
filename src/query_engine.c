@@ -26,7 +26,9 @@ enum response verify(struct grid * grid, struct matching_pair * mpair, struct ca
         for(int s = 0; s < curr_entry->num_sets; s++)
         {
             //update match count for all sets in matching cell
-            update_match_count(match_map, curr_entry->sets[s]);
+            struct sid * curr_set = &index->distinct_sets[curr_entry->sets[s]];
+            printf("\nmatch ++ !!!\n");
+            update_match_count(match_map, curr_set);
         }
     }
 
@@ -47,7 +49,8 @@ enum response verify(struct grid * grid, struct matching_pair * mpair, struct ca
         // for every set in candidate cell
         for(int s = 0; s < candidate_cell_entry->num_sets; s++)
         {
-            struct sid * curr_set = candidate_cell_entry->sets[s];
+            struct sid * curr_set = &index->distinct_sets[candidate_cell_entry->sets[s]];
+
             if(curr_set == NULL)
                 exit_with_failure("Error in query_engine.c: NULL set in candidate entry!");
             
@@ -70,6 +73,7 @@ enum response verify(struct grid * grid, struct matching_pair * mpair, struct ca
                     grid->settings->num_pivots, dist_threshold))
                     {
                         // update mismatch count of curr set
+                        printf("\nmiss match ++ !!!\n");
                         match_map->mismatch_count[set_idx]++;
                     }
 
@@ -78,6 +82,7 @@ enum response verify(struct grid * grid, struct matching_pair * mpair, struct ca
                     grid->settings->num_pivots, dist_threshold))
                     {
                         // update match count of curr set
+                        printf("\nmatch ++ !!!\n");
                         match_map->match_count[set_idx]++;
                     }
                     else
@@ -86,10 +91,15 @@ enum response verify(struct grid * grid, struct matching_pair * mpair, struct ca
                         v_type d = euclidean_distance(candidate_vectors[v].mtr_vector, 
                         candidate_vectors[v].mtr_vector, grid->settings->mtr_vector_length);
                         if(d <= dist_threshold)
+                        {
+                            printf("\nmatch ++ !!!\n");
                             match_map->match_count[set_idx]++;
+                        }   
                         else
+                        {
+                            printf("\nmiss match ++ !!!\n");
                             match_map->mismatch_count[set_idx]++;
-                        
+                        }
                     }
                 }
                 if(match_map->match_count[set_idx] > join_threshold)
@@ -147,22 +157,34 @@ enum response block(struct cell *query_cell, struct cell * root_cell,
                 // lemma 6
                 if(cell_cell_match(cq, cr, settings->num_pivots, dist_threshold))
                 {   
+                    unsigned int num_cr_leaves  = 0;
+                    get_num_leaf_cells(cr, &num_cr_leaves);
+
                     struct cell ** cr_leaves = NULL;
-                    unsigned int  * num_cr_leaves  = 0;
-                    printf("cc");
-                    get_leaf_cells(cr, cr_leaves, num_cr_leaves);
+                    cr_leaves = malloc(sizeof(struct cell *) * (num_cr_leaves + 1));
+                    if(cr_leaves == NULL)
+                        exit_with_failure("Error in cell.c: couldn't reallocate memory for root cell leaves.");
+                    
+                    get_leaf_cells(cr, cr_leaves, &num_cr_leaves);
+
+                    
+                    unsigned int num_cq_leaves  = 0;
+                    get_num_leaf_cells(cq, &num_cq_leaves);
 
                     struct cell ** cq_leaves = NULL;
-                    unsigned int  * num_cq_leaves  = 0;
-                    get_leaf_cells(cq, cq_leaves, num_cq_leaves);
+                    cq_leaves = malloc(sizeof(struct cell *) * (num_cq_leaves + 1));
+                    if(cq_leaves == NULL)
+                        exit_with_failure("Error in cell.c: couldn't reallocate memory for query cell leaves.");
+                    
+                    get_leaf_cells(cq, cq_leaves, &num_cq_leaves);
 
-                    for(int ql = 0; ql < *num_cq_leaves; ql++)
+                    for(int ql = 0; ql < num_cq_leaves; ql++)
                     {
                         struct vector * query_vector = get_vectors_ps(cq_leaves[ql], settings->num_pivots);
 
                         for(int q = 0; q < cq->cell_size; q++)
                         {   
-                            for(int l = 0; l < *num_cr_leaves; l++)
+                            for(int l = 0; l < num_cr_leaves; l++)
                                 // add cr to matching_pair
                                 add_matching_pair(mpair, &query_vector[q], cr_leaves[l]);
                                 
@@ -315,7 +337,6 @@ v_type min_RQR(struct cell * query_cell, unsigned int num_pivots, int p,  v_type
 
     struct vector * query_vectors = get_sub_cells_vectors_ps(query_cell, num_pivots, &num_vectors);
 
-    printf("tt\n");
     for(int i = 0; i < num_vectors; i++)
     {
         // lead vectors stored in cell
@@ -378,7 +399,7 @@ enum response destroy_matching_pairs(struct matching_pair *mpair)
 
     // allocate memory for new pair
     free(mpair->cells);
-    free(mpair->query_vectors);
+    // free(mpair->query_vectors);
     free(mpair);
     mpair = NULL;
 }
@@ -391,7 +412,7 @@ enum response destroy_candidate_pairs(struct candidate_pair *cpair)
 
     // allocate memory for new pair
     free(cpair->cells);
-    free(cpair->query_vectors);
+    // free(cpair->query_vectors);
     free(cpair);
     cpair = NULL;
 }

@@ -48,9 +48,14 @@ int warning(char *message)
 
 void print_vector(vector * v, unsigned int v_len)
 {
-    printf("\t(");
+    printf("\t\t(");
     for(int i = 0; i < v_len; i++)
     {
+        if(i == v_len - 1)
+        {
+            printf("%f", v->values[i]);
+            break;
+        }
         printf("%f, ", v->values[i]);
     }
     printf(")\n");

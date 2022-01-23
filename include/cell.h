@@ -45,8 +45,12 @@ vector * get_vectors_mtr(struct cell * cell, unsigned int vector_length_mtr);
 
 /* get list of vector in cell (in pivot space) */
 vector * get_vectors_ps(struct cell * cell, unsigned int vector_length_mtr);
+
 /* get pointer to leaf cells of a given cell */
 void get_leaf_cells(struct cell * cell, struct cell ** leaves, unsigned int * num_leaves);
+
+/* get number of leaf cells of a given cell */
+void get_num_leaf_cells(struct cell * cell, unsigned int * num_leaves);
 
 /* get vector tuples (vectors in metric and ps space) */
 // (v1, v1'), (v2, v2'), (v3, v3')

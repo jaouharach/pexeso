@@ -9,14 +9,18 @@ enum response init_match_map(struct inv_index * index, struct match_map * map)
 {
     map->num_sets = index->num_distinct_sets;
     map->sets = malloc(sizeof(struct sid *) * index->num_distinct_sets); // points to set in inverted index
-    map->match_count = calloc(index->num_entries, sizeof(unsigned int));
-    map->mismatch_count = calloc(index->num_entries, sizeof(unsigned int));
-    map->joinable = calloc(index->num_entries, sizeof(bool));
+    map->match_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
+    map->mismatch_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
+    map->joinable = calloc(index->num_distinct_sets, sizeof(bool));
 
     for(int s = 0; s < index->num_distinct_sets; s++)
     {
         // link set id in map with set id in inverted index
-        map->sets[s] = &index->sets[s];
+        map->sets[s] = &index->distinct_sets[s];
+        map->match_count[s] = 0;
+        map->mismatch_count[s] = 0;
+        map->joinable[s] = false;
+
     }
     return OK;
 }
@@ -65,7 +69,7 @@ void dump_match_map_to_console(struct match_map * map)
         struct sid * curr_set = map->sets[s];
 
         printf("\t%d: (%u, %u) => {", s, curr_set->table_id, curr_set->set_pos);
-        printf("match = %u, mistach = %u}\n", map->match_count[s], map->mismatch_count[s]);
+        printf("match = %u, mistach = %u, joinable: %s}\n", map->match_count[s], map->mismatch_count[s], map->joinable[s] ? "true" : "false");
        
     }
     printf("\n\t>>>  END OF MAP  <<<\n\n\n");

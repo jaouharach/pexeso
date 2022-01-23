@@ -411,10 +411,6 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
 /* get pointer to leaf cells of a given cell */
 void get_leaf_cells(struct cell * cell, struct cell ** leaves, unsigned int * num_leaves)
 {
-    // if first call is with a leaf cell, leaf cell has no child cells
-    if(cell->is_leaf && num_leaves == 0)
-        exit_with_failure("Error in cell.c: Cannot find leaf cell for a leaf cell! a leaf cell has no child cells.");
-    
     // a non leaf cell must have children
     if(cell->is_leaf == false && cell->num_child_cells == 0)
         exit_with_failure("Error in cell.c: Something went wrong, non leaf cell has no children.");
@@ -422,10 +418,8 @@ void get_leaf_cells(struct cell * cell, struct cell ** leaves, unsigned int * nu
     // if a leaf cell is reached add it to list of leaves
     if(cell->is_leaf)
     {
-        leaves = realloc(leaves, sizeof(struct cell *) * (*num_leaves + 1));
-        leaves[*num_leaves] = cell;
-        *num_leaves = *num_leaves + 1;
-
+       leaves[*num_leaves] = cell;
+        *num_leaves = *num_leaves - 1;
         return;
     }
     else
@@ -438,6 +432,28 @@ void get_leaf_cells(struct cell * cell, struct cell ** leaves, unsigned int * nu
     }
 }
 
+/* get number of leaf cells of a given cell */
+void get_num_leaf_cells(struct cell * cell, unsigned int * num_leaves)
+{
+    // a non leaf cell must have children
+    if(cell->is_leaf == false && cell->num_child_cells == 0)
+        exit_with_failure("Error in cell.c: Something went wrong, non leaf cell has no children.");
+
+    // if a leaf cell is reached add it to list of leaves
+    if(cell->is_leaf)
+    {
+        *num_leaves = *num_leaves + 1;
+    }
+    else
+    {
+        // go over all children of cell and collect lead cells 
+        for(int i = 0; i < cell->num_child_cells; i++)
+        {   
+            get_num_leaf_cells(&cell->children[i], num_leaves);
+        }
+    }
+}
+
 
 /* get list of vector in the sub leaf cells of a non leaf cell (in pivot space) */
 vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, long unsigned int * num_vectors)
@@ -445,16 +461,21 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, l
     if(cell->is_leaf)
         exit_with_failure("Error in cell.c: To get vectors in a leaf cell call function get_vectors_ps()");
 
-
+    unsigned int num_leaves  = 0;
+    get_num_leaf_cells(cell, &num_leaves);
+    
     struct cell ** leaves = NULL;
-    unsigned int  * num_leaves  = 0;
-    get_leaf_cells(cell, leaves, num_leaves);
+    leaves = malloc(sizeof(struct cell *) * (num_leaves + 1));
+    if(leaves == NULL)
+        exit_with_failure("Error in cell.c: couldn't reallocate memory for root cell leaves.");
+    
+    get_leaf_cells(cell, leaves, &num_leaves);
 
     *num_vectors = 0;
     // if file buffer not in disk return vectors in file buffer
     struct vector * cell_vectors = NULL;
     
-    for(int i = 0; i < *num_leaves; i++)
+    for(int i = 0; i < num_leaves; i++)
     {
         cell_vectors = realloc(cell_vectors, sizeof(struct vector) * (*num_vectors));
         for(int j = *num_vectors; j < (leaves[i]->cell_size + *num_vectors); j++)
@@ -468,5 +489,8 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, l
         }
         *num_vectors = *num_vectors + leaves[i]->cell_size;
     }
+    // free memory
+    free(leaves);
+    leaves = NULL;
     return cell_vectors;
 }

@@ -30,13 +30,15 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     //block
     block(Qgrid->root->cells, Dgrid->root->cells, mpair, cpair, Dgrid->settings);
 
-    printf("cvc");
     //verify
     verify(Dgrid, mpair, cpair, inv_index, match_map, Qgrid->total_records);
 
     destroy_matching_pairs(mpair);
     destroy_candidate_pairs(cpair);
     
+    // print Query grid
+    // dump_grid_to_console(Qgrid);
+
     // print match map after quering
     dump_match_map_to_console(match_map);
 
@@ -66,15 +68,15 @@ struct grid * make_query_grid(struct grid * Dgrid, const char * query_file_dir, 
 
     unsigned int mtr_buffered_memory_size = 1;
     unsigned int ps_buffered_memory_size = 1;
-    unsigned int max_leaf_size = 10; // max vectors in one leaf cell
+    unsigned int max_leaf_size = Dgrid->settings->max_leaf_size; // max vectors in one leaf cell
     char * query_grid_dir = "/home/jaouhara/Projects/pexeso-debbug/pexeso/Qgrid/";
 
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
     
     /* grid settings */
     unsigned int num_levels = Dgrid->settings->num_levels;  // Dgrid and Qgrid are constructed with the same level number
-    unsigned int num_pivots = 2;  // number of pivots
-    unsigned int fft_scale = 2;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
+    unsigned int num_pivots = Dgrid->settings->num_pivots;  // number of pivots
+    unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
 
     /* query settings */
     unsigned int join_threshold = Dgrid->settings->query_settings->join_threshold; // T 
@@ -159,11 +161,15 @@ struct grid * make_query_grid(struct grid * Dgrid, const char * query_file_dir, 
     printf("\t\tNumber of leaf cells = %d\n", Qgrid->settings->num_leaf_cells);
     printf("\t\tLeaf cell edge length = %f\n", Qgrid->settings->leaf_cell_edge_length);
     printf("\t\tPivot vectors (in metric space):\n");
+    
+    /* 
     for(int i = 0; i < num_pivots; i++)
     {
         print_vector(&Qgrid->settings->pivots_mtr[i], mtr_query_vector_length);
     }
-    printf("\t\tPivot vectors (in pivot space):\n");
+    */
+
+    printf("\t\tPivot vectors (in pivot space):\n\n");
     for(int i = 0; i < num_pivots; i++)
     {
         print_vector(&Qgrid->settings->pivots_ps[i], num_pivots);
@@ -196,7 +202,7 @@ struct grid * make_query_grid(struct grid * Dgrid, const char * query_file_dir, 
     printf("(OK)\n");
 
     /* print grid */
-    dump_grid_to_console(Qgrid);
+    // dump_grid_to_console(Qgrid);
 
     // (todo) index query vectors without creating an inverted index
     /* destroy inverted index (inverted index not required for queries*/

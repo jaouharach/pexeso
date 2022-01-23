@@ -51,7 +51,7 @@ enum response init_levels(struct grid *grid)
         // (!) link cells in curr_level to cells in new level (curr_cell = current cell in next level)
         for(int i = 0, curr_cell = 0; i < curr_level->num_cells; i++)
         {
-            printf("\n-> Making %d child cells for cell %d in level %d...\n", curr_level->cells[0].num_child_cells, i, curr_level->id);
+            // printf("\n-> Making %d child cells for cell %d in level %d...\n", curr_level->cells[0].num_child_cells, i, curr_level->id);
             // get child cell for current parent cell
             if(&curr_level->cells[i] == NULL)
                 exit_with_failure("Error in level.c: Fatal, current cell in current level is a null point.");
@@ -63,9 +63,9 @@ enum response init_levels(struct grid *grid)
             curr_level->cells[i].children = &new_level->cells[curr_cell];
             for(int j = 0; j < curr_level->cells[i].num_child_cells; j++, curr_cell++)
             {
-                printf("++ cell %d isleaf: %s\n", j, grid->root->cells[0].children[j].is_leaf ? "true" : "false");
+                // printf("++ cell %d isleaf: %s\n", j, grid->root->cells[0].children[j].is_leaf ? "true" : "false");
                 cell_cpy(&new_level->cells[curr_cell], &temp_child_cells[j], grid->settings->num_pivots);
-                print_vector(new_level->cells[curr_cell].center, grid->settings->num_pivots);
+                // print_vector(new_level->cells[curr_cell].center, grid->settings->num_pivots);
 
                 // create filename if its a leaf cell
                 if(new_level->is_leaf)
@@ -177,11 +177,11 @@ enum response init_first_level(struct grid *grid)
     create_center_vectors(distinct_coordinates, ndc, grid->settings->num_pivots,
                         grid->settings->num_pivots, center_vectors, temp, 0, &curr_vector);
 
-    printf("\n-> Making child cells for root cell\n");
+    // printf("\n-> Making child cells for root cell\n");
     for(int j = 0; j < grid->root->cells[0].num_child_cells; j++)
     {
-        printf("++ cell %d isleaf: %s\n", j, grid->root->cells[0].children[j].is_leaf ? "true" : "false");
-        print_vector(grid->root->cells[0].children[j].center, grid->settings->num_pivots);
+        // printf("++ cell %d isleaf: %s\n", j, grid->root->cells[0].children[j].is_leaf ? "true" : "false");
+        // print_vector(grid->root->cells[0].children[j].center, grid->settings->num_pivots);
     }
     free(temp.values);
     free(distinct_coordinates);

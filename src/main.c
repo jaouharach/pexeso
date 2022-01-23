@@ -15,21 +15,21 @@
 
 
 vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
-int main()
+void main()
 {
     /* dataset */
     const char *root_directory = "/home/jaouhara/Projects/pexeso-debbug/pexeso/Hgrid/";
-    const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binary_files/"; //target directory
-    const char * bin_query_file_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binary_files/query/"; //target directory
+    const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/"; //target directory
+    const char * bin_query_file_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/query/"; //target directory
 
     unsigned long num_files = 0ul;
     unsigned int base = 32; // 32 bits to store numbers in binary files
-    unsigned int mtr_vector_length = 3, num_dim_metric_space = 3, mtr_query_vector_length = 3;
+    unsigned int mtr_vector_length = 100, num_dim_metric_space = 100, mtr_query_vector_length = 100;
     unsigned long long total_vectors = 0ull; // number of vectors in the whole data lake
     unsigned int total_query_vectors = 0u; // query size
     unsigned int max_leaf_size = 76; // max vectors in one leaf cell
-    double mtr_buffered_memory_size = 30; // memory  allocated for file buffers (in MB)
-    double ps_buffered_memory_size = 3; // memory  allocated for file buffers (in MB)
+    double mtr_buffered_memory_size = 60; // memory  allocated for file buffers (in MB)
+    double ps_buffered_memory_size = 10; // memory  allocated for file buffers (in MB)
     
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
 
@@ -41,9 +41,9 @@ int main()
     unsigned int num_pivots = 2;  // number of pivots
     unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
 
-    /* query settings */
+    /* query settings (todo: change threshold to %) */
     unsigned int join_threshold = 1; // T 
-    v_type dist_threshold = 0; // tau
+    v_type dist_threshold = 2; // tau
 
 
     /* read all vectors in the data set */
@@ -114,12 +114,15 @@ int main()
     printf("\t\tPivot space volume = %f\n", grid->settings->pivot_space_volume);
     printf("\t\tNumber of leaf cells = %d\n", grid->settings->num_leaf_cells);
     printf("\t\tLeaf cell edge length = %f\n", grid->settings->leaf_cell_edge_length);
+    
+    /* 
     printf("\t\tPivot vectors (in metric space):\n");
     for(int i = 0; i < num_pivots; i++)
     {
         print_vector(&grid->settings->pivots_mtr[i], num_dim_metric_space);
     }
-    printf("\t\tPivot vectors (in pivot space):\n");
+    */
+    printf("\t\tPivot vectors (in pivot space):\n\n");
     for(int i = 0; i < num_pivots; i++)
     {
         print_vector(&grid->settings->pivots_ps[i], num_pivots);
@@ -143,7 +146,8 @@ int main()
     /* insert dataset in grid (read and index all vectors in the data set) */
     printf("Index dataset vectors and build inverted index...");
     struct inv_index * index = malloc(sizeof(struct inv_index));
-    index->num_entries = 0;
+    index->num_entries = 0; index->num_distinct_sets = 0;
+    
     if(index == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for inverted index.");
 
@@ -160,17 +164,17 @@ int main()
         exit_with_failure("Error in main.c: Couldn't initialize match map!");
     printf("(OK)\n");
 
-    // /* querying */
-    // pexeso(bin_query_file_directory, grid, index, match_map);
+    /* print Rv grid */
+    // dump_grid_to_console(grid);
 
-    /* print grid */
-    dump_grid_to_console(grid);
+    /* querying */
+    pexeso(bin_query_file_directory, grid, index, match_map);
 
     /* print inverted index */
-    dump_inv_index_to_console(index);
+    // dump_inv_index_to_console(index);
 
     /* print match map */
-    dump_match_map_to_console(match_map);
+    // dump_match_map_to_console(match_map);
 
     /* write grid to disk */
     if (!grid_write(grid))
@@ -188,9 +192,7 @@ int main()
     if(!match_map_destroy(match_map))
         exit_with_failure("Error main.c: Couldn't destroy match map.\n");
 
-    
-
-    return 0;
+    exit(0);
 }
 
 vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim)
