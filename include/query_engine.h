@@ -17,26 +17,32 @@ struct query_settings
     v_type dist_threshold; // tau
 };
 
+// pairs of candidate and matching cells for every query vector
+struct pairs {
+    struct vector ** query_vectors;
+    struct matching_pair ** matching_pairs;
+    struct candidate_pair ** candidate_pairs;
+    unsigned int num_query_vectors;
+};
 struct matching_pair
 {
-    struct vector ** query_vectors; // query vectors
     struct cell ** cells;
     unsigned int num_match; // number of matching cells.
 };
 
 struct candidate_pair
 {
-    struct  vector ** query_vectors; // query vectors
     struct cell ** cells; // pointers to cells in the index
     unsigned int num_candidates; // number of candidate cells (cells that couldn't be filtered)
 };
 
+
 /* get candidate and matching cells of a query cell */
 enum response block(struct cell *query_cell, struct cell * r_cell, 
-            struct matching_pair * mpair, struct candidate_pair * cpair, struct grid_settings * settings);
+                    struct pairs * pairs, struct grid_settings * settings);
 
-enum response verify(struct grid * grid, struct matching_pair * mpair, struct candidate_pair * cpair,
-            struct inv_index * index, struct match_map * match_map, unsigned int query_set_size);
+// enum response verify(struct grid * grid, struct matching_pair * mpair, struct candidate_pair * cpair,
+//             struct inv_index * index, struct match_map * match_map, unsigned int query_set_size);
             
 /* initialize query settings */
 struct query_settings * init_query_settings(v_type dist_threshold, unsigned int join_threshold);
@@ -104,13 +110,16 @@ enum response cell_cell_match(struct cell * cell, struct cell * query_cell,
 v_type min_RQR(struct cell * query_cell, unsigned int num_pivots, int p,  v_type dist_threshold);
 
 /* add candidate pair */
-enum response add_candidate_pair(struct candidate_pair *cpair, struct vector * query_vector, struct cell *candidate);
+enum response add_candidate_pair(struct pairs * pairs, struct vector * query_vector, struct cell *candidate);
 
 /* add candidate pair */
-enum response add_matching_pair(struct matching_pair *mpair, struct vector * query_vector, struct cell *match);
+enum response add_matching_pair(struct pairs * pairs, struct vector * query_vector, struct cell *match);
 
-/* destroy candidate pair */
-enum response destroy_candidate_pairs(struct candidate_pair *cpair);
+/* check if list of pairs already has query vector */
+int has_query_vector(struct pairs * pairs, vector * query_vector);
 
-/* destroy matching pair */
-enum response destroy_matching_pairs(struct matching_pair *mpair);
+/* destroy result pairs */
+enum response destroy_pairs(struct pairs * pairs);
+
+/* init pairs */
+struct pairs * init_pairs();

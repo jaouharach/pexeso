@@ -44,7 +44,7 @@ enum response create_cell_filename(struct grid_settings *settings, struct cell *
 vector * get_vectors_mtr(struct cell * cell, unsigned int vector_length_mtr);
 
 /* get list of vector in cell (in pivot space) */
-vector * get_vectors_ps(struct cell * cell, unsigned int vector_length_mtr);
+vector ** get_vectors_ps(struct cell * cell, unsigned int vector_length_mtr);
 
 /* get pointer to leaf cells of a given cell */
 void get_leaf_cells(struct cell * cell, struct cell ** leaves, unsigned int * num_leaves);

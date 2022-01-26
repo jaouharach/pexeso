@@ -20,6 +20,7 @@ typedef struct vector_tuple vector_tuple;
 typedef struct file_buffer_manager file_buffer_manager;
 typedef struct file_buffer file_buffer;
 typedef struct file_map file_map;
+typedef struct pairs pairs;
 typedef struct candidate_pair candidate_pair;
 typedef struct matching_pair matching_pair;
 typedef struct query_result query_result;
@@ -31,8 +32,10 @@ typedef struct entry entry;
 struct vid {
   unsigned int table_id;
   unsigned int set_pos;
+  unsigned int pos; // vector pos in set
 };
-// vid (vector id) and sid (set id) are the same 
+
+// set id 
 struct sid {
   unsigned int table_id;
   unsigned int set_pos;
@@ -42,6 +45,7 @@ struct sid {
 struct vector{
 	unsigned int table_id;
 	unsigned int set_id;
+  unsigned int pos;
 	v_type * values;
 };
 

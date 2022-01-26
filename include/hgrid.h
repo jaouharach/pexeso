@@ -32,7 +32,7 @@ struct grid{
   struct level * first_level;
   struct grid_settings * settings;
   struct file_buffer_manager * buffer_manager;
-
+  bool is_query_grid;// if the grid is a Qgrid
   //file to track vector ids 
   const char * vid_filename; 
   FILE * vid_file;
@@ -53,6 +53,7 @@ enum response init_grid(const char *root_directory,
                     double ps_buffered_memory_size,
                     unsigned int max_leaf_size,
                     unsigned int track_vector,
+                    bool is_query_grid,
                     struct query_settings * query_settings,
                     struct grid *grid);
 
@@ -79,3 +80,6 @@ enum response destroy_buffer_manager(struct grid *grid);
 
 /* write level to disk */
 enum response level_write(struct grid *grid, struct level *level, FILE *file);
+
+/* destroy query grid */
+enum response query_grid_destroy(struct grid *grid);

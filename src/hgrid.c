@@ -26,6 +26,7 @@ enum response init_grid(const char *root_directory,
                     double ps_buffered_memory_size,
                     unsigned int max_leaf_size,
                     unsigned int track_vector,
+                    bool is_query_grid,
                     struct query_settings * query_settings,
                     struct grid *grid)
 {
@@ -41,6 +42,7 @@ enum response init_grid(const char *root_directory,
     grid->root = NULL;
     grid->first_level = NULL;
     grid->total_records = 0;
+    grid->is_query_grid  = is_query_grid; 
 
     grid->settings->root_directory = root_directory;
     grid->settings->num_pivots = num_pivots; // number of dimensions is equal to the number of pivots
@@ -334,6 +336,10 @@ enum response grid_destroy_level(struct grid *grid, struct level *level)
     //  leaf level
     if (level->is_leaf)
     {
+        // (todo) fix why destroy buffer manager doesn't work for query grid
+        // if (grid->is_query_grid = true)
+        //     return OK;
+            
         if (grid->buffer_manager != NULL)
             destroy_buffer_manager(grid);
     }
@@ -375,6 +381,7 @@ enum response grid_destroy_level(struct grid *grid, struct level *level)
         free(level->cells->center);
     free(level->cells);
     free(level);
+    
 
     return OK;
 }
@@ -382,34 +389,51 @@ enum response grid_destroy(struct grid *grid)
 {
     grid_destroy_level(grid, grid->root);
 
-    // free grid and grid settings
-    for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
-        free(grid->settings->pivots_mtr[p].values);
-    free(grid->settings->pivots_mtr);
+    // free pivot vectors
+    if(!grid->is_query_grid)
+    {
+        for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
+            free(grid->settings->pivots_mtr[p].values);
+        free(grid->settings->pivots_mtr);
+    
+        for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
+            free(grid->settings->pivots_ps[p].values);
+        free(grid->settings->pivots_ps);
+        
+        free(grid->settings->pivot_space_extremity->values);
+        free(grid->settings->pivot_space_extremity);
+        free(grid->settings->query_settings);
+    }
 
-    for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
-        free(grid->settings->pivots_ps[p].values);
-    free(grid->settings->pivots_ps);
 
-    free(grid->settings->pivot_space_extremity->values);
-    free(grid->settings->pivot_space_extremity);
-
-    free(grid->settings->query_settings);
+    // destroy settings
     free(grid->settings);
     free(grid);
 
     return OK;
 }
 
+/* destroy query grid */
+enum response query_grid_destroy(struct grid *grid)
+{
+    // query grid shares settings with data grid, only free levels and the grid
+    grid_destroy_level(grid, grid->root);
+    free(grid->settings);
+    free(grid);
+
+    return OK;
+}
 /* destroy buffer manager */
 enum response destroy_buffer_manager(struct grid *grid)
 {
 
     if (grid->buffer_manager != NULL)
     {
+        // (todo) fix why this doesn't work for query grid
         struct file_map *currP;
         struct file_map *temp;
 
+    
         temp = NULL;
         currP = grid->buffer_manager->file_map;
 

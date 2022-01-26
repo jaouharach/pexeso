@@ -82,6 +82,7 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
     {
         cell->vid[cell->cell_size - 1].table_id = vector->table_id;
         cell->vid[cell->cell_size - 1].set_pos = vector->set_id;
+        cell->vid[cell->cell_size - 1].pos = vector->pos;
     }
     // add entry: set_id -> {cell} to inverted index    
     inv_index_append_entry(index, cell, vector->table_id, vector->set_id);
@@ -317,6 +318,7 @@ vector * get_vectors_mtr(struct cell * cell, unsigned int vector_length_mtr)
                 cell_vectors[i].values[j] = cell->file_buffer->mtr_buffered_list[i][j];
                 cell_vectors[i].set_id = cell->vid[i].set_pos;
                 cell_vectors[i].table_id = cell->vid[i].table_id;
+                cell_vectors[i].pos = cell->vid[i].pos;
         }
     }
     // if file buffer is in disk load vectors from disk
@@ -327,7 +329,7 @@ vector * get_vectors_mtr(struct cell * cell, unsigned int vector_length_mtr)
 }
 
 /* get list of vector in cell (in pivot space) */
-vector * get_vectors_ps(struct cell * cell, unsigned int num_pivots)
+vector ** get_vectors_ps(struct cell * cell, unsigned int num_pivots)
 {
     if(!cell->is_leaf)
         exit_with_failure("Error in cell.c: Cannot get pivot space vectors of a non leaf cell!");
@@ -336,10 +338,18 @@ vector * get_vectors_ps(struct cell * cell, unsigned int num_pivots)
         exit_with_failure("Error in cell.c: Cannot get vectors of an empty leaf cell!");
 
     // if file buffer not in disk return vectors in file buffer
-    struct vector * cell_vectors = malloc(sizeof(struct vector) * cell->cell_size);
+    struct vector ** cell_vectors = malloc(sizeof(struct vector *) * cell->cell_size);
     for(int i = 0; i < cell->cell_size; i++)
-        cell_vectors[i].values = malloc(sizeof(v_type) * num_pivots);
+    {
+        cell_vectors[i] = malloc(sizeof(struct vector));
+        if(cell_vectors[i] == NULL)
+            exit_with_failure("Error in cell.c: Couldn't allocate memory for cell vectors!");
 
+        cell_vectors[i]->values = malloc(sizeof(v_type) * num_pivots);
+
+        if(cell_vectors[i]->values == NULL)
+            exit_with_failure("Error in cell.c: Couldn't allocate memory for cell vectors!");
+    }
     if(!cell->file_buffer->in_disk)
     {
         if(cell->cell_size != cell->file_buffer->buffered_list_size)
@@ -349,12 +359,15 @@ vector * get_vectors_ps(struct cell * cell, unsigned int num_pivots)
         for(int i = 0; i < cell->cell_size; i++)
         {
             for(int j = 0; j < num_pivots; j++)
-                cell_vectors[i].values[j] = cell->file_buffer->ps_buffered_list[i][j];
-            cell_vectors[i].set_id = cell->vid[i].set_pos;
-            cell_vectors[i].table_id = cell->vid[i].table_id;
+                cell_vectors[i]->values[j] = cell->file_buffer->ps_buffered_list[i][j];
+            cell_vectors[i]->set_id = cell->vid[i].set_pos;
+            cell_vectors[i]->table_id = cell->vid[i].table_id;
+            cell_vectors[i]->pos = cell->vid[i].pos;
+            
+            // printf("cell v(%u, %u, %u)\n", cell_vectors[i]->table_id, cell_vectors[i]->set_id, cell_vectors[i]->pos);
         }
     }
-    // if file buffer is in disk load vectors from disk
+    // (todo) if file buffer is in disk load vectors from disk
     else
         exit_with_failure("Error in cell.c: can't get vectors, cell's file buffer is disk!");
 
@@ -397,8 +410,11 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
             
             cell_vectors[i].mtr_vector->set_id = cell->vid[i].set_pos;
             cell_vectors[i].mtr_vector->table_id = cell->vid[i].table_id;
+            cell_vectors[i].mtr_vector->pos = cell->vid[i].pos;
+
             cell_vectors[i].ps_vector->set_id = cell->vid[i].set_pos;
             cell_vectors[i].ps_vector->table_id = cell->vid[i].table_id;
+            cell_vectors[i].ps_vector->pos = cell->vid[i].pos;
         }
     }
     // if file buffer is in disk load vectors from disk
@@ -486,6 +502,7 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, l
             
             cell_vectors[i].set_id = cell->vid[i].set_pos;
             cell_vectors[i].table_id = cell->vid[i].table_id;
+            cell_vectors[i].pos = cell->vid[i].pos;
         }
         *num_vectors = *num_vectors + leaves[i]->cell_size;
     }

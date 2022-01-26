@@ -43,7 +43,7 @@ void main()
 
     /* query settings (todo: change threshold to %) */
     unsigned int join_threshold = 1; // T 
-    v_type dist_threshold = 2; // tau
+    v_type dist_threshold = 0.5; // tau
 
 
     /* read all vectors in the data set */
@@ -101,7 +101,7 @@ void main()
     if (!init_grid(root_directory, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, total_vectors, base, mtr_vector_length, 
                     mtr_buffered_memory_size, ps_buffered_memory_size, max_leaf_size, track_vector, 
-                    query_settings, grid))
+                    false, query_settings, grid))
         exit_with_failure("Error in main.c: Couldn't initialize grid!");
 
     printf("(OK)\n");
@@ -191,7 +191,7 @@ void main()
     /* destroy match map */
     if(!match_map_destroy(match_map))
         exit_with_failure("Error main.c: Couldn't destroy match map.\n");
-
+    
     exit(0);
 }
 

@@ -16,34 +16,28 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
 {
     long long unsigned int num_query_vectors = 0;
     // make grid for query file
-    struct grid * Qgrid = make_query_grid(Dgrid, query_file_dir, &num_query_vectors);
+    struct grid * Qgrid = make_query_grid(Dgrid, inv_index, query_file_dir, &num_query_vectors);
 
     // (todo) quick browsing 
 
-    struct matching_pair * mpair = malloc(sizeof(struct matching_pair));
-    mpair->num_match = 0;
-    struct candidate_pair * cpair = malloc(sizeof(struct candidate_pair));
-    cpair->num_candidates = 0;
-    if(mpair == NULL || cpair == NULL)
-        exit_with_failure("Error in pexeso.c: Couldn't allocate memory for match/ candidate pairs!");
-
+    // init list of candidate and matching pairs
+    struct pairs * pairs = init_pairs();
+    
     //block
-    block(Qgrid->root->cells, Dgrid->root->cells, mpair, cpair, Dgrid->settings);
+    block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings);
 
     //verify
-    verify(Dgrid, mpair, cpair, inv_index, match_map, Qgrid->total_records);
+    // verify(Dgrid, pairs, inv_index, match_map, Qgrid->total_records);
 
-    destroy_matching_pairs(mpair);
-    destroy_candidate_pairs(cpair);
-    
     // print Query grid
     // dump_grid_to_console(Qgrid);
 
     // print match map after quering
     dump_match_map_to_console(match_map);
 
-    // destroy query grid
-    grid_destroy(Qgrid);
+    // free memory: destroy query grid and result pairs
+    destroy_pairs(pairs);
+    query_grid_destroy(Qgrid);
 }
 
 /* quick browsing: evaluate leaf cells in Qgrid in Dgrid inverted index and get candidate pairs*/
@@ -60,7 +54,7 @@ void quick_browse(struct grid * Dgrid, struct grid * Qgrid)
     }
 }
 /* create query grid  */
-struct grid * make_query_grid(struct grid * Dgrid, const char * query_file_dir, long long unsigned int * num_query_vectors)
+struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const char * query_file_dir, long long unsigned int * num_query_vectors)
 {   
     long unsigned int num_query_files = 0; // always = 1;
     unsigned int mtr_query_vector_length = Dgrid->settings->mtr_vector_length;
@@ -97,48 +91,20 @@ struct grid * make_query_grid(struct grid * Dgrid, const char * query_file_dir, 
     // worst case: senario all query vectors will end up in one leaf cell
     max_leaf_size = *num_query_vectors;
 
-    printf("Loading query files...");
-    vector * queryset = load_binary_files(query_file_dir, 
-                                        num_query_files, *num_query_vectors, base, mtr_query_vector_length);
-    
-    if(queryset == NULL)
-        exit_with_failure("Error in pexeso.c: Something went wrong, couldn't read query vectors!");
-    printf("(OK)\n");
-
-
-    printf("\n\nLooking for pivot vectors...");
-    /* search for pivot vectors using pca based algorithm (waiting for response from authors) */
-    int dataset_dim [] = {*num_query_vectors, mtr_query_vector_length};
-    int pivots_mtr_dim [] = {num_pivots, mtr_query_vector_length};
-
-    // get pivot vector in from metric queryset
-    vector * pivots_mtr = select_pivots(queryset, dataset_dim, num_pivots, fft_scale);
-    
-    // free queryset
-    for(int dv = *num_query_vectors - 1; dv >=0; dv--)
-        free(queryset[dv].values);
-    free(queryset);  
-
-    printf("(OK)\n");
-
-    /* map pivot vectors to pivot space pi --> pi' */
-    printf("\n\nTransforming pivots to pivot space (compute the distance matrix)... ");
-    vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
-    // vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, pivots_mtr, num_pivots);
-    printf("(OK)\n");
-
 
     /* pivot space extremity */
-    printf("\nExtremity vector (in pivot space):\n");
-    // vector * pivot_space_extremity = get_rand_vector(num_pivots);
-    vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
+    printf("\n\n(!) Use pivot vectors in Dgrid ...Extremity vector (in pivot space):\n");
+    
+    // vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
+    vector * pivot_space_extremity = Dgrid->settings->pivot_space_extremity;
+    vector * pivots_mtr = Dgrid->settings->pivots_mtr; // pivot vectors (in metric space)
+    vector * pivots_ps = Dgrid->settings->pivots_ps; // pivot vectors (in pivot space)
     print_vector(pivot_space_extremity, num_pivots);
     
+    printf("(OK)\n");
 
     /* initialize grid */
     printf("\n\nInitialize grid... ");
-    struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold);
-
     struct grid * Qgrid = (struct grid *) malloc(sizeof(struct grid));
     if (Qgrid == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
@@ -146,35 +112,10 @@ struct grid * make_query_grid(struct grid * Dgrid, const char * query_file_dir, 
     if (!init_grid(query_grid_dir, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, *num_query_vectors, base, mtr_query_vector_length, 
                     mtr_buffered_memory_size, ps_buffered_memory_size, max_leaf_size, track_vector, 
-                    query_settings, Qgrid))
+                    true, Dgrid->settings->query_settings, Qgrid))
         exit_with_failure("Error in main.c: Couldn't initialize grid!");
 
     printf("(OK)\n");
-
-
-    /* Display settings */
-    printf("\n\t\t*** \t QUERY GRID SETTINGS\t ***\t\n");
-    printf("--------------------------------------------------------------\n");
-    printf("\t\tNumber of pivots = %d\n", Qgrid->settings->num_pivots);
-    printf("\t\tNumber of levels = %d\n", Qgrid->settings->num_levels);
-    printf("\t\tPivot space volume = %f\n", Qgrid->settings->pivot_space_volume);
-    printf("\t\tNumber of leaf cells = %d\n", Qgrid->settings->num_leaf_cells);
-    printf("\t\tLeaf cell edge length = %f\n", Qgrid->settings->leaf_cell_edge_length);
-    printf("\t\tPivot vectors (in metric space):\n");
-    
-    /* 
-    for(int i = 0; i < num_pivots; i++)
-    {
-        print_vector(&Qgrid->settings->pivots_mtr[i], mtr_query_vector_length);
-    }
-    */
-
-    printf("\t\tPivot vectors (in pivot space):\n\n");
-    for(int i = 0; i < num_pivots; i++)
-    {
-        print_vector(&Qgrid->settings->pivots_ps[i], num_pivots);
-    }
-    printf("--------------------------------------------------------------\n");
 
 
     /* Build levels */
@@ -197,7 +138,7 @@ struct grid * make_query_grid(struct grid * Dgrid, const char * query_file_dir, 
     if(index == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for inverted index.");
 
-    if (!index_binary_files(Qgrid, index, query_file_dir, num_query_files, base))
+    if (!index_binary_files(Qgrid, inv_index, query_file_dir, num_query_files, base))
         exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
     printf("(OK)\n");
 
@@ -208,7 +149,6 @@ struct grid * make_query_grid(struct grid * Dgrid, const char * query_file_dir, 
     /* destroy inverted index (inverted index not required for queries*/
     if(!inv_index_destroy(index))
         exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
-
 
     return Qgrid;
 }

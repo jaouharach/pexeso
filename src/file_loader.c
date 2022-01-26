@@ -220,7 +220,8 @@ response index_binary_files(struct grid *grid, struct inv_index * index, const c
 
                     vector->table_id = table_id;
                     vector->set_id = set_id;
-
+                    vector->pos = 0; // vector position in set
+                    
                     set_id += 1;
                 }
                 else if (i <= (unsigned int)num_vectors * grid->settings->mtr_vector_length)
@@ -229,9 +230,11 @@ response index_binary_files(struct grid *grid, struct inv_index * index, const c
                     if (j > grid->settings->mtr_vector_length - 1)
                     {
                         j = 0;
+                        // printf("vec (%u, %u, %u)\n", vector->table_id, vector->set_id, vector->pos);
                         // insert vector in grid
                         if (!grid_insert(grid, index, vector))
                             exit_with_failure("Error in file_loaders.c:  Could not add vector to the grid.\n");
+                        vector->pos = vector->pos + 1;
                     }
 
                     fread((void *)(&val), sizeof(val), 1, bin_file);
@@ -242,6 +245,7 @@ response index_binary_files(struct grid *grid, struct inv_index * index, const c
                     // last value in last vector in current  set
                     if (i == (unsigned int)num_vectors * grid->settings->mtr_vector_length)
                     {
+                        // printf("vec (%u, %u, %u)\n", vector->table_id, vector->set_id, vector->pos);
                         // insert vector in grid
                         if (!grid_insert(grid, index, vector))
                             exit_with_failure("Error in file_loader.c:  Could not add vector to the grid.\n");
@@ -249,6 +253,7 @@ response index_binary_files(struct grid *grid, struct inv_index * index, const c
                         i = 0;
                         j = 0;
                         num_vectors = 0u;
+                        vector->pos = vector->pos + 1;
                         continue;
                     }
                     i++;
