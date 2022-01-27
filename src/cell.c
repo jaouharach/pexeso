@@ -390,6 +390,7 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
     {
         cell_vectors[i].mtr_vector = malloc(sizeof(struct vector));
         cell_vectors[i].mtr_vector->values = malloc(sizeof(v_type) * settings->mtr_vector_length);
+        cell_vectors[i].ps_vector = malloc(sizeof(struct vector));
         cell_vectors[i].ps_vector->values = malloc(sizeof(v_type) * settings->num_pivots);
 
     }
@@ -417,7 +418,7 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
             cell_vectors[i].ps_vector->pos = cell->vid[i].pos;
         }
     }
-    // if file buffer is in disk load vectors from disk
+    // (todo) if file buffer is in disk load vectors from disk
     else
         exit_with_failure("Error in cell.c: can't get vectors, cell's file buffer is disk!");
 

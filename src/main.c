@@ -42,8 +42,8 @@ void main()
     unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
 
     /* query settings (todo: change threshold to %) */
-    unsigned int join_threshold = 1; // T 
-    v_type dist_threshold = 0.5; // tau
+    unsigned int join_threshold = 5; // T 
+    v_type dist_threshold = 0.25; // tau
 
 
     /* read all vectors in the data set */

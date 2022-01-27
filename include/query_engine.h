@@ -18,11 +18,14 @@ struct query_settings
 };
 
 // pairs of candidate and matching cells for every query vector
+/* pairs[i] = <q', has_candidates, has_matches, {candidate_cells}, {matching_cells}>  */
 struct pairs {
     struct vector ** query_vectors;
     struct matching_pair ** matching_pairs;
     struct candidate_pair ** candidate_pairs;
-    unsigned int num_query_vectors;
+    bool * has_candidates;
+    bool * has_matches;
+    unsigned int num_pairs;
 };
 struct matching_pair
 {
@@ -41,8 +44,8 @@ struct candidate_pair
 enum response block(struct cell *query_cell, struct cell * r_cell, 
                     struct pairs * pairs, struct grid_settings * settings);
 
-// enum response verify(struct grid * grid, struct matching_pair * mpair, struct candidate_pair * cpair,
-//             struct inv_index * index, struct match_map * match_map, unsigned int query_set_size);
+enum response verify(struct grid * grid, struct pairs * pairs,
+            struct inv_index * index, struct match_map * match_map, unsigned int query_set_size);
             
 /* initialize query settings */
 struct query_settings * init_query_settings(v_type dist_threshold, unsigned int join_threshold);

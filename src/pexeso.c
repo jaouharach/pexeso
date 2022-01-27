@@ -27,7 +27,7 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings);
 
     //verify
-    // verify(Dgrid, pairs, inv_index, match_map, Qgrid->total_records);
+    verify(Dgrid, pairs, inv_index, match_map, Qgrid->total_records);
 
     // print Query grid
     // dump_grid_to_console(Qgrid);
