@@ -108,12 +108,20 @@ vector *get_extremity(vector *pivot_vectors, unsigned int num_pivots)
     vector *pivot_space_extremity = malloc(sizeof(struct vector));
     pivot_space_extremity->values = (v_type *)malloc(sizeof(v_type) * num_pivots);
 
+    printf("pivots\n");
+    for (int i = 0; i < num_pivots; i++)
+    {    
+        printf("(");
+        for (int j = 0; j < num_pivots; j++)
+            printf("%f, ", pivot_vectors[i].values[j]);
+        printf(")\n");
+    }
     v_type max = FLT_MIN;
     for (int i = 0; i < num_pivots; i++)
     {
         for (int j = 0; j < num_pivots; j++)
-            if (pivot_vectors[i].values[j] > max)
-                max = pivot_vectors[i].values[j];
+            if (fabs(pivot_vectors[i].values[j]) > max)
+                max = fabs(pivot_vectors[i].values[j]);
     }
     for (int i = 0; i < num_pivots; i++)
         pivot_space_extremity->values[i] = max;

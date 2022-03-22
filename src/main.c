@@ -10,31 +10,26 @@
 #include "../include/file_buffer_manager.h"
 #include "../include/match_map.h"
 #include "../include/query_engine.h"
-// #include "../include/inv_index.h"
 #include "../include/pexeso.h"
+#include <unistd.h>
+#include <getopt.h>
 
 
-vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim);
-void main()
+int main(int argc, char **argv)
 {
     /* dataset */
-    const char *root_directory = "/home/jaouhara/Projects/pexeso-debbug/pexeso/Hgrid/";
+    const char * work_dir = "/home/jaouhara/Projects/pexeso-debbug/pexeso/Hgrid/";
     const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/"; //target directory
     const char * bin_query_file_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/query/"; //target directory
 
     unsigned long num_files = 0ul;
     unsigned int base = 32; // 32 bits to store numbers in binary files
-    unsigned int mtr_vector_length = 100, num_dim_metric_space = 100, mtr_query_vector_length = 100;
+    unsigned int mtr_vector_length = 100, num_dim_metric_space = 100;
     unsigned long long total_vectors = 0ull; // number of vectors in the whole data lake
     unsigned int total_query_vectors = 0u; // query size
     unsigned int max_leaf_size = 76; // max vectors in one leaf cell
     double mtr_buffered_memory_size = 60; // memory  allocated for file buffers (in MB)
     double ps_buffered_memory_size = 10; // memory  allocated for file buffers (in MB)
-    
-    unsigned int track_vector = 1; // track vectors id (table_id, column_id)
-
-    /* mode 0 = grid dataset, 1 = query dataset */
-    unsigned int mode = 0;
 
     /* grid settings */
     unsigned int num_levels = 3;  // m
@@ -43,7 +38,172 @@ void main()
 
     /* query settings (todo: change threshold to %) */
     unsigned int join_threshold = 5; // T 
-    v_type dist_threshold = 0.25; // tau
+    float dist_threshold = 0.25; // tau
+
+
+    unsigned int track_vector = 1; // track vectors id (table_id, column_id)
+    unsigned int mode = 0; //  mode 0 = create grid and query
+
+while (1)
+{
+
+    static struct option long_options[] = {
+        {"work-dir", required_argument, 0, 'r'},
+        {"dataset", required_argument, 0, 'd'},
+        {"queries", required_argument, 0, 'q'},
+        {"bits", no_argument, 0, 'b'},
+
+        {"metric-space-dim", required_argument, 0, 'm'},
+        {"pivot-space-dim", required_argument, 0, 'p'},
+
+        {"num-levels", required_argument, 0, 'l'},
+        {"leaf-size", required_argument, 0, 'i'},
+        {"fft-scale", required_argument, 0, 'f'},
+        {"join-threshold", required_argument, 0, 'j'},
+        {"dist-threshold", required_argument, 0, 't'},
+        
+        {"metric-buffer-size", required_argument, 0, 'c'},
+        {"pivot-buffer-size", required_argument, 0, 's'},
+        
+        {"track-vector", no_argument, 0, 'v'},
+        {"mode", required_argument, 0, 'x'},
+        {"help", no_argument, 0, '?'}
+    };
+
+    /* store the option index. */
+    int option_index = 0;
+    int c = getopt_long(argc, argv, "", long_options, &option_index);
+
+    if (c == -1)
+         break;
+    switch (c)
+    {
+        case 'r':
+            work_dir = optarg;
+            break;
+
+        case 'd':
+            bin_files_directory = optarg;
+            break;
+
+        case 'q':
+            bin_query_file_directory = optarg;
+            break;
+
+        case 'b':
+            base = atof(optarg);
+            break;
+
+        case 'm':
+            mtr_vector_length = atoi(optarg);
+            if (mtr_vector_length < 0)
+            {
+                fprintf(stderr, "Please change metric space dimension to be greater than 0.\n");
+                exit(-1);
+            }
+            break;
+
+        case 'p':
+            num_pivots = atoi(optarg);
+            if (num_pivots < 0)
+            {
+                fprintf(stderr, "Please change pivot space dimension to be greater than 0.\n");
+                exit(-1);
+            }
+            break;
+
+        case 'l':
+            num_levels = atoi(optarg);
+            if (num_levels < 0)
+            {
+                fprintf(stderr, "Please change number of levels to be greater than 0.\n");
+                exit(-1);
+            }
+            break;
+        
+        case 'i':
+            max_leaf_size = atoi(optarg);
+            if (max_leaf_size < 0)
+            {
+                fprintf(stderr, "Please change leaf size to be greater than 0.\n");
+                exit(-1);
+            }
+            break;
+
+        case 'f':
+            fft_scale = atoi(optarg);
+            if (fft_scale < 0)
+            {
+                fprintf(stderr, "Please change fft scale to be greater than 0.\n");
+                exit(-1);
+            }
+            break;
+        
+        case 'j':
+            join_threshold = atoi(optarg);
+            //  (todo) change join threshold to be in %
+            // if (join_threshold > 1 || join_threshold < 0)
+            // {
+            //     fprintf(stderr, "Please change join thershold to be less than 1 and greater than 0.\n");
+            //     exit(-1);
+            // }
+            break;
+
+        case 't':
+            dist_threshold = atoi(optarg);
+            //  (todo) change distance threshold to be in %
+            // if (dist_threshold > 1 || dist_threshold < 0)
+            // {
+            //     fprintf(stderr, "Please change distance thershold to be less than 1 and greater than 0.\n");
+            //     exit(-1);
+            // }
+            break;
+
+        case 'c':
+            mtr_buffered_memory_size = atoi(optarg);
+            if (mtr_buffered_memory_size < 10)
+            {
+                fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
+                exit(-1);
+            }
+            break;
+
+        case 's':
+            ps_buffered_memory_size = atoi(optarg);
+            if (ps_buffered_memory_size < 10)
+            {
+                fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
+                exit(-1);
+            }
+            break;
+
+        case 'v':
+            track_vector = atoi(optarg);
+            break;
+
+        case 'x':
+            mode = atoi(optarg);
+            break;
+
+        case '?':
+            printf("Usage:\n\
+                        \t--dataset XX \t\t\tThe path to the dataset directory\n\
+                        \t--queries XX \t\t\tThe path to the queries directory\n\
+                        \t--dataset-size XX \t\tThe number of time series to load\n\
+                        \t--queries-size XX \t\tThe number of queries to run\n\
+                        \t--mode: 0 = index & query (only option)\t\t\n");
+
+            return 0;
+            break;
+
+        default:
+            exit(-1);
+            break;
+    }
+}
+
+
+
 
 
     /* read all vectors in the data set */
@@ -98,7 +258,7 @@ void main()
     if (grid == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
 
-    if (!init_grid(root_directory, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
+    if (!init_grid(work_dir, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, total_vectors, base, mtr_vector_length, 
                     mtr_buffered_memory_size, ps_buffered_memory_size, max_leaf_size, track_vector, 
                     false, query_settings, grid))
@@ -193,27 +353,4 @@ void main()
         exit_with_failure("Error main.c: Couldn't destroy match map.\n");
     
     exit(0);
-}
-
-vector * get_dataset_extremity(vector * dataset, unsigned int num_vectors, unsigned int num_dim)
-{
-    vector * extremity = malloc(sizeof(struct vector));
-    extremity->values = malloc(sizeof(v_type)*num_dim);
-    for(int j = 0; j < num_dim; j++)
-    {
-        extremity->values[j] = FLT_MIN;
-    }
-
-    for(int v = 0; v < num_vectors; v++)
-    {
-        for(int j = 0; j < num_dim; j++)
-        {
-            if(dataset[v].values[j] > extremity->values[j])
-                extremity->values[j] = dataset[v].values[j];
-        }
-        
-    }
-
-    return extremity;
-
 }

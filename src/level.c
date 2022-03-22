@@ -151,8 +151,10 @@ enum response init_first_level(struct grid *grid)
     int ndc = grid->settings->pivot_space_extremity->values[0] / grid->first_level->cell_edge_length; //ndc = number of distinct coordinate values of cell center vectors
     v_type * distinct_coordinates = (v_type *) malloc(sizeof(v_type) * ndc);
     if(distinct_coordinates == NULL)
-        exit_with_failure("Error in level.c: Couldn't allocate memory for distinct coordinates.");
-
+    {
+        printf("Error in level.c: Couldn't allocate memory for distinct coordinates, ndc = %d.", ndc);
+        exit(-1);
+    }
     for (i = 0, j = 1; i < ndc; i++, j += 2)
     {
         distinct_coordinates[i] = grid->settings->pivot_space_extremity->values[0] - ((j * grid->first_level->cell_edge_length) / 2);

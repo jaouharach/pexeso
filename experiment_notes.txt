@@ -1,0 +1,19 @@
+PACKAGE MANAGER:
+----------------
+
+to install all packages without root use miniconda: 
+https://unix.stackexchange.com/questions/61283/yum-install-in-user-home-for-non-admins
+
+
+WORD EMBEDDINGS:
+----------------
+use glove to make embeddings, official website:
+https://nlp.stanford.edu/projects/glove/
+
+I used wikipedia embeddings, to download run:
+wget https://nlp.stanford.edu/data/glove.6B.zip
+
+
+gcc globals.c select_pivots.c gsl_matrix.c hgrid.c inv_index.c level.c cell.c file_buffer.c file_loader.c main.c -o ../bin/pexeso -lm -g -lgsl -lgslcblas
+
+
