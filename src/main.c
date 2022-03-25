@@ -348,7 +348,7 @@ int main(int argc, char **argv)
     // dump_inv_index_to_console(index);
 
     /* print match map */
-    // dump_match_map_to_console(match_map);
+    dump_match_map_to_console(match_map);
 
     /* write grid to disk */
     if (!grid_write(grid))

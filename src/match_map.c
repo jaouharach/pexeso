@@ -8,20 +8,26 @@
 enum response init_match_map(struct inv_index * index, struct match_map * map)
 {
     map->num_sets = index->num_distinct_sets;
-    map->sets = malloc(sizeof(struct sid *) * index->num_distinct_sets); // points to set in inverted index
+    map->sets = (struct sid *)malloc(sizeof(struct sid) * index->num_distinct_sets); // points to set in inverted index
     map->match_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
     map->mismatch_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
     map->joinable = calloc(index->num_distinct_sets, sizeof(bool));
 
     for(int s = 0; s < index->num_distinct_sets; s++)
     {
-        // link set id in map with set id in inverted index
-        map->sets[s] = &index->distinct_sets[s];
+        // from inverted index copy set ids to map  
+        if(index->distinct_sets == NULL)
+            exit_with_failure("Error in match_map.c: NULL pointer! couldn't link entry in matchmap to entry in inverted index!");
+        
+        map->sets[s].set_pos = index->distinct_sets[s].set_pos;
+        map->sets[s].table_id = index->distinct_sets[s].table_id;
         map->match_count[s] = 0;
         map->mismatch_count[s] = 0;
         map->joinable[s] = false;
 
     }
+    printf("--> Match map after init:\n\n");
+    dump_match_map_to_console(map);
     return OK;
 }
 
@@ -44,14 +50,14 @@ enum response update_mismatch_count(struct match_map * map, struct sid * set_id)
 }
 
 /* check if set id is in map */
-int has_set(struct match_map * map, struct sid * set_id)
+int has_set(struct match_map * map, struct sid * sid)
 {
     if(map->num_sets == 0)
         return -1;
 
     for(int s = 0; s < map->num_sets; s++)
     {
-        if(pointer_cmp(map->sets[s], set_id))
+        if(map->sets[s].table_id == sid->table_id && map->sets[s].set_pos == sid->set_pos)
             return s;
     }
 
@@ -64,11 +70,11 @@ void dump_match_map_to_console(struct match_map * map)
     printf("\n\n\n\t..............................\n");
     printf("\t::  MATCH  & MISMATCH MAP   ::\n");
     printf("\t..............................\n\n\n");
+    struct sid curr_set;
     for(int s = 0; s < map->num_sets; s++)
     {
-        struct sid * curr_set = map->sets[s];
-
-        printf("\t%d: (%u, %u) => {", s, curr_set->table_id, curr_set->set_pos);
+        curr_set = map->sets[s];
+        printf("\t%d: (%u, %u) => {", s, curr_set.table_id, curr_set.set_pos);
         printf("match = %u, mistach = %u, joinable: %s}\n", map->match_count[s], map->mismatch_count[s], map->joinable[s] ? "true" : "false");
        
     }

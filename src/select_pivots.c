@@ -105,8 +105,8 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
         for (int j = 0; j < num_vectors; j++)
         {   
             // check if vector is already in oultiers
-            // if(in_outliers(outliers_idx, j, k) == 1)
-            //     continue;
+            if(in_outliers(outliers_idx, j, k) == 1)
+                continue;
 
             float d = min_distance(outliers, i, &data_set[j], v_len);
 
@@ -128,6 +128,9 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
         for(int v = 0; v < v_len; v++)
             outliers[i].values[v] = data_set[bsf_v].values[v];
     }
+
+    // free memory
+    free(outliers_idx);
     return outliers;
 }
 // check if a new outlier is already in the list of outliers

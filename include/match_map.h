@@ -2,7 +2,7 @@
 
 // match and mismatch map
 struct match_map {
-    struct sid ** sets; // pointer to set in inverted index
+    struct sid * sets; // pointer to set in inverted index
     bool * joinable;
     unsigned int * match_count;
     unsigned int * mismatch_count;
