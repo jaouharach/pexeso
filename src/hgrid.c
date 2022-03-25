@@ -108,20 +108,12 @@ vector *get_extremity(vector *pivot_vectors, unsigned int num_pivots)
     vector *pivot_space_extremity = malloc(sizeof(struct vector));
     pivot_space_extremity->values = (v_type *)malloc(sizeof(v_type) * num_pivots);
 
-    printf("pivots\n");
-    for (int i = 0; i < num_pivots; i++)
-    {    
-        printf("(");
-        for (int j = 0; j < num_pivots; j++)
-            printf("%f, ", pivot_vectors[i].values[j]);
-        printf(")\n");
-    }
     v_type max = FLT_MIN;
     for (int i = 0; i < num_pivots; i++)
     {
         for (int j = 0; j < num_pivots; j++)
-            if (fabs(pivot_vectors[i].values[j]) > max)
-                max = fabs(pivot_vectors[i].values[j]);
+            if (pivot_vectors[i].values[j] > max)
+                max = pivot_vectors[i].values[j];
     }
     for (int i = 0; i < num_pivots; i++)
         pivot_space_extremity->values[i] = max;
@@ -139,6 +131,7 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
     
     v_mapping->set_id = vector->set_id;
     v_mapping->table_id = vector->table_id;
+    v_mapping->pos = vector->pos;
 
     v_mapping->values = malloc(sizeof(v_type) * grid->settings->num_pivots);
     if (v_mapping->values == NULL)

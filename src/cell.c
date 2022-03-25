@@ -36,8 +36,8 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
         cell->file_buffer->mtr_buffered_list = NULL;
         cell->file_buffer->ps_buffered_list = NULL;
         
-        cell->file_buffer->mtr_buffered_list = malloc(sizeof(struct v_type *) * max_leaf_size);
-        cell->file_buffer->ps_buffered_list = malloc(sizeof(struct v_type *) * max_leaf_size);
+        cell->file_buffer->mtr_buffered_list = malloc(sizeof(v_type) * max_leaf_size * mtr_vector_length);
+        cell->file_buffer->ps_buffered_list = malloc(sizeof(v_type) * max_leaf_size * ps_vector_length);
 
         if (cell->file_buffer->mtr_buffered_list == NULL || cell->file_buffer->ps_buffered_list == NULL)
             exit_with_failure("Error in cell.c: Could not allocate memory for the buffered list.");
@@ -72,19 +72,22 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
     grid->buffer_manager->current_mtr_record += sizeof(v_type) * ps_vector_length;
     grid->buffer_manager->current_ps_record_index++;
 
-    cell->cell_size++;
-    cell->file_buffer->buffered_list_size++;
-    grid->total_records++;
-
+    if(cell->cell_size >= max_leaf_size)
+        exit_with_failure("Error int cell.c: cell size cannot exceed max leaf size!");
 
     // track vector
     if (grid->settings->track_vector)
     {
-        cell->vid[cell->cell_size - 1].table_id = vector->table_id;
-        cell->vid[cell->cell_size - 1].set_pos = vector->set_id;
-        cell->vid[cell->cell_size - 1].pos = vector->pos;
+        cell->vid[cell->cell_size].table_id = vector->table_id;
+        cell->vid[cell->cell_size].set_pos = vector->set_id;
+        cell->vid[cell->cell_size].pos = vector->pos;
     }
-    // add entry: set_id -> {cell} to inverted index    
+    
+    cell->cell_size++;
+    cell->file_buffer->buffered_list_size++;
+    grid->total_records++;
+
+    // add entry: cell -> {set_id} to inverted index    
     inv_index_append_entry(index, cell, vector->table_id, vector->set_id);
 
     return OK;
@@ -147,7 +150,7 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * c
         if(children_level->is_leaf)
         {
             child_cells[c].is_leaf = true;
-            child_cells[c].vid = calloc(settings->max_leaf_size, sizeof(struct vid));
+            child_cells[c].vid = (struct vid *) calloc(settings->max_leaf_size, sizeof(struct vid));
         }
         else
         {
@@ -321,7 +324,7 @@ vector * get_vectors_mtr(struct cell * cell, unsigned int vector_length_mtr)
                 cell_vectors[i].pos = cell->vid[i].pos;
         }
     }
-    // if file buffer is in disk load vectors from disk
+    // (todo) if file buffer is in disk load vectors from disk
     else
         exit_with_failure("Error in cell.c: can't get vectors, cell's file buffer is disk!");
 

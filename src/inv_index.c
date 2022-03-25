@@ -32,15 +32,15 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         if(new_entry->sets == NULL || index->distinct_sets == NULL)
             exit_with_failure("Error in inv_index.c: Couldn't allocate memory for first entry");
         
-        // add set to list of distinct sed ids
+        // add set to list of distinct set ids
         index->distinct_sets[0].table_id = table_id;
         index->distinct_sets[0].set_pos = set_pos;
         
         // link set in cell entry to set in list of distinct sed ids
         new_entry->cell = cell;
         new_entry->sets[0] = 0; // first cell -> {first set}
-
         new_entry->num_sets = 1;
+
         index->num_distinct_sets = 1;
         index->num_entries = 1;
 
@@ -84,9 +84,8 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         
         // first set in entry
         new_entry->sets[0] = set_idx;
-
         new_entry->num_sets = 1;
-        index->num_entries++;
+        index->num_entries++;        
 
         return OK;
     }
@@ -104,8 +103,8 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         if(curr_entry->sets == NULL)
             exit_with_failure("Error in inv_index.c: Couldn't allocate memory for entry's new sets");
 
-        curr_entry->sets[num_sets] = set_idx;
-        curr_entry->num_sets++;
+        curr_entry->sets[curr_entry->num_sets] = set_idx;
+        curr_entry->num_sets++;        
 
         return OK;  
     }

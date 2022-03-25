@@ -6,4 +6,4 @@ Number of bytes for integer:        4 (32 bits)
 Number of bytes for floats:         4 (32 bits)
 Number of bytes per binary file:    base * ((datasize * index->settings->num_dim) + nsets) / 8
 
-To execute:                         ../bin/pexeso --work-diruments/Projects/pexeso/Hgrid --dataset /home/jaouhara/Documents/Projects/clean-wdc/data/bins --queries /home/jaouhara/Documents/Projects/clean-wdc/data/queries --metric-space-dim 50 --pivot-space-dim 2 --num-levels 3 --leaf-size 50 --fft-scale 2 --join-threshold 1 --dist-threshold 0.5 --metric-buffer-size 30 --pivot-buffer-size 30 --mode 0
+To execute:                         valgrind  --undef-value-errors=no ../bin/pexeso --work-dir /home/jaouhara/Documents/Projects/dssdl-projects/pexeso/Hgrid/ --dataset /home/jaouhara/Documents/Projects/dummy-data/bins-2 --queries /home/jaouhara/Documents/Projects/dummy-data/bins-2/queries --metric-space-dim 50 --pivot-space-dim 4 --num-levels 3 --leaf-size 450 --fft-scale 13 --join-threshold 1 --dist-threshold 0.5 --metric-buffer-size 30 --pivot-buffer-size 30 --mode 0

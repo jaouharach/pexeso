@@ -14,6 +14,10 @@ I used wikipedia embeddings, to download run:
 wget https://nlp.stanford.edu/data/glove.6B.zip
 
 
+To compile code:
+----------------
 gcc globals.c select_pivots.c gsl_matrix.c hgrid.c inv_index.c level.c cell.c file_buffer.c file_loader.c main.c -o ../bin/pexeso -lm -g -lgsl -lgslcblas
 
-
+To run code:
+----------------
+valgrind  --undef-value-errors=no ../bin/pexeso --work-dir /home/jaouhara/Documents/Projects/dssdl-projects/pexeso/Hgrid/ --dataset /home/jaouhara/Documents/Projects/dummy-data/bins-2 --queries /home/jaouhara/Documents/Projects/dummy-data/bins-2/queries --metric-space-dim 50 --pivot-space-dim 4 --num-levels 3 --leaf-size 450 --fft-scale 13 --join-threshold 1 --dist-threshold 0.5 --metric-buffer-size 30 --pivot-buffer-size 30 --mode 0

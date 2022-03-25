@@ -44,167 +44,163 @@ int main(int argc, char **argv)
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
     unsigned int mode = 0; //  mode 0 = create grid and query
 
-while (1)
-{
-
-    static struct option long_options[] = {
-        {"work-dir", required_argument, 0, 'r'},
-        {"dataset", required_argument, 0, 'd'},
-        {"queries", required_argument, 0, 'q'},
-        {"bits", no_argument, 0, 'b'},
-
-        {"metric-space-dim", required_argument, 0, 'm'},
-        {"pivot-space-dim", required_argument, 0, 'p'},
-
-        {"num-levels", required_argument, 0, 'l'},
-        {"leaf-size", required_argument, 0, 'i'},
-        {"fft-scale", required_argument, 0, 'f'},
-        {"join-threshold", required_argument, 0, 'j'},
-        {"dist-threshold", required_argument, 0, 't'},
-        
-        {"metric-buffer-size", required_argument, 0, 'c'},
-        {"pivot-buffer-size", required_argument, 0, 's'},
-        
-        {"track-vector", no_argument, 0, 'v'},
-        {"mode", required_argument, 0, 'x'},
-        {"help", no_argument, 0, '?'}
-    };
-
-    /* store the option index. */
-    int option_index = 0;
-    int c = getopt_long(argc, argv, "", long_options, &option_index);
-
-    if (c == -1)
-         break;
-    switch (c)
+    while (1)
     {
-        case 'r':
-            work_dir = optarg;
-            break;
+        static struct option long_options[] = {
+            {"work-dir", required_argument, 0, 'r'},
+            {"dataset", required_argument, 0, 'd'},
+            {"queries", required_argument, 0, 'q'},
+            {"bits", no_argument, 0, 'b'},
 
-        case 'd':
-            bin_files_directory = optarg;
-            break;
+            {"metric-space-dim", required_argument, 0, 'm'},
+            {"pivot-space-dim", required_argument, 0, 'p'},
 
-        case 'q':
-            bin_query_file_directory = optarg;
-            break;
+            {"num-levels", required_argument, 0, 'l'},
+            {"leaf-size", required_argument, 0, 'i'},
+            {"fft-scale", required_argument, 0, 'f'},
+            {"join-threshold", required_argument, 0, 'j'},
+            {"dist-threshold", required_argument, 0, 't'},
+            
+            {"metric-buffer-size", required_argument, 0, 'c'},
+            {"pivot-buffer-size", required_argument, 0, 's'},
+            
+            {"track-vector", no_argument, 0, 'v'},
+            {"mode", required_argument, 0, 'x'},
+            {"help", no_argument, 0, '?'}
+        };
 
-        case 'b':
-            base = atof(optarg);
-            break;
+        /* store the option index. */
+        int option_index = 0;
+        int c = getopt_long(argc, argv, "", long_options, &option_index);
 
-        case 'm':
-            mtr_vector_length = atoi(optarg);
-            if (mtr_vector_length < 0)
-            {
-                fprintf(stderr, "Please change metric space dimension to be greater than 0.\n");
+        if (c == -1)
+            break;
+        switch (c)
+        {
+            case 'r':
+                work_dir = optarg;
+                break;
+
+            case 'd':
+                bin_files_directory = optarg;
+                break;
+
+            case 'q':
+                bin_query_file_directory = optarg;
+                break;
+
+            case 'b':
+                base = atof(optarg);
+                break;
+
+            case 'm':
+                mtr_vector_length = atoi(optarg);
+                num_dim_metric_space = atoi(optarg);
+                if (mtr_vector_length < 0)
+                {
+                    fprintf(stderr, "Please change metric space dimension to be greater than 0.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 'p':
+                num_pivots = atoi(optarg);
+                if (num_pivots < 0)
+                {
+                    fprintf(stderr, "Please change pivot space dimension to be greater than 0.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 'l':
+                num_levels = atoi(optarg);
+                if (num_levels < 0)
+                {
+                    fprintf(stderr, "Please change number of levels to be greater than 0.\n");
+                    exit(-1);
+                }
+                break;
+            
+            case 'i':
+                max_leaf_size = atoi(optarg);
+                if (max_leaf_size < 0)
+                {
+                    fprintf(stderr, "Please change leaf size to be greater than 0.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 'f':
+                fft_scale = atoi(optarg);
+                if (fft_scale < 0)
+                {
+                    fprintf(stderr, "Please change fft scale to be greater than 0.\n");
+                    exit(-1);
+                }
+                break;
+            
+            case 'j':
+                join_threshold = atoi(optarg);
+                //  (todo) change join threshold to be in %
+                // if (join_threshold > 1 || join_threshold < 0)
+                // {
+                //     fprintf(stderr, "Please change join thershold to be less than 1 and greater than 0.\n");
+                //     exit(-1);
+                // }
+                break;
+
+            case 't':
+                dist_threshold = atoi(optarg);
+                //  (todo) change distance threshold to be in %
+                // if (dist_threshold > 1 || dist_threshold < 0)
+                // {
+                //     fprintf(stderr, "Please change distance thershold to be less than 1 and greater than 0.\n");
+                //     exit(-1);
+                // }
+                break;
+
+            case 'c':
+                mtr_buffered_memory_size = atoi(optarg);
+                if (mtr_buffered_memory_size < 10)
+                {
+                    fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 's':
+                ps_buffered_memory_size = atoi(optarg);
+                if (ps_buffered_memory_size < 10)
+                {
+                    fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 'v':
+                track_vector = atoi(optarg);
+                break;
+
+            case 'x':
+                mode = atoi(optarg);
+                break;
+
+            case '?':
+                printf("Usage:\n\
+                            \t--dataset XX \t\t\tThe path to the dataset directory\n\
+                            \t--queries XX \t\t\tThe path to the queries directory\n\
+                            \t--dataset-size XX \t\tThe number of time series to load\n\
+                            \t--queries-size XX \t\tThe number of queries to run\n\
+                            \t--mode: 0 = index & query (only option)\t\t\n");
+
+                return 0;
+                break;
+
+            default:
                 exit(-1);
-            }
-            break;
-
-        case 'p':
-            num_pivots = atoi(optarg);
-            if (num_pivots < 0)
-            {
-                fprintf(stderr, "Please change pivot space dimension to be greater than 0.\n");
-                exit(-1);
-            }
-            break;
-
-        case 'l':
-            num_levels = atoi(optarg);
-            if (num_levels < 0)
-            {
-                fprintf(stderr, "Please change number of levels to be greater than 0.\n");
-                exit(-1);
-            }
-            break;
-        
-        case 'i':
-            max_leaf_size = atoi(optarg);
-            if (max_leaf_size < 0)
-            {
-                fprintf(stderr, "Please change leaf size to be greater than 0.\n");
-                exit(-1);
-            }
-            break;
-
-        case 'f':
-            fft_scale = atoi(optarg);
-            if (fft_scale < 0)
-            {
-                fprintf(stderr, "Please change fft scale to be greater than 0.\n");
-                exit(-1);
-            }
-            break;
-        
-        case 'j':
-            join_threshold = atoi(optarg);
-            //  (todo) change join threshold to be in %
-            // if (join_threshold > 1 || join_threshold < 0)
-            // {
-            //     fprintf(stderr, "Please change join thershold to be less than 1 and greater than 0.\n");
-            //     exit(-1);
-            // }
-            break;
-
-        case 't':
-            dist_threshold = atoi(optarg);
-            //  (todo) change distance threshold to be in %
-            // if (dist_threshold > 1 || dist_threshold < 0)
-            // {
-            //     fprintf(stderr, "Please change distance thershold to be less than 1 and greater than 0.\n");
-            //     exit(-1);
-            // }
-            break;
-
-        case 'c':
-            mtr_buffered_memory_size = atoi(optarg);
-            if (mtr_buffered_memory_size < 10)
-            {
-                fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
-                exit(-1);
-            }
-            break;
-
-        case 's':
-            ps_buffered_memory_size = atoi(optarg);
-            if (ps_buffered_memory_size < 10)
-            {
-                fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
-                exit(-1);
-            }
-            break;
-
-        case 'v':
-            track_vector = atoi(optarg);
-            break;
-
-        case 'x':
-            mode = atoi(optarg);
-            break;
-
-        case '?':
-            printf("Usage:\n\
-                        \t--dataset XX \t\t\tThe path to the dataset directory\n\
-                        \t--queries XX \t\t\tThe path to the queries directory\n\
-                        \t--dataset-size XX \t\tThe number of time series to load\n\
-                        \t--queries-size XX \t\tThe number of queries to run\n\
-                        \t--mode: 0 = index & query (only option)\t\t\n");
-
-            return 0;
-            break;
-
-        default:
-            exit(-1);
-            break;
+                break;
+        }
     }
-}
-
-
-
-
 
     /* read all vectors in the data set */
     printf("Reading dataset info...");
@@ -216,7 +212,16 @@ while (1)
     printf("Loading dataset files...");
     vector * dataset = load_binary_files(bin_files_directory, 
                                         num_files, total_vectors, base, mtr_vector_length);
-        
+    
+    // printf("Dataset\n");
+    // for(int v = 0; v < total_vectors; v++)
+    // {
+    //     printf("\nvid:(%d, %d)", dataset[v].table_id, dataset[v].set_id);
+    //     print_vector(&dataset[v], mtr_vector_length);
+    // }
+    // printf("End of dataset\n");
+
+
     if(dataset == NULL)
         exit_with_failure("Error in main.c: Something went wrong, couldn't read dataset vectors!");
     printf("(OK)\n");
@@ -229,7 +234,13 @@ while (1)
     // get pivot vector in from metric dataset
     vector * pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
     
-    // free dataset
+    
+    // printf("selected pivots (metric space)\n");
+    // for(int p = 0; p < num_pivots; p++)
+    //     print_vector(&pivots_mtr[p], num_dim_metric_space);
+
+
+    // free dataset (dataset was loaded into memory to get pivots)
     for(int dv = total_vectors - 1; dv >=0; dv--)
         free(dataset[dv].values);
     free(dataset);  
@@ -238,10 +249,15 @@ while (1)
 
 
     /* map pivot vectors to pivot space pi --> pi' */
-    printf("\n\nTransforming pivots to pivot space (compute the distance matrix)... ");
+    printf("\n\nTransforming pivots to pivot space... ");
     vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
-    // vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, pivots_mtr, num_pivots);
+
+    // printf("selected pivots (pivot space)\n");
+    // for(int p = 0; p < num_pivots; p++)
+    //     print_vector(&pivots_ps[p], num_pivots);
+
     printf("(OK)\n");
+    
 
     /* pivot space extremity */
     printf("\nextremity vector (in pivot space):\n");
@@ -249,6 +265,7 @@ while (1)
     vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
     print_vector(pivot_space_extremity, num_pivots);
     
+
 
     /* initialize grid */
     printf("\n\nInitialize grid... ");
@@ -266,6 +283,8 @@ while (1)
 
     printf("(OK)\n");
 
+    
+
     /* Display settings */
     printf("\n\t\t*** \tGRID SETTINGS\t ***\t\n");
     printf("--------------------------------------------------------------\n");
@@ -275,13 +294,8 @@ while (1)
     printf("\t\tNumber of leaf cells = %d\n", grid->settings->num_leaf_cells);
     printf("\t\tLeaf cell edge length = %f\n", grid->settings->leaf_cell_edge_length);
     
-    /* 
-    printf("\t\tPivot vectors (in metric space):\n");
-    for(int i = 0; i < num_pivots; i++)
-    {
-        print_vector(&grid->settings->pivots_mtr[i], num_dim_metric_space);
-    }
-    */
+    
+
     printf("\t\tPivot vectors (in pivot space):\n\n");
     for(int i = 0; i < num_pivots; i++)
     {

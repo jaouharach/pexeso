@@ -5,11 +5,21 @@
 /* pivot selection algorithm */
 vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_pivots, unsigned int fft_scale)
 {
+    printf("dataset dim %d, num pivots %d, fft scale %d\n\n\n", dataset_dim[1], num_pivots, fft_scale);
     // run fft to get a candidate set of outliers
     int num_cp = num_pivots*fft_scale; // number of candidate pivots
 
     // get a set of candidate pivots (outliers)
     vector * candidate_pivots = fft(dataset, dataset_dim, num_cp);
+
+
+    // printf("candidate pivots:\n");
+    // for(int c = 0; c < num_cp; c++)
+    // {
+    //     printf("candidate %d:\n", c+1);
+    //     print_vector(&candidate_pivots[c], dataset_dim[1]);
+    // }
+    // printf("\n\n\n");
 
     // compute the distance matrix (num_vector x num_cp) to the current set of candidate pivots (outliers)
     vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, candidate_pivots, num_cp);
@@ -31,6 +41,8 @@ vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_piv
             pivots[i].values[j] = candidate_pivots[result[i]].values[j];
         }
     }
+
+    
 
     // free memory
     for (int i = num_cp - 1; i >= 0 ; i--)
@@ -55,16 +67,18 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
     int num_vectors = dataset_dim[0]; // total vector in the dataset
     int v_len = dataset_dim[1]; // vector length
 
+    // allocate memory for outliers
+    int * outliers_idx = malloc(sizeof(int) * k); // indexes of outiers in the dataset
     vector *outliers = malloc(sizeof(struct vector) * k);
-    if(outliers == NULL)
+    if(outliers == NULL || outliers_idx == NULL)
         exit_with_failure("Error in select_pivots.c: Couldn't allocate memory for outliers.");
 
     for (int i = 0; i < k; i++)
-    {
+    {       
+        outliers_idx[i] = -1; // to make that this outlier is not found yet
         outliers[i].values = malloc(sizeof(v_type) * v_len);
         if(outliers[i].values == NULL)
             exit_with_failure("Error in select_pivots.c: Couldn't allocate memory for outlier values.");
-
     }
 
     float bsf_d;
@@ -75,40 +89,74 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
 
     // pick an arbitrary vector as first outlier
     unsigned int rand_idx = (rand() % (num_vectors - 1));
+    outliers_idx[0] = rand_idx;
     vector_cpy(&outliers[0], &data_set[rand_idx], v_len);
+    
+    // printf("first outlier: \n");
+    // print_vector(&outliers[0], v_len);
 
-    // find k outliers, skip first
+
+    // find the other  (k-1) outliers, skip first
     for (int i = 1; i < k; i++)
     {
         bsf_d = FLT_MIN; // max distance to the current set of outliers
         bsf_v = -1;      // position of the farthest vector in the data set.
         // find the farthest vector to the vectors in outliers list
         for (int j = 0; j < num_vectors; j++)
-        {
+        {   
             // check if vector is already in oultiers
-            // (...)
-            float d = min_distance(outliers, i + 1, &data_set[j], v_len);
+            // if(in_outliers(outliers_idx, j, k) == 1)
+            //     continue;
+
+            float d = min_distance(outliers, i, &data_set[j], v_len);
+
+            if(d == FLT_MAX)
+            {
+                // print_vector(&data_set[j], v_len);
+                exit_with_failure("Error int select_pivots.c: min distance cannot be equal to FLT_MAX!");
+            }
+
             if (d > bsf_d)
             {
                 bsf_d = d;
                 bsf_v = j;
             }
         }
+        if(bsf_v == -1)
+            exit_with_failure("Error int select_pivots.c: Something went wrong! cannot add outlier of index -1, no such vector in the dataset.");
+        
         for(int v = 0; v < v_len; v++)
             outliers[i].values[v] = data_set[bsf_v].values[v];
     }
     return outliers;
 }
+// check if a new outlier is already in the list of outliers
+unsigned int in_outliers(int * outliers_idx, int new_outlier, int num_outliers)
+{
+    for(int o = 0; o < num_outliers; o++)
+    {
+        if(outliers_idx[o] == new_outlier)
+            return 1;
+    }
+    return 0;
+}
 // min distance to a set of outliers (for fft)
 float min_distance(vector *outliers, unsigned int num_outliers, vector *v, unsigned int v_len)
 {
     float min_d = FLT_MAX, d;
+    // printf("start ---\n");
     for (int i = 0; i < num_outliers; i++)
     {
         d = euclidean_distance(v, &outliers[i], v_len);
+        // printf("d = %.2f\n", d);
         if (d < min_d)
+        {
             min_d = d;
+        }
+            
     }
+    // printf("min d = %.2f\n", min_d);
+    // printf("end ---\n");
     return min_d;
 }
 

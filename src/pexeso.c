@@ -23,10 +23,10 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     // init list of candidate and matching pairs
     struct pairs * pairs = init_pairs();
     
-    //block
+    // block (generate a list of candidate en matching pairs)
     block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings);
 
-    //verify
+    // verify (verify vectors in list of candidate pairs)
     verify(Dgrid, pairs, inv_index, match_map, Qgrid->total_records);
 
     // print Query grid
@@ -40,7 +40,7 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     query_grid_destroy(Qgrid);
 }
 
-/* quick browsing: evaluate leaf cells in Qgrid in Dgrid inverted index and get candidate pairs*/
+/* quick browsing: evaluate leaf cells in Qgrid in Dgrid inverted index and get candidate pairs */
 void quick_browse(struct grid * Dgrid, struct grid * Qgrid)
 {
     struct cell * cell = Qgrid->root->cells; // get cell in root level

@@ -22,3 +22,6 @@ gsl_matrix * empca(vector *data_set, unsigned int num_vectors, unsigned int dim,
 /* select pivots from the empca result (pc with highest projection on dataset)
     returns indecies of the pivots with the highest projection */
 int * select_pivots_by_pca_result_angle(gsl_matrix * pca_result, int *result_dim, int num_pivots);
+
+/* check if a new outlier is already in the list of outliers */
+unsigned int in_outliers(int * outliers_idx, int new_outlier, int num_outliers);
