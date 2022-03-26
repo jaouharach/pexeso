@@ -492,12 +492,18 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, l
     get_leaf_cells(cell, leaves, &num_leaves);
 
     *num_vectors = 0;
-    // if file buffer not in disk return vectors in file buffer
+    // (todo) if file buffer not in disk return vectors in file buffer
     struct vector * cell_vectors = NULL;
     
     for(int i = 0; i < num_leaves; i++)
     {
-        cell_vectors = realloc(cell_vectors, sizeof(struct vector) * (*num_vectors));
+        
+        struct vector * cvs = realloc(cell_vectors, sizeof(struct vector) * (*num_vectors));
+        if(cvs == NULL)
+            exit_with_failure("Error in cell.c: couldn't allocate memory for cell vectors!");
+        
+        cell_vectors = cvs;
+
         for(int j = *num_vectors; j < (leaves[i]->cell_size + *num_vectors); j++)
         {
             cell_vectors[j].values = malloc(sizeof(v_type) * num_pivots);

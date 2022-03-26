@@ -33,7 +33,7 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     // dump_grid_to_console(Qgrid);
 
     // print match map after quering
-    dump_match_map_to_console(match_map);
+    // dump_match_map_to_console(match_map);
 
     // free memory: destroy query grid and result pairs
     destroy_pairs(pairs);
@@ -132,23 +132,14 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
 
 
     /* insert dataset in grid (read and index all vectors in the data set) */
-    printf("Index dataset vectors and build inverted index...");
-    struct inv_index * index = malloc(sizeof(struct inv_index));
-    index->num_entries = 0;
-    if(index == NULL)
-        exit_with_failure("Error in main.c: Couldn't allocate memory for inverted index.");
-
+    printf("Index query vectors...");
+    
     if (!index_binary_files(Qgrid, inv_index, query_file_dir, num_query_files, base))
         exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
     printf("(OK)\n");
 
     /* print grid */
     // dump_grid_to_console(Qgrid);
-
-    // (todo) index query vectors without creating an inverted index
-    /* destroy inverted index (inverted index not required for queries*/
-    if(!inv_index_destroy(index))
-        exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
 
     return Qgrid;
 }

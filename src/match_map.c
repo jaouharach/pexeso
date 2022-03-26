@@ -26,8 +26,6 @@ enum response init_match_map(struct inv_index * index, struct match_map * map)
         map->joinable[s] = false;
 
     }
-    printf("--> Match map after init:\n\n");
-    dump_match_map_to_console(map);
     return OK;
 }
 

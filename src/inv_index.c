@@ -71,9 +71,11 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         int num_entries = index->num_entries;
         entry_idx = num_entries;
         // allocate memory fe new entry
-        index->entries = realloc(index->entries, sizeof(struct entry) * (index->num_entries + 1));
-        if(index->entries == NULL)
+        struct entry * entries = realloc(index->entries, sizeof(struct entry) * (index->num_entries + 1));
+        if(entries == NULL)
             exit_with_failure("Error in inv_index.c: Couldn't allocate memory for new cell entry");
+        
+        index->entries = entries;
         
         struct entry * new_entry = &index->entries[entry_idx];
 

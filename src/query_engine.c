@@ -12,6 +12,10 @@ enum response verify(struct grid *grid, struct pairs *pairs,
     v_type dist_threshold = grid->settings->query_settings->dist_threshold;
     unsigned int join_threshold = grid->settings->query_settings->join_threshold;
 
+    // check if pairs list is not empty
+    if(pairs->num_pairs == 0)
+        exit_with_failure("Error in query_engine.c: Cannot verify 0 pairs! no matching pairs, no candidate pairs are found.");
+    
     // update match map for every set in a matching cell
     for (int i = 0; i < pairs->num_pairs; i++)
     {
@@ -24,7 +28,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                 // get sets in matching cell using inverted index
                 int entry_idx = has_cell(index, match_cell);
                 if (entry_idx == -1)
-                    exit_with_failure("Error in query_engine.c: inverted index doesn't has entry fro matching cell!");
+                    exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for matching cell!");
 
                 struct entry *entry = &index->entries[entry_idx];
                 for (int s = 0; s < entry->num_sets; s++)
@@ -48,7 +52,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                 struct cell *candidate_cell = cpair->cells[c];
                 int entry_idx = has_cell(index, candidate_cell);
                 if (entry_idx == -1)
-                    exit_with_failure("Error in query_engine.c: inverted index doesn't has entry fro matching cell!");
+                    exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for candidate cell!");
 
                 // find entry of candidate cell in inverted index
                 struct entry * entry = &index->entries[entry_idx];
@@ -410,6 +414,7 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct c
 
         if (pairs->query_vectors == NULL || pairs->candidate_pairs == NULL)
             exit_with_failure("Error in query_engine.c: Coudn't reallocate memory for new candidate pair.");
+        
         pairs->query_vectors[q_idx] = q;
 
         pairs->candidate_pairs[q_idx] = malloc(sizeof(struct candidate_pair));
@@ -417,6 +422,7 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct c
             exit_with_failure("Error in query_engine.c: Coudn't reallocate memory for new candidate pair.");
 
         pairs->candidate_pairs[q_idx]->num_candidates = 0;
+        pairs->candidate_pairs[q_idx]->cells = NULL;
         pairs->has_candidates[q_idx] = true;
         pairs->num_pairs++;
     }
@@ -470,6 +476,7 @@ enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct ce
             exit_with_failure("Error in query_engine.c: Coudn't reallocate memory for new match pair.");
 
         pairs->matching_pairs[q_idx]->num_match = 0;
+        pairs->matching_pairs[q_idx]->cells = NULL;
         pairs->has_matches[q_idx] = true;
         pairs->num_pairs++;
     }
@@ -544,6 +551,8 @@ struct pairs *init_pairs()
     pairs->candidate_pairs = NULL;
     pairs->matching_pairs = NULL;
     pairs->query_vectors = NULL;
+    pairs->has_candidates = NULL;
+    pairs->has_matches = NULL;
 
     return pairs;
 }

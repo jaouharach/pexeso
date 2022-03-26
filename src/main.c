@@ -150,7 +150,7 @@ int main(int argc, char **argv)
                 break;
 
             case 't':
-                dist_threshold = atoi(optarg);
+                dist_threshold = atof(optarg);
                 //  (todo) change distance threshold to be in %
                 // if (dist_threshold > 1 || dist_threshold < 0)
                 // {
