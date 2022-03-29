@@ -168,6 +168,8 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
     // append vector in metric format
     append_vector_to_cell(grid, index, cell, vector, v_mapping);
 
+    if(grid->is_query_grid)
+        print_vector(v_mapping, grid->settings->num_pivots);
     // free memory
     free(v_mapping->values);
     free(v_mapping);

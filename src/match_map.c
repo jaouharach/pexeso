@@ -72,8 +72,8 @@ void dump_match_map_to_console(struct match_map * map)
     for(int s = 0; s < map->num_sets; s++)
     {
         curr_set = map->sets[s];
-        printf("\t%d: (%u, %u) => {", s, curr_set.table_id, curr_set.set_pos);
-        printf("match = %u, mistach = %u, joinable: %s}\n", map->match_count[s], map->mismatch_count[s], map->joinable[s] ? "true" : "false");
+        printf("\t%d: \033[1;33m (%u, %u) \033[0m=> {", s, curr_set.table_id, curr_set.set_pos);
+        printf("match = %u, mistach = %u, joinable: %s}\n", map->match_count[s], map->mismatch_count[s], map->joinable[s] ? "\033[0;32mtrue\033[0m" : "\033[1;31mfalse\033[0m");
        
     }
     printf("\n\t>>>  END OF MAP  <<<\n\n\n");

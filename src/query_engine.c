@@ -9,45 +9,48 @@
 enum response verify(struct grid *grid, struct pairs *pairs,
                      struct inv_index *index, struct match_map *match_map, unsigned int query_set_size)
 {
-    v_type dist_threshold = grid->settings->query_settings->dist_threshold;
+    float dist_threshold = grid->settings->query_settings->dist_threshold;
     unsigned int join_threshold = grid->settings->query_settings->join_threshold;
 
     // check if pairs list is not empty
-    if(pairs->num_pairs == 0)
+    if (pairs->num_pairs == 0)
         exit_with_failure("Error in query_engine.c: Cannot verify 0 pairs! no matching pairs, no candidate pairs are found.");
-    
-    // update match map for every set in a matching cell
-    for (int i = 0; i < pairs->num_pairs; i++)
+
+    if (pairs->matching_pairs != NULL)
     {
-        struct matching_pair * mpair = pairs->matching_pairs[i];
-        if (pairs->has_matches[i]) 
-            for (int m = 0; m < mpair->num_match; m++) //loop through match cells
-            {
-                struct cell *match_cell = mpair->cells[m];
-
-                // get sets in matching cell using inverted index
-                int entry_idx = has_cell(index, match_cell);
-                if (entry_idx == -1)
-                    exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for matching cell!");
-
-                struct entry *entry = &index->entries[entry_idx];
-                for (int s = 0; s < entry->num_sets; s++)
+        // update match map for every set in a matching cell
+        for (int i = 0; i < pairs->num_pairs; i++)
+        {
+            struct matching_pair *mpair = pairs->matching_pairs[i];
+            if (pairs->has_matches[i])
+                for (int m = 0; m < mpair->num_match; m++) // loop through match cells
                 {
-                    //update match count for all sets in matching cell
-                    struct sid *curr_set = &index->distinct_sets[entry->sets[s]];
-                    printf("\nmatch ++ !!!\n");
-                    update_match_count(match_map, curr_set);
+                    struct cell *match_cell = mpair->cells[m];
+
+                    // get sets in matching cell, look for cell entry in inverted index
+                    int entry_idx = has_cell(index, match_cell);
+                    if (entry_idx == -1)
+                        exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for matching cell!");
+
+                    struct entry *entry = &index->entries[entry_idx];
+                    for (int s = 0; s < entry->num_sets; s++)
+                    {
+                        // update match count for all sets in matching cell
+                        struct sid *curr_set = &index->distinct_sets[entry->sets[s]];
+                        // printf("\nmatch ++ !!!\n");
+                        update_match_count(match_map, curr_set);
+                    }
                 }
-            }
+        }
     }
     for (int i = 0; i < pairs->num_pairs; i++)
     {
         struct candidate_pair *cpair = pairs->candidate_pairs[i];
         struct vector *query_vector = pairs->query_vectors[i]; // q'
 
-        if (pairs->has_candidates[i])// if current vector has matching pair
-        {                  
-            for (int c = 0; c < cpair->num_candidates; c++) //loop through match cells
+        if (pairs->has_candidates[i]) // if current vector has matching pair
+        {
+            for (int c = 0; c < cpair->num_candidates; c++) // loop through match cells
             {
                 struct cell *candidate_cell = cpair->cells[c];
                 int entry_idx = has_cell(index, candidate_cell);
@@ -55,7 +58,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for candidate cell!");
 
                 // find entry of candidate cell in inverted index
-                struct entry * entry = &index->entries[entry_idx];
+                struct entry *entry = &index->entries[entry_idx];
 
                 // get sets (columns) in candidate_cell
                 // for every set in candidate cell
@@ -140,87 +143,92 @@ enum response verify(struct grid *grid, struct pairs *pairs,
 enum response block(struct cell *query_cell, struct cell *root_cell,
                     struct pairs *pairs, struct grid_settings *settings)
 {
-    v_type dist_threshold = settings->query_settings->dist_threshold;
+    float dist_threshold = settings->query_settings->dist_threshold;
     for (int i = 0; i < query_cell->num_child_cells; i++)
     {
         struct cell *cq = &query_cell->children[i];
         for (int j = 0; j < root_cell->num_child_cells; j++)
         {
             struct cell *cr = &root_cell->children[j];
-            //if cq and cr are leafs
+            // if cq and cr are leafs
             if (cq->is_leaf && cr->is_leaf)
             {
                 if (cq->cell_size != 0 && cr->cell_size != 0) // cell are not empty
                 {
                     // get all q' in cq
-                    struct vector **query_vectors = get_vectors_ps(cq, settings->mtr_vector_length);
+                    struct vector * query_vectors = get_vectors_ps(cq, settings->num_pivots);
                     for (int q = 0; q < cq->cell_size; q++)
                     {
                         // printf("(%u, %u, %u)\n", query_vector[q]->table_id, query_vector[q]->set_id, query_vector[q]->pos);
                         // cr is a match of q' by lemma 5
-                        if (vector_cell_match(query_vectors[q], cr, settings->num_pivots, dist_threshold))
-                            add_matching_pair(pairs, query_vectors[q], cr); // add <q', cr>
+                        if (vector_cell_match(&query_vectors[q], cr, settings->num_pivots, dist_threshold))
+                            add_matching_pair(pairs, &query_vectors[q], cr); // add <q', cr>
 
-                        else 
-                        {   
-                            
-                            if (!vector_cell_filter(query_vectors[q], cr, settings->num_pivots, dist_threshold))
-                                add_candidate_pair(pairs, query_vectors[q], cr); // add <q', cr>
+                        else
+                        {
+                            printf("vector cell filter\n");
+                            if (!vector_cell_filter(&query_vectors[q], cr, settings->num_pivots, dist_threshold))
+                                add_candidate_pair(pairs, &query_vectors[q], cr); // add <q', cr>
 
                             else // if cr can be pruned by lemma 3
                             {
-                                free(query_vectors[q]->values);
-                                free(query_vectors[q]);
+                                free(query_vectors[q].values);
+                                // free(query_vectors[q]);
                             }
                         }
                     }
                     // free memory
-                    free(query_vectors);
+                    // free(query_vectors);
                 }
             }
             else
             {
                 // lemma 6
-                if (cell_cell_match(cq, cr, settings->num_pivots, dist_threshold))
+                if (cell_cell_match(cr, cq, settings->num_pivots, dist_threshold))
                 {
-                    unsigned int num_cr_leaves = 0;
+                    unsigned int num_cr_leaves = 0, max_leaf_idx = 0;
                     get_num_leaf_cells(cr, &num_cr_leaves);
+                    max_leaf_idx = num_cr_leaves - 1;
 
                     struct cell **cr_leaves = NULL;
-                    cr_leaves = malloc(sizeof(struct cell *) * (num_cr_leaves + 1));
+                    cr_leaves = malloc(sizeof(struct cell *) * (num_cr_leaves));
                     if (cr_leaves == NULL)
                         exit_with_failure("Error in cell.c: couldn't reallocate memory for root cell leaves.");
 
-                    get_leaf_cells(cr, cr_leaves, &num_cr_leaves);
+                    get_leaf_cells(cr, cr_leaves, &max_leaf_idx);
 
-                    unsigned int num_cq_leaves = 0;
+                    unsigned int num_cq_leaves = 0, max_qleaf_idx = 0;
                     get_num_leaf_cells(cq, &num_cq_leaves);
+                    max_qleaf_idx = num_cq_leaves - 1;
 
                     struct cell **cq_leaves = NULL;
                     cq_leaves = malloc(sizeof(struct cell *) * (num_cq_leaves + 1));
                     if (cq_leaves == NULL)
                         exit_with_failure("Error in cell.c: couldn't reallocate memory for query cell leaves.");
 
-                    get_leaf_cells(cq, cq_leaves, &num_cq_leaves);
+                    get_leaf_cells(cq, cq_leaves, &max_qleaf_idx);
 
                     for (int ql = 0; ql < num_cq_leaves; ql++)
                     {
-                        struct vector **query_vector = get_vectors_ps(cq_leaves[ql], settings->num_pivots);
+                        struct vector *query_vector = get_vectors_ps(cq_leaves[ql], settings->num_pivots);
                         for (int q = 0; q < cq->cell_size; q++)
                         {
                             for (int l = 0; l < num_cr_leaves; l++)
                                 // add cr to matching_pair
-                                add_matching_pair(pairs, query_vector[q], cr_leaves[l]);
+                                add_matching_pair(pairs, &query_vector[q], cr_leaves[l]);
                         }
                         // free memory
                         free(query_vector);
                     }
                 }
+                
                 // lemma 4: cr cannot be pruned
-                else if (!cell_cell_filter(cq, cr, settings->num_pivots, dist_threshold))
+                else if (!cell_cell_filter(cr, cq, settings->num_pivots, dist_threshold))
                 {
+                    printf("cell cell filter\n");
                     block(cq, cr, pairs, settings);
                 }
+                printf("cell cell filter\n");
             }
         }
     }
@@ -236,8 +244,39 @@ struct query_settings *init_query_settings(v_type dist_threshold, unsigned int j
 
     return settings;
 }
-/* 
-    Given two vectors q and x, a set P of pivot vectors, a distance function d, 
+/* check if a vector is in the SQR of a query vector */
+bool vector_in_SQR(struct vector * v, struct vector * q, unsigned int num_pivots, float dist_threshold)
+{
+    float max, min;
+    for(int p = 0; p < num_pivots; p++)
+    {
+        max = q->values[p] + dist_threshold;
+        min = q->values[p] - dist_threshold;
+        if(v->values[p] <= max && v->values[p] >= min)
+            continue;
+        else
+        {
+            // printf("\n\nvector (%u, %u, %u) is NOT in SQR!\n\n",  v->table_id, v->set_id, v->pos);
+            return 0;
+        }
+    }
+    printf("\n\nvector (%u, %u, %u) is in SQR!\n\n",  v->table_id, v->set_id, v->pos);
+    return 1;
+}
+
+/* check if a vector is in the RGR of a query vector and pivot p */
+bool vector_in_RQR(struct vector * v, struct vector * q, unsigned int p, float rqr)
+{
+    if(v->values[p] <= rqr)
+    {
+        printf("\n\nvector (%u, %u, %u) is in RGR!\n\n",  v->table_id, v->set_id, v->pos);
+        return 1;
+    }
+    return 0;
+}
+
+/*
+    Given two vectors q and x, a set P of pivot vectors, a distance function d,
     and a threshold τ.
     if q matches x, then d(q, p) − τ ≤ d(x, p) ≤ d(q, p) + τ
     note: q and v are in pivot space.
@@ -257,8 +296,8 @@ enum response pivot_filter(struct vector *q, struct vector *x,
     }
     return filter ? OK : FAILED;
 }
-/* 
-    Given two vectors q and x, a set P of pivot vectors, a distance function d, 
+/*
+    Given two vectors q and x, a set P of pivot vectors, a distance function d,
     and a threshold τ, if there exists a pivot p ∈ P such that d(x, p) +d(q, p) ≤ τ,
     then q matches x.
     note: q and v are in pivot space.
@@ -266,7 +305,7 @@ enum response pivot_filter(struct vector *q, struct vector *x,
 enum response pivot_match(struct vector *q, struct vector *x,
                           unsigned int num_pivots, v_type dist_threshold)
 {
-    // find pivot such that d(x, p) +d(q, p) ≤ τ
+    // find pivot such that d(x, p) + d(q, p) ≤ τ
     for (int p = 0; p < num_pivots; p++)
     {
         if ((x->values[p] + q->values[p]) <= dist_threshold)
@@ -275,9 +314,9 @@ enum response pivot_match(struct vector *q, struct vector *x,
     return FAILED;
 }
 
-/* 
+/*
    Given a cell c and a mapped query vector q in the pivot space,
-   if c ∩ SQR(q, τ) = ∅, then for any mapped vector x ∈ c, 
+   if c ∩ SQR(q, τ) = ∅, then for any mapped vector x ∈ c,
    its original vector x does not match q.
 
    function returns OK if cell c can be filtered (pruned).
@@ -285,16 +324,22 @@ enum response pivot_match(struct vector *q, struct vector *x,
 enum response vector_cell_filter(struct vector *q, struct cell *cell,
                                  unsigned int num_pivots, v_type dist_threshold)
 {
-    if (euclidean_distance(cell->center, q, num_pivots) >= dist_threshold)
-        return OK;
+    printf("\nvector cell filter, cell size = %u\n", cell->cell_size);
+    // check if there is at least one vector in SQR of q
+    vector *cell_vectors = get_vectors_ps(cell, num_pivots);
+    for(int v = 0; v < cell->cell_size; v++)
+    {
+        if(vector_in_SQR(&cell_vectors[v], q, num_pivots, dist_threshold))
+            return FAILED;
+    }
+    return OK;
 
-    return FAILED;
 }
 
-/* 
-   Given a target cell c and a query cell cq in the pivot space, 
-   if c ∩ SQR(cq.center, (τ+cq.length / 2)) = ∅, 
-   then for any mapped vector x ∈ c and any query vector q ∈ cq, 
+/*
+   Given a target cell c and a query cell cq in the pivot space,
+   if c ∩ SQR(cq.center, (τ+cq.length / 2)) = ∅,
+   then for any mapped vector x ∈ c and any query vector q ∈ cq,
    their original vectors do not match.
 
    function returns OK if cell c can be filtered (pruned).
@@ -302,75 +347,137 @@ enum response vector_cell_filter(struct vector *q, struct cell *cell,
 enum response cell_cell_filter(struct cell *cell, struct cell *query_cell,
                                unsigned int num_pivots, v_type dist_threshold)
 {
-    if (euclidean_distance(cell->center, query_cell->center, num_pivots) >= ((dist_threshold + query_cell->edge_length) / 2))
-        return OK;
+    // check if there is at least one vector in SQR of cq.center
+    dist_threshold = dist_threshold + (query_cell->edge_length / 2);
+    long unsigned int num_cell_vectors = 0;
 
-    return FAILED;
+    vector *cell_vectors = get_sub_cells_vectors_ps(cell, num_pivots, &num_cell_vectors);
+
+    for(int v = 0; v < num_cell_vectors; v++)
+    {
+        if(vector_in_SQR(&cell_vectors[v], query_cell->center, num_pivots, dist_threshold))
+            return FAILED;
+    }
+    return OK;
 }
 
-/* 
+
+/*
     Given a target cell c and a mapped query vector q in the pivot space,
-    if there exists a pivot p ∈ P such that c ∩ RQR(q, p, τ) = c, 
+    if there exists a pivot p ∈ P such that c ∩ RQR(q, p, τ) = c,
     then for any vector x ∈ c, the original vector x matches the query vector q.
 
    function returns OK if cell c is a match to q.
 */
 enum response vector_cell_match(struct vector *q, struct cell *cell,
                                 unsigned int num_pivots, v_type dist_threshold)
-{
+{   
+    vector *cell_vectors = get_vectors_ps(cell, num_pivots);
+    float rqr;
     for (int p = 0; p < num_pivots; p++)
     {
-        if ((cell->center->values[p] * 2) - dist_threshold + q->values[p] == 0)
+        rqr = dist_threshold - q->values[p];
+        if(rqr < 0) // no rectangle query region for pivot p
+            continue;
+
+        bool  cell_in_rqr = 1; // assume cell is in rqr
+        for(int v = 0; v < cell->cell_size; v++)
+        {
+            if(vector_in_RQR(&cell_vectors[v], q, p, rqr) == 0)
+            {
+                cell_in_rqr = 0; // cell is not in rqr (found one vector in c but not in rqr)
+                break;  
+            }
+        }
+
+        if(cell_in_rqr == 1)
             return OK;
     }
     return FAILED;
 }
 
-/* 
-   Given a target cell c and a query cell cq in the pivot space, 
-   if there exists a pivot p ∈ P such that c ∩ min(RQR(q, p, τ)) = c, 
+/*
+   Given a target cell c and a query cell cq in the pivot space,
+   if there exists a pivot p ∈ P such that c ∩ min(RQR(q, p, τ)) = c,
    then for any mapped vector x ∈ c and any query vector q ∈ cq,
    their original vectors match.
 
    function returns OK if cell c is a match to cq.
 */
 enum response cell_cell_match(struct cell *cell, struct cell *query_cell,
-                              unsigned int num_pivots, v_type dist_threshold)
+                              unsigned int num_pivots, float dist_threshold)
 {
-    // min RQR
-    v_type min_rqr;
+    long unsigned int num_cell_vectors = 0, num_query_vectors = 0;
 
-    for (int p = 0; p < num_pivots; p++)
+    vector *cell_vectors, *query_vectors;
+    if(cell->is_leaf == true)
     {
-        min_rqr = min_RQR(query_cell, num_pivots, p, dist_threshold);
+        num_cell_vectors = cell->cell_size;
+        cell_vectors = get_vectors_ps(cell, num_pivots);
+    }
+    else
+        cell_vectors = get_sub_cells_vectors_ps(cell, num_pivots, &num_cell_vectors);
+    
+    if(query_cell->is_leaf == true)
+    {
+        num_query_vectors = query_cell->cell_size;
+        query_vectors = get_vectors_ps(query_cell, num_pivots);
+    }
+    else
+        query_vectors = get_sub_cells_vectors_ps(query_cell, num_pivots, &num_query_vectors);
+
+
+    float min_rqr;
+
+    for(int q = 0; q < num_query_vectors; q++)
+    {
+        int p = min_RQR(&query_vectors[q], num_pivots, dist_threshold);
+       
+        if(p == -1) // no rectangle query region for query vector q
+            continue;
+
+        min_rqr = dist_threshold - query_vectors[q].values[p];
+
         // if c ∩ min(RQR(q, p, τ)) = c
-        if ((cell->center->values[p] * 2) - min_rqr == 0)
+        bool  cell_in_rqr = 1; // assume cell is in rqr
+        for(int v = 0; v < num_cell_vectors; v++)
+        {
+            if(vector_in_RQR(&cell_vectors[v], &query_vectors[q], p, min_rqr) == 0)
+            {
+                cell_in_rqr = 0; // cell is not in rqr (found one vector in c but not in rqr)
+                break;  
+            }
+        }
+
+        if(cell_in_rqr == 1)
             return OK;
     }
 
     return FAILED;
 }
 
-/* min rectagle query region RQR of a query in query_cell for pivot p */
-v_type min_RQR(struct cell *query_cell, unsigned int num_pivots, int p, v_type dist_threshold)
+/* min rectagle query region RQR of a query in query_cell for pivot p, returns index of the pivot with the minimum rqr */
+float min_RQR(struct vector *q, unsigned int num_pivots, float dist_threshold)
 {
-    v_type min_rqr = FLT_MAX;
-    long unsigned int num_vectors = 0;
-
-    struct vector *query_vectors = get_sub_cells_vectors_ps(query_cell, num_pivots, &num_vectors);
-
-    for (int i = 0; i < num_vectors; i++)
+    float min_rqr = FLT_MAX, rqr;
+    int bsf_p = -1;
+    for (int p = 0; p < num_pivots; p++)
     {
+        rqr = dist_threshold - q->values[p];
+        if(rqr < 0)
+            continue;
         // lead vectors stored in cell
-        if (dist_threshold - query_vectors[i].values[p] < min_rqr)
-            min_rqr = dist_threshold - query_vectors[i].values[p];
+        if (rqr < min_rqr)
+        {
+            min_rqr = rqr;
+            bsf_p = p;
+        }
     }
 
-    for (int i = 0; i < num_vectors; i++)
-        free(query_vectors[i].values);
-    free(query_vectors);
+    if(min_rqr != FLT_MAX && bsf_p != -1)
+        return bsf_p;
 
-    return min_rqr;
+    return -1; // to indicate that no rqr is found
 }
 /* check if list of pairs already has query vector */
 int has_query_vector(struct pairs *pairs, vector *query_vector)
@@ -399,9 +506,10 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct c
     unsigned int num_query_vectors = pairs->num_pairs;
     int q_idx = has_query_vector(pairs, q);
 
-    // query vector doesn't exist / the first to be added
+    // query vector doesn't exist in pairs list
     if (q_idx == -1 || num_query_vectors == 0)
     {
+        printf("\n\n\t*** *** *** Add query vector to pairs list (with its candidate)\n\n");
         if (q_idx == -1)
             q_idx = num_query_vectors; // add at last pos
 
@@ -414,7 +522,7 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct c
 
         if (pairs->query_vectors == NULL || pairs->candidate_pairs == NULL)
             exit_with_failure("Error in query_engine.c: Coudn't reallocate memory for new candidate pair.");
-        
+
         pairs->query_vectors[q_idx] = q;
 
         pairs->candidate_pairs[q_idx] = malloc(sizeof(struct candidate_pair));
@@ -424,6 +532,9 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct c
         pairs->candidate_pairs[q_idx]->num_candidates = 0;
         pairs->candidate_pairs[q_idx]->cells = NULL;
         pairs->has_candidates[q_idx] = true;
+
+        pairs->matching_pairs[q_idx] = NULL;
+        pairs->has_matches[q_idx] = false;
         pairs->num_pairs++;
     }
     else
@@ -456,6 +567,7 @@ enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct ce
     // query vector doesn't exist / the first to be added
     if (q_idx == -1 || num_query_vectors == 0)
     {
+        printf("\n\n\t*** *** *** Add query vector to pairs list (with its match)\n\n");
         if (q_idx == -1)
             q_idx = num_query_vectors; // add at last pos
 
@@ -470,7 +582,7 @@ enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct ce
             exit_with_failure("Error in query_engine.c: Coudn't reallocate memory for new match pair.");
         pairs->query_vectors[q_idx] = q;
 
-        printf("match pairs %d malloc\n.\n.\n.\n.\n.\n", q_idx);
+        // printf("match pairs %d malloc\n.\n.\n.\n.\n.\n", q_idx);
         pairs->matching_pairs[q_idx] = malloc(sizeof(struct matching_pair));
         if (pairs->matching_pairs[q_idx] == NULL)
             exit_with_failure("Error in query_engine.c: Coudn't reallocate memory for new match pair.");
@@ -478,6 +590,10 @@ enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct ce
         pairs->matching_pairs[q_idx]->num_match = 0;
         pairs->matching_pairs[q_idx]->cells = NULL;
         pairs->has_matches[q_idx] = true;
+
+        pairs->candidate_pairs[q_idx] = NULL;
+        pairs->has_candidates[q_idx] = false;
+
         pairs->num_pairs++;
     }
     else
@@ -514,14 +630,16 @@ enum response destroy_pairs(struct pairs *pairs)
         if (pairs->candidate_pairs != NULL)
         {
             struct candidate_pair *curr_cp = pairs->candidate_pairs[i];
-            free(curr_cp->cells);
+            if(curr_cp != NULL)
+                free(curr_cp->cells);
             free(curr_cp);
         }
 
         if (pairs->matching_pairs != NULL)
         {
             struct matching_pair *curr_mp = pairs->matching_pairs[i];
-            // free(curr_mp->cells);
+            if(curr_mp != NULL)
+                free(curr_mp->cells);
             free(curr_mp);
         }
         free(pairs->query_vectors[i]->values);
@@ -547,12 +665,12 @@ struct pairs *init_pairs()
     if (pairs == NULL)
         exit_with_failure("Error in pexeso.c: Couldn't allocate memory for pairs!");
 
-    pairs->num_pairs = 0u;
+    pairs->num_pairs = 0u; // num vectors with candiate and/or matching pairs
     pairs->candidate_pairs = NULL;
     pairs->matching_pairs = NULL;
     pairs->query_vectors = NULL;
-    pairs->has_candidates = NULL;
-    pairs->has_matches = NULL;
+    pairs->has_candidates = false;
+    pairs->has_matches = false;
 
     return pairs;
 }

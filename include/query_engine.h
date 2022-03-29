@@ -14,7 +14,7 @@ struct query_result
 struct query_settings
 {
     unsigned int join_threshold; // T 
-    v_type dist_threshold; // tau
+    float dist_threshold; // tau
 };
 
 // pairs of candidate and matching cells for every query vector
@@ -49,6 +49,12 @@ enum response verify(struct grid * grid, struct pairs * pairs,
             
 /* initialize query settings */
 struct query_settings * init_query_settings(v_type dist_threshold, unsigned int join_threshold);
+
+/* check if a vector is in the SQR of a query vector */
+bool vecotr_in_SQR(struct vector * v, struct vector * q, unsigned int num_pivots, float dist_threshold);
+
+/* check if a vector is in the RGR of a query vector and pivot p */
+bool vector_in_RQR(struct vector * v, struct vector * q, unsigned int p, float dist_threshold);
 
 /* 
     Given two vectors q and x, a set P of pivot vectors, a distance function d, 
@@ -107,10 +113,10 @@ enum response vector_cell_match(struct vector * q, struct cell * cell,
    function returns OK if cell c is a match to cq.
 */
 enum response cell_cell_match(struct cell * cell, struct cell * query_cell, 
-                            unsigned int num_pivots, v_type dist_threshold);
+                            unsigned int num_pivots, float dist_threshold);
 
-/* min rectagle query region RQR of a query in query_cell for pivot p */
-v_type min_RQR(struct cell * query_cell, unsigned int num_pivots, int p,  v_type dist_threshold);
+/* min rectagle query region RQR of a query vector  */
+float min_RQR(struct vector *q, unsigned int num_pivots, float dist_threshold);
 
 /* add candidate pair */
 enum response add_candidate_pair(struct pairs * pairs, struct vector * query_vector, struct cell *candidate);

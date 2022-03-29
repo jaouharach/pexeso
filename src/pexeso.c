@@ -139,7 +139,8 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
     printf("(OK)\n");
 
     /* print grid */
-    // dump_grid_to_console(Qgrid);
+    printf("-- QUERY GRID:\n\n");
+    dump_grid_to_console(Qgrid);
 
     return Qgrid;
 }

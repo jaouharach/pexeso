@@ -1,0 +1,34 @@
+-- vector cell filter previous method (check overlap on each dimension p)
+
+// check overlap on every plane (dimension) p
+// Q in the square query region and C is the cell
+// float Qmax_p, Qmin_p, Cmax_p, Cmin_p;
+// for (int p = 0; p < num_pivots; p++)
+// {
+//     Qmax_p = q->values[p] + dist_threshold;
+//     Qmin_p = q->values[p] - dist_threshold;
+//     Cmax_p = cell->center->values[p] + (cell->edge_length / 2);
+//     Cmin_p = cell->center->values[p] - (cell->edge_length / 2);
+
+//     if (Qmax_p > Cmin_p && Qmin_p < Cmax_p) // overlap on dimension p
+//         return FAILED;
+// }
+// return OK;
+
+
+-- cell cell filter previous method (check overlap on each dimension p)
+
+// check overlap on every plane (dimension) p
+// Q in the square query region and C is the cell
+// float Qmax_p, Qmin_p, Cmax_p, Cmin_p;
+// for (int p = 0; p < num_pivots; p++)
+// {
+//     Qmax_p = query_cell->center->values[p] + dist_threshold + (query_cell->edge_length / 2);
+//     Qmin_p = query_cell->center->values[p] - dist_threshold - (query_cell->edge_length / 2);
+//     Cmax_p = cell->center->values[p] + (cell->edge_length / 2);
+//     Cmin_p = cell->center->values[p] - (cell->edge_length / 2);
+
+//     if (Qmax_p > Cmin_p && Qmin_p < Cmax_p) // overlap on diemsion p
+//         return FAILED;
+// }
+// return OK;
