@@ -46,7 +46,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
     for (int i = 0; i < pairs->num_pairs; i++)
     {
         struct candidate_pair *cpair = pairs->candidate_pairs[i];
-        struct vector *query_vector = pairs->query_vectors[i]; // q'
+        struct vector *query_vector = &pairs->query_vectors[i]; // q'
 
         if (pairs->has_candidates[i]) // if current vector has matching pair
         {
@@ -162,23 +162,25 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                         // printf("(%u, %u, %u)\n", query_vector[q]->table_id, query_vector[q]->set_id, query_vector[q]->pos);
                         // cr is a match of q' by lemma 5
                         if (vector_cell_match(&query_vectors[q], cr, settings->num_pivots, dist_threshold))
-                            add_matching_pair(pairs, &query_vectors[q], cr); // add <q', cr>
-
+                        {
+                            add_matching_pair(pairs, &query_vectors[q], cr, settings->num_pivots); // add <q', cr>
+                            free(query_vectors[q].values);
+                        }
                         else
                         {
-                            printf("vector cell filter\n");
                             if (!vector_cell_filter(&query_vectors[q], cr, settings->num_pivots, dist_threshold))
-                                add_candidate_pair(pairs, &query_vectors[q], cr); // add <q', cr>
-
+                            {
+                                add_candidate_pair(pairs, &query_vectors[q], cr, settings->num_pivots); // add <q', cr>
+                                free(query_vectors[q].values);
+                            }
                             else // if cr can be pruned by lemma 3
                             {
                                 free(query_vectors[q].values);
-                                // free(query_vectors[q]);
                             }
                         }
                     }
                     // free memory
-                    // free(query_vectors);
+                    free(query_vectors);
                 }
             }
             else
@@ -210,25 +212,31 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
 
                     for (int ql = 0; ql < num_cq_leaves; ql++)
                     {
-                        struct vector *query_vector = get_vectors_ps(cq_leaves[ql], settings->num_pivots);
+                        if(cq_leaves[ql]->cell_size == 0)
+                            continue;
+
+                        struct vector *query_vectors = get_vectors_ps(cq_leaves[ql], settings->num_pivots);
                         for (int q = 0; q < cq->cell_size; q++)
                         {
                             for (int l = 0; l < num_cr_leaves; l++)
                                 // add cr to matching_pair
-                                add_matching_pair(pairs, &query_vector[q], cr_leaves[l]);
+                                add_matching_pair(pairs, &query_vectors[q], cr_leaves[l], settings->num_pivots);
                         }
+
                         // free memory
-                        free(query_vector);
+                        free(cr_leaves);
+                        free(cq_leaves);
+                        for(int n = 0; n < cq_leaves[ql]->cell_size; n++)
+                            free(query_vectors[n].values);
+                        free(query_vectors);
                     }
                 }
                 
                 // lemma 4: cr cannot be pruned
                 else if (!cell_cell_filter(cr, cq, settings->num_pivots, dist_threshold))
                 {
-                    printf("cell cell filter\n");
                     block(cq, cr, pairs, settings);
                 }
-                printf("cell cell filter\n");
             }
         }
     }
@@ -260,7 +268,7 @@ bool vector_in_SQR(struct vector * v, struct vector * q, unsigned int num_pivots
             return 0;
         }
     }
-    printf("\n\nvector (%u, %u, %u) is in SQR!\n\n",  v->table_id, v->set_id, v->pos);
+    // printf("\n\nvector (%u, %u, %u) is in SQR!\n\n",  v->table_id, v->set_id, v->pos);
     return 1;
 }
 
@@ -269,7 +277,7 @@ bool vector_in_RQR(struct vector * v, struct vector * q, unsigned int p, float r
 {
     if(v->values[p] <= rqr)
     {
-        printf("\n\nvector (%u, %u, %u) is in RGR!\n\n",  v->table_id, v->set_id, v->pos);
+        // printf("\n\nvector (%u, %u, %u) is in RGR!\n\n",  v->table_id, v->set_id, v->pos);
         return 1;
     }
     return 0;
@@ -324,14 +332,23 @@ enum response pivot_match(struct vector *q, struct vector *x,
 enum response vector_cell_filter(struct vector *q, struct cell *cell,
                                  unsigned int num_pivots, v_type dist_threshold)
 {
-    printf("\nvector cell filter, cell size = %u\n", cell->cell_size);
+    // printf("\nvector cell filter, cell size = %u\n", cell->cell_size);
     // check if there is at least one vector in SQR of q
     vector *cell_vectors = get_vectors_ps(cell, num_pivots);
     for(int v = 0; v < cell->cell_size; v++)
     {
         if(vector_in_SQR(&cell_vectors[v], q, num_pivots, dist_threshold))
+        {
+            for(int i = 0; i < cell->cell_size; i++)
+                free(cell_vectors[i].values);
+            free(cell_vectors);
             return FAILED;
+        }
     }
+
+    for(int i = 0; i < cell->cell_size; i++)
+        free(cell_vectors[i].values);
+    free(cell_vectors);
     return OK;
 
 }
@@ -356,8 +373,19 @@ enum response cell_cell_filter(struct cell *cell, struct cell *query_cell,
     for(int v = 0; v < num_cell_vectors; v++)
     {
         if(vector_in_SQR(&cell_vectors[v], query_cell->center, num_pivots, dist_threshold))
+        {
+            // free memory
+            for(int i = 0; i < num_cell_vectors; i++)
+                free(cell_vectors[i].values);
+            free(cell_vectors);
             return FAILED;
+        }
     }
+
+    // free memory
+    for(int i = 0; i < num_cell_vectors; i++)
+        free(cell_vectors[i].values);
+    free(cell_vectors);
     return OK;
 }
 
@@ -391,8 +419,20 @@ enum response vector_cell_match(struct vector *q, struct cell *cell,
         }
 
         if(cell_in_rqr == 1)
+        {
+            // free memory
+            for(int i = 0; i < cell->cell_size; i++)
+                free(cell_vectors[i].values);
+            free(cell_vectors);
             return OK;
+        }
     }
+
+    // free memory
+    for(int i = 0; i < cell->cell_size; i++)
+        free(cell_vectors[i].values);
+    free(cell_vectors);
+
     return FAILED;
 }
 
@@ -450,8 +490,27 @@ enum response cell_cell_match(struct cell *cell, struct cell *query_cell,
         }
 
         if(cell_in_rqr == 1)
+        {
+            // free memory
+            for(int i = 0; i < num_cell_vectors; i++)
+                free(cell_vectors[i].values);
+            free(cell_vectors);
+
+            for(int i = 0; i < num_query_vectors; i++)
+                free(query_vectors[i].values);
+            free(query_vectors);
+
             return OK;
+        }
     }
+
+    // free memory
+    for(int i = 0; i < num_cell_vectors; i++)
+        free(cell_vectors[i].values);
+    free(cell_vectors);
+    for(int i = 0; i < num_query_vectors; i++)
+        free(query_vectors[i].values);
+    free(query_vectors);
 
     return FAILED;
 }
@@ -489,16 +548,16 @@ int has_query_vector(struct pairs *pairs, vector *query_vector)
     {
         // printf("%p vs %p\n", pairs->query_vectors[i], query_vector);
         if (
-            pairs->query_vectors[i]->table_id == query_vector->table_id &&
-            pairs->query_vectors[i]->set_id == query_vector->set_id &&
-            pairs->query_vectors[i]->pos == query_vector->pos)
+            pairs->query_vectors[i].table_id == query_vector->table_id &&
+            pairs->query_vectors[i].set_id == query_vector->set_id &&
+            pairs->query_vectors[i].pos == query_vector->pos)
             return i;
     }
 
     return -1;
 }
 /* add candidate pair */
-enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct cell *cell)
+enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct cell *cell, unsigned int num_pivots)
 {
     if (pairs == NULL)
         exit_with_failure("Error in query_engine.c: NULL pointer to result pairs!");
@@ -514,7 +573,7 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct c
             q_idx = num_query_vectors; // add at last pos
 
         // alloc for new query vector
-        pairs->query_vectors = realloc(pairs->query_vectors, sizeof(struct vector *) * (num_query_vectors + 1));
+        pairs->query_vectors = realloc(pairs->query_vectors, sizeof(struct vector) * (num_query_vectors + 1));
         pairs->candidate_pairs = realloc(pairs->candidate_pairs, sizeof(struct candidate_pair *) * (num_query_vectors + 1));
         pairs->matching_pairs = realloc(pairs->matching_pairs, sizeof(struct matching_pair *) * (num_query_vectors + 1));
         pairs->has_candidates = realloc(pairs->has_candidates, sizeof(bool) * (num_query_vectors + 1));
@@ -523,7 +582,17 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct c
         if (pairs->query_vectors == NULL || pairs->candidate_pairs == NULL)
             exit_with_failure("Error in query_engine.c: Coudn't reallocate memory for new candidate pair.");
 
-        pairs->query_vectors[q_idx] = q;
+        pairs->query_vectors[q_idx].values = malloc(sizeof(v_type) * num_pivots);
+        if (pairs->query_vectors[q_idx].values == NULL)
+            exit_with_failure("Error in query_engine.c: Coudn't reallocate memory for new match pair values.");
+
+        // copy vector
+        for(int i = 0; i < num_pivots; i++)
+            pairs->query_vectors[q_idx].values[i] = q->values[i];
+
+        pairs->query_vectors[q_idx].table_id = q->table_id;
+        pairs->query_vectors[q_idx].set_id = q->set_id;
+        pairs->query_vectors[q_idx].pos = q->pos;
 
         pairs->candidate_pairs[q_idx] = malloc(sizeof(struct candidate_pair));
         if (pairs->candidate_pairs[q_idx] == NULL)
@@ -536,12 +605,6 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct c
         pairs->matching_pairs[q_idx] = NULL;
         pairs->has_matches[q_idx] = false;
         pairs->num_pairs++;
-    }
-    else
-    {
-        // vector already in pairs, free new duplicate vector
-        free(q->values);
-        free(q);
     }
 
     // add candidate (todo: check if candidate cell already exists)
@@ -556,7 +619,7 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct c
 }
 
 /* add candidate pair */
-enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct cell *cell)
+enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct cell *cell, unsigned int num_pivots)
 {
     if (pairs == NULL)
         exit_with_failure("Error in query_engine.c: NULL pointer to result pairs!");
@@ -572,7 +635,7 @@ enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct ce
             q_idx = num_query_vectors; // add at last pos
 
         // alloc for new query vector
-        pairs->query_vectors = realloc(pairs->query_vectors, sizeof(struct vector *) * (num_query_vectors + 1));
+        pairs->query_vectors = realloc(pairs->query_vectors, sizeof(struct vector) * (num_query_vectors + 1));
         pairs->candidate_pairs = realloc(pairs->candidate_pairs, sizeof(struct candidate_pair *) * (num_query_vectors + 1));
         pairs->matching_pairs = realloc(pairs->matching_pairs, sizeof(struct matching_pair *) * (num_query_vectors + 1));
         pairs->has_candidates = realloc(pairs->has_candidates, sizeof(bool) * (num_query_vectors + 1));
@@ -580,7 +643,18 @@ enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct ce
 
         if (pairs->query_vectors == NULL || pairs->matching_pairs == NULL)
             exit_with_failure("Error in query_engine.c: Coudn't reallocate memory for new match pair.");
-        pairs->query_vectors[q_idx] = q;
+        
+        // copy vector
+        pairs->query_vectors[q_idx].values = malloc(sizeof(v_type) * num_pivots);
+        if (pairs->query_vectors[q_idx].values == NULL)
+            exit_with_failure("Error in query_engine.c: Coudn't reallocate memory for new match pair values.");
+
+        for(int i = 0; i < num_pivots; i++)
+            pairs->query_vectors[q_idx].values[i] = q->values[i];
+
+        pairs->query_vectors[q_idx].table_id = q->table_id;
+        pairs->query_vectors[q_idx].set_id = q->set_id;
+        pairs->query_vectors[q_idx].pos = q->pos;
 
         // printf("match pairs %d malloc\n.\n.\n.\n.\n.\n", q_idx);
         pairs->matching_pairs[q_idx] = malloc(sizeof(struct matching_pair));
@@ -596,13 +670,7 @@ enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct ce
 
         pairs->num_pairs++;
     }
-    else
-    {
-        // vector already in pairs, free new duplicate vector
-        free(q->values);
-        free(q);
-    }
-
+    
     // add candidate
     struct matching_pair *mp = pairs->matching_pairs[q_idx];
     mp->cells = realloc(mp->cells, sizeof(struct cell *) * (mp->num_match + 1));
@@ -642,8 +710,8 @@ enum response destroy_pairs(struct pairs *pairs)
                 free(curr_mp->cells);
             free(curr_mp);
         }
-        free(pairs->query_vectors[i]->values);
-        free(pairs->query_vectors[i]);
+        free(pairs->query_vectors[i].values);
+        // free(pairs->query_vectors[i]);
     }
 
     if (pairs->matching_pairs != NULL)

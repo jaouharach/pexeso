@@ -1,9 +1,9 @@
 To compile:                         gcc globals.c select_pivots.c gsl_matrix.c inv_index.c match_map.c  query_engine.c level.c file_buffer_manager.c file_buffer.c file_loader.c cell.c pexeso.c hgrid.c  main.c -o ../bin/pexeso -lm -g -lgsl -lgslcblas
-debug with valgrind:                valgrind  --undef-value-errors=no ../bin/pexeso
+debug with valgrind:                valgrind  --leak-check=full --undef-value-errors=no ../bin/pexeso --work-dir /home/jaouhara/Documents/Projects/dssdl-projects/pexeso/Hgrid/ --dataset /home/jaouhara/Documents/Projects/dummy-data/bins-2 --queries /home/jaouhara/Documents/Projects/dummy-data/bins-2/queries --metric-space-dim 50 --pivot-space-dim 4 --num-levels 3 --leaf-size 450 --fft-scale 13 --join-threshold 1 --dist-threshold 1.5 --metric-buffer-size 30 --pivot-buffer-size 30 --mode 0
 Binary conversion:                  little indian.
 Base:
 Number of bytes for integer:        4 (32 bits)
 Number of bytes for floats:         4 (32 bits)
 Number of bytes per binary file:    base * ((datasize * index->settings->num_dim) + nsets) / 8
 
-To execute:                         valgrind  --undef-value-errors=no ../bin/pexeso --work-dir /home/jaouhara/Documents/Projects/dssdl-projects/pexeso/Hgrid/ --dataset /home/jaouhara/Documents/Projects/dummy-data/bins-2 --queries /home/jaouhara/Documents/Projects/dummy-data/bins-2/queries --metric-space-dim 50 --pivot-space-dim 4 --num-levels 3 --leaf-size 450 --fft-scale 13 --join-threshold 1 --dist-threshold 0.5 --metric-buffer-size 30 --pivot-buffer-size 30 --mode 0
+To execute:                         ../bin/pexeso --work-dir /home/jaouhara/Documents/Projects/dssdl-projects/pexeso/Hgrid/ --dataset /home/jaouhara/Documents/Projects/dummy-data/bins-2 --queries /home/jaouhara/Documents/Projects/dummy-data/bins-2/queries --metric-space-dim 50 --pivot-space-dim 2 --num-levels 2 --leaf-size 450 --fft-scale 13 --join-threshold 1 --dist-threshold 1.5 --metric-buffer-size 30 --pivot-buffer-size 30 --mode 0

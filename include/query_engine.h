@@ -20,7 +20,7 @@ struct query_settings
 // pairs of candidate and matching cells for every query vector
 /* pairs[i] = <q', has_candidates, has_matches, {candidate_cells}, {matching_cells}>  */
 struct pairs {
-    struct vector ** query_vectors;
+    struct vector * query_vectors;
     struct matching_pair ** matching_pairs;
     struct candidate_pair ** candidate_pairs;
     bool * has_candidates;
@@ -119,10 +119,10 @@ enum response cell_cell_match(struct cell * cell, struct cell * query_cell,
 float min_RQR(struct vector *q, unsigned int num_pivots, float dist_threshold);
 
 /* add candidate pair */
-enum response add_candidate_pair(struct pairs * pairs, struct vector * query_vector, struct cell *candidate);
+enum response add_candidate_pair(struct pairs * pairs, struct vector * query_vector, struct cell *candidate, unsigned int num_pivots);
 
 /* add candidate pair */
-enum response add_matching_pair(struct pairs * pairs, struct vector * query_vector, struct cell *match);
+enum response add_matching_pair(struct pairs * pairs, struct vector * query_vector, struct cell *match, unsigned int num_pivots);
 
 /* check if list of pairs already has query vector */
 int has_query_vector(struct pairs * pairs, vector * query_vector);
