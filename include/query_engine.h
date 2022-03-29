@@ -21,6 +21,7 @@ struct query_settings
 /* pairs[i] = <q', has_candidates, has_matches, {candidate_cells}, {matching_cells}>  */
 struct pairs {
     struct vector * query_vectors;
+    struct vector * query_vectors_mtr;
     struct matching_pair ** matching_pairs;
     struct candidate_pair ** candidate_pairs;
     bool * has_candidates;

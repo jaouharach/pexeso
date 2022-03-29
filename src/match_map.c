@@ -35,7 +35,7 @@ enum response update_match_count(struct match_map * map, struct sid * set_id)
     int set_idx = has_set(map, set_id);
     if(set_idx == -1)
         exit_with_failure("Error in match_map.c: Couldn't update match map, set id does not exist in match map!");
-    map->match_count[set_idx]++;
+    map->match_count[set_idx] = map->match_count[set_idx] + 1;
 }
 
 /* update mismatch count for a given set */
@@ -44,7 +44,7 @@ enum response update_mismatch_count(struct match_map * map, struct sid * set_id)
     int set_idx = has_set(map, set_id);
     if(set_idx == -1)
         exit_with_failure("Error in match_map.c: Couldn't update mismatch map, set id does not exist in match map!");
-    map->mismatch_count[set_idx]++;
+    map->mismatch_count[set_idx] = map->mismatch_count[set_idx] + 1;
 }
 
 /* check if set id is in map */

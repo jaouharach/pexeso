@@ -366,7 +366,7 @@ vector * get_vectors_ps(struct cell * cell, unsigned int num_pivots)
             // printf("cell v(%u, %u, %u)\n", cell_vectors[i]->table_id, cell_vectors[i]->set_id, cell_vectors[i]->pos);
         }
     }
-    
+
     // (todo) if file buffer is in disk load vectors from disk
     else
         exit_with_failure("Error in cell.c: can't get vectors, cell's file buffer is disk!");
@@ -389,9 +389,22 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
     for(int i = 0; i < cell->cell_size; i++)
     {
         cell_vectors[i].mtr_vector = malloc(sizeof(struct vector));
+        if(cell_vectors[i].mtr_vector == NULL)
+            exit_with_failure("Error in cell.c: couldn't allocat memory for vector tuples (for metric space).");
+        
         cell_vectors[i].mtr_vector->values = malloc(sizeof(v_type) * settings->mtr_vector_length);
+        if(cell_vectors[i].mtr_vector->values == NULL)
+            exit_with_failure("Error in cell.c: couldn't allocat memory for vector tuples (for metric space).");
+        
+
         cell_vectors[i].ps_vector = malloc(sizeof(struct vector));
+        if(cell_vectors[i].ps_vector == NULL)
+            exit_with_failure("Error in cell.c: couldn't allocat memory for vector tuples (for pivot space).");
+        
         cell_vectors[i].ps_vector->values = malloc(sizeof(v_type) * settings->num_pivots);
+        if(cell_vectors[i].ps_vector->values == NULL)
+            exit_with_failure("Error in cell.c: couldn't allocat memory for vector tuples (for pivot space).");
+        
 
     }
 

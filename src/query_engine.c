@@ -87,7 +87,6 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                                              grid->settings->num_pivots, dist_threshold))
                             {
                                 // update mismatch count of curr set
-                                // printf("\nmiss match ++ !!!\n");
                                 match_map->mismatch_count[set_idx]++;
                             }
 
@@ -96,22 +95,19 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                                                  grid->settings->num_pivots, dist_threshold))
                             {
                                 // update match count of curr set
-                                // printf("\nmatch ++ !!!\n");
                                 match_map->match_count[set_idx]++;
                             }
                             else
                             {
                                 // compute euclidean distance between v and q in metric space
-                                v_type d = euclidean_distance(candidate_vectors[v].mtr_vector,
+                                float d = euclidean_distance(candidate_vectors[v].mtr_vector,
                                                               candidate_vectors[v].mtr_vector, grid->settings->mtr_vector_length);
                                 if (d <= dist_threshold)
                                 {
-                                    // printf("\nmatch ++ !!!\n");
                                     match_map->match_count[set_idx]++;
                                 }
                                 else
                                 {
-                                    // printf("\nmiss match ++ !!!\n");
                                     match_map->mismatch_count[set_idx]++;
                                 }
                             }
@@ -123,7 +119,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                         free(candidate_vectors[v].ps_vector->values);
                         free(candidate_vectors[v].ps_vector);
 
-                        if (match_map->match_count[set_idx] > join_threshold)
+                        if (match_map->match_count[set_idx] >= join_threshold)
                         {
                             // mark current set (curr_entry) as joinable
                             match_map->joinable[set_idx] = true;
@@ -224,12 +220,12 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                         }
 
                         // free memory
-                        free(cr_leaves);
-                        free(cq_leaves);
                         for(int n = 0; n < cq_leaves[ql]->cell_size; n++)
                             free(query_vectors[n].values);
                         free(query_vectors);
                     }
+                    free(cr_leaves);
+                    free(cq_leaves);
                 }
                 
                 // lemma 4: cr cannot be pruned

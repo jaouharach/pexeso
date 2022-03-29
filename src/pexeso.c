@@ -74,7 +74,7 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
 
     /* query settings */
     unsigned int join_threshold = Dgrid->settings->query_settings->join_threshold; // T 
-    v_type dist_threshold = Dgrid->settings->query_settings->dist_threshold; // tau
+    float dist_threshold = Dgrid->settings->query_settings->dist_threshold; // tau
 
     printf("\n\n\n\t..................................\n");
     printf("\t::      BUILD QUERY INDEX       ::\n");
@@ -139,8 +139,8 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
     printf("(OK)\n");
 
     /* print grid */
-    printf("-- QUERY GRID:\n\n");
-    dump_grid_to_console(Qgrid);
+    // printf("-- QUERY GRID:\n\n");
+    // dump_grid_to_console(Qgrid);
 
     return Qgrid;
 }
