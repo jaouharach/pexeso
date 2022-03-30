@@ -69,7 +69,7 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
     grid->buffer_manager->current_mtr_record += sizeof(v_type) * mtr_vector_length;
     grid->buffer_manager->current_mtr_record_index++;
 
-    grid->buffer_manager->current_mtr_record += sizeof(v_type) * ps_vector_length;
+    grid->buffer_manager->current_ps_record += sizeof(v_type) * ps_vector_length;
     grid->buffer_manager->current_ps_record_index++;
 
     if(cell->cell_size >= max_leaf_size)

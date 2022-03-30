@@ -162,8 +162,8 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
             exit_with_failure("Error in hgrid.c: Could not route to closest child cell.\n");
     }
 
-    // printf("append vector to leaf cell with center :\n");
-    // print_vector(cell->center, grid->settings->num_pivots);
+    // printf("append vector to leaf cell with mapping :\n");
+    // print_vector(v_mapping, grid->settings->num_pivots);
 
     // append vector in metric format
     append_vector_to_cell(grid, index, cell, vector, v_mapping);

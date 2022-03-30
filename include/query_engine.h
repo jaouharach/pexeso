@@ -22,15 +22,15 @@ struct query_settings
 struct pairs {
     struct vector * query_vectors;
     struct vector * query_vectors_mtr;
-    struct matching_pair ** matching_pairs;
-    struct candidate_pair ** candidate_pairs;
+    struct matching_pair * matching_pairs;
+    struct candidate_pair * candidate_pairs;
     bool * has_candidates;
     bool * has_matches;
     unsigned int num_pairs;
 };
 struct matching_pair
 {
-    struct cell ** cells;
+    struct cell **cells;
     unsigned int num_match; // number of matching cells.
 };
 
