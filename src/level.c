@@ -28,6 +28,8 @@ enum response init_levels(struct grid *grid)
         // if its the leaf level (bottom level)
         if(new_level->id == grid->settings->num_levels)
             new_level->is_leaf = true;
+        else
+            new_level->is_leaf = false;
 
         new_level->num_cells = (unsigned int)abs(pow(2, grid->settings->num_pivots * id)); // num_cells = 2 ^ (|P| * id)
         new_level->cells = malloc(sizeof(struct cell) * new_level->num_cells);

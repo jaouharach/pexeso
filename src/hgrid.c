@@ -337,12 +337,8 @@ enum response level_write(struct grid *grid, struct level *level, FILE *file)
 enum response grid_destroy_level(struct grid *grid, struct level *level)
 {
     //  leaf level
-    if (level->is_leaf)
+    if (level->is_leaf == true)
     {
-        // (todo) fix why destroy buffer manager doesn't work for query grid
-        // if (grid->is_query_grid = true)
-        //     return OK;
-            
         if (grid->buffer_manager != NULL)
             destroy_buffer_manager(grid);
     }
@@ -450,6 +446,7 @@ enum response destroy_buffer_manager(struct grid *grid)
         free(grid->buffer_manager->mtr_memory_array);
         free(grid->buffer_manager->ps_memory_array);
         free(grid->buffer_manager);
+        grid->buffer_manager = NULL;
     }
     return OK;
 }

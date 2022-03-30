@@ -90,7 +90,7 @@ response get_file_buffer(struct grid *grid, struct cell *cell)
                            for the node.\n");
     }
 
-    // if buffer limit has been reached
+    // if buffer limit has been reached (todo) flush huffer to disk
     int mtr_buffer_limit = grid->buffer_manager->max_mtr_record_index;
     int ps_buffer_limit = grid->buffer_manager->max_ps_record_index;
 

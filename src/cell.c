@@ -36,8 +36,8 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
         cell->file_buffer->mtr_buffered_list = NULL;
         cell->file_buffer->ps_buffered_list = NULL;
         
-        cell->file_buffer->mtr_buffered_list = malloc(sizeof(v_type) * max_leaf_size * mtr_vector_length);
-        cell->file_buffer->ps_buffered_list = malloc(sizeof(v_type) * max_leaf_size * ps_vector_length);
+        cell->file_buffer->mtr_buffered_list = malloc(sizeof(v_type *) * max_leaf_size * mtr_vector_length);
+        cell->file_buffer->ps_buffered_list = malloc(sizeof(v_type *) * max_leaf_size * ps_vector_length);
 
         if (cell->file_buffer->mtr_buffered_list == NULL || cell->file_buffer->ps_buffered_list == NULL)
             exit_with_failure("Error in cell.c: Could not allocate memory for the buffered list.");

@@ -181,8 +181,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                     free(query_vectors);
                 }
             }
-            // else if(!is_empty(cr) && !is_empty(cq))
-            else
+            else if(!is_empty(cr) && !is_empty(cq))
             {
                 // lemma 6
                 if (cell_cell_match(cr, cq, settings->num_pivots, dist_threshold))
@@ -604,6 +603,9 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct c
         pairs->has_candidates[q_idx] = true;
 
         pairs->has_matches[q_idx] = false;
+        pairs->matching_pairs[q_idx].num_match = 0;
+        pairs->matching_pairs[q_idx].cells = NULL;
+        
         pairs->num_pairs++;
     }
 
@@ -666,10 +668,11 @@ enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct ce
         pairs->has_matches[q_idx] = true;
 
         pairs->has_candidates[q_idx] = false;
+        pairs->candidate_pairs[q_idx].num_candidates = 0;
+        pairs->candidate_pairs[q_idx].cells = NULL;
 
         pairs->num_pairs++;
     }
-    
     // add match
     struct matching_pair *mp = &pairs->matching_pairs[q_idx];
     mp->cells = realloc(mp->cells, sizeof(struct cell *) * (mp->num_match + 1));
