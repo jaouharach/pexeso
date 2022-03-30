@@ -539,3 +539,45 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, l
     leaves = NULL;
     return cell_vectors;
 }
+
+/* check is cell is empty (has no vectors) */
+bool is_empty(struct cell * cell)
+{
+    if(cell->is_leaf)
+    {
+        if(cell->cell_size > 0)
+            return 0;
+        else if(cell->cell_size == 0)
+            return 1;
+        else
+            exit_with_failure("Error in cell.c: cell size cannot be negative!");
+    }
+    else
+    {
+        unsigned int num_leaves  = 0, max_leaf_idx = 0;
+        get_num_leaf_cells(cell, &num_leaves);
+        max_leaf_idx = num_leaves - 1;
+        
+        struct cell ** leaves = NULL;
+        leaves = malloc(sizeof(struct cell *) * (num_leaves));
+        if(leaves == NULL)
+            exit_with_failure("Error in cell.c: couldn't reallocate memory for cell leaves.");
+        
+        get_leaf_cells(cell, leaves, &max_leaf_idx);
+
+        for(int l = 0; l < num_leaves; l++)
+        {
+            if(leaves[l]->cell_size > 0)
+            {
+                free(leaves);
+                return 0;
+            }
+        }
+        free(leaves);
+        return 1;
+
+    }
+    
+
+
+}

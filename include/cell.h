@@ -58,3 +58,6 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
 
 /* get list of vector in the sub leaf cells of a non leaf cell (in pivot space) */
 vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, long unsigned int * num_vectors);
+
+/* check is cell is empty (has no vectors) */
+bool is_empty(struct cell * cell);

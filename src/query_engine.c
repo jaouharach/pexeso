@@ -48,9 +48,9 @@ enum response verify(struct grid *grid, struct pairs *pairs,
         struct candidate_pair *cpair = &pairs->candidate_pairs[i];
         struct vector *query_vector = &pairs->query_vectors[i]; // q'
 
-        if (pairs->has_candidates[i]) // if current vector has matching pair
+        if (pairs->has_candidates[i]) // if current vector has candidate pair
         {
-            for (int c = 0; c < cpair->num_candidates; c++) // loop through match cells
+            for (int c = 0; c < cpair->num_candidates; c++) // loop through candidate cells
             {
                 struct cell *candidate_cell = cpair->cells[c];
                 int entry_idx = has_cell(index, candidate_cell);
@@ -181,6 +181,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                     free(query_vectors);
                 }
             }
+            // else if(!is_empty(cr) && !is_empty(cq))
             else
             {
                 // lemma 6
@@ -295,9 +296,7 @@ enum response pivot_filter(struct vector *q, struct vector *x,
     bool filter = true;
     for (int p = 0; p < num_pivots; p++)
     {
-        if (
-            ((q->values[p] - dist_threshold) <= x->values[p]) &&
-            ((q->values[p] + dist_threshold) >= x->values[p]))
+        if (((q->values[p] - dist_threshold) <= x->values[p]) && ((q->values[p] + dist_threshold) >= x->values[p]))
             filter = false;
     }
     return filter ? OK : FAILED;
@@ -465,7 +464,6 @@ enum response cell_cell_match(struct cell *cell, struct cell *query_cell,
     }
     else if(query_cell->is_leaf == false)
         query_vectors = get_sub_cells_vectors_ps(query_cell, num_pivots, &num_query_vectors);
-    
     else
         return FAILED;
     
@@ -698,19 +696,24 @@ enum response destroy_pairs(struct pairs *pairs)
     {
         if (pairs->candidate_pairs != NULL)
         {
-            struct candidate_pair curr_cp = pairs->candidate_pairs[i];
-            if(curr_cp.cells != NULL)
-                free(curr_cp.cells);
+            if(pairs->has_candidates[i])
+            {
+                struct candidate_pair curr_cp = pairs->candidate_pairs[i];
+                if(curr_cp.cells != NULL)
+                    free(curr_cp.cells);
+            }
         }
 
         if (pairs->matching_pairs != NULL)
         {
-            struct matching_pair curr_mp = pairs->matching_pairs[i];
-            if(curr_mp.cells != NULL)
-                free(curr_mp.cells);
+            if(pairs->has_matches[i])
+            {
+                struct matching_pair curr_mp = pairs->matching_pairs[i];
+                if(curr_mp.cells != NULL)
+                    free(curr_mp.cells);
+            }
         }
         free(pairs->query_vectors[i].values);
-        // free(pairs->query_vectors[i]);
     }
 
     if (pairs->matching_pairs != NULL)

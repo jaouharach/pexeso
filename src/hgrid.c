@@ -267,12 +267,12 @@ enum response grid_write(struct grid *grid)
     unsigned long long total_records = grid->total_records;
 
     // write settings
-    fwrite(&num_leaf_cells, sizeof(unsigned long long), 1, root_file);
+    fwrite(&num_leaf_cells, sizeof(unsigned int), 1, root_file);
     fwrite(&mtr_buffered_memory_size, sizeof(double), 1, root_file);
     fwrite(&ps_buffered_memory_size, sizeof(double), 1, root_file);
     fwrite(&mtr_vector_length, sizeof(unsigned int), 1, root_file);
     fwrite(&max_leaf_size, sizeof(unsigned int), 1, root_file);
-    fwrite(&total_records, sizeof(unsigned int), 1, root_file);
+    fwrite(&total_records, sizeof(unsigned long long), 1, root_file);
 
     // write levels
     level_write(grid, grid->first_level, root_file);
