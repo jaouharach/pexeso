@@ -420,7 +420,7 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
                 cell_vectors[i].mtr_vector->values[j] = cell->file_buffer->mtr_buffered_list[i][j];
             
             for(int j = 0; j < settings->num_pivots; j++)
-                cell_vectors[i].mtr_vector->values[j] = cell->file_buffer->ps_buffered_list[i][j];
+                cell_vectors[i].ps_vector->values[j] = cell->file_buffer->ps_buffered_list[i][j];
             
             cell_vectors[i].mtr_vector->set_id = cell->vid[i].set_pos;
             cell_vectors[i].mtr_vector->table_id = cell->vid[i].table_id;

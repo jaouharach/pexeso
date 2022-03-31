@@ -43,7 +43,7 @@ struct candidate_pair
 
 /* get candidate and matching cells of a query cell */
 enum response block(struct cell *query_cell, struct cell * r_cell, 
-                    struct pairs * pairs, struct grid_settings * settings);
+                    struct pairs * pairs, struct grid_settings * settings, struct match_map * map);
 
 enum response verify(struct grid * grid, struct pairs * pairs,
             struct inv_index * index, struct match_map * match_map, unsigned int query_set_size);
@@ -82,7 +82,7 @@ enum response pivot_match(struct vector * q, struct vector * x,
    function returns OK if cell c can be filtered (pruned).
 */
 enum response vector_cell_filter(struct vector * q, struct cell * cell, 
-                            unsigned int num_pivots, v_type dist_threshold);
+                            unsigned int num_pivots, float dist_threshold, struct match_map * map);
                
 /* 
    Given a target cell c and a query cell cq in the pivot space, 
@@ -93,7 +93,7 @@ enum response vector_cell_filter(struct vector * q, struct cell * cell,
    function returns OK if cell c can be filtered (pruned).
 */
 enum response cell_cell_filter(struct cell * cell, struct cell * query_cell, 
-                            unsigned int num_pivots, v_type dist_threshold);
+                            unsigned int num_pivots, float dist_threshold, struct match_map * map);
 
 /* 
     Given a target cell c and a mapped query vector q in the pivot space,
@@ -103,7 +103,7 @@ enum response cell_cell_filter(struct cell * cell, struct cell * query_cell,
    function returns OK if cell c is a match to q.
 */
 enum response vector_cell_match(struct vector * q, struct cell * cell, 
-                            unsigned int num_pivots, v_type dist_threshold);
+                            unsigned int num_pivots, float dist_threshold);
 
 /* 
    Given a target cell c and a query cell cq in the pivot space, 
@@ -120,10 +120,10 @@ enum response cell_cell_match(struct cell * cell, struct cell * query_cell,
 float min_RQR(struct vector *q, unsigned int num_pivots, float dist_threshold);
 
 /* add candidate pair */
-enum response add_candidate_pair(struct pairs * pairs, struct vector * query_vector, struct cell *candidate, unsigned int num_pivots);
+enum response add_candidate_pair(struct pairs * pairs, struct vector * query_vector, struct vector * query_vector_mtr, struct cell *candidate, unsigned int num_pivots, unsigned int mtr_vector_length);
 
 /* add candidate pair */
-enum response add_matching_pair(struct pairs * pairs, struct vector * query_vector, struct cell *match, unsigned int num_pivots);
+enum response add_matching_pair(struct pairs * pairs, struct vector * query_vector, struct vector * query_vector_mtr, struct cell *match, unsigned int num_pivots, unsigned int mtr_vector_length);
 
 /* check if list of pairs already has query vector */
 int has_query_vector(struct pairs * pairs, vector * query_vector);

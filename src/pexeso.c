@@ -24,13 +24,13 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     struct pairs * pairs = init_pairs();
     
     // block (generate a list of candidate en matching pairs)
-    block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings);
+    block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings, match_map);
 
     // verify (verify vectors in list of candidate pairs)
     verify(Dgrid, pairs, inv_index, match_map, Qgrid->total_records);
 
     // print Query grid
-    // dump_grid_to_console(Qgrid);
+    dump_grid_to_console(Qgrid);
 
     // print match map after quering
     // dump_match_map_to_console(match_map);

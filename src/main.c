@@ -339,7 +339,7 @@ int main(int argc, char **argv)
     printf("(OK)\n");
 
     /* print Rv grid */
-    // dump_grid_to_console(grid);
+    dump_grid_to_console(grid);
 
     /* querying */
     pexeso(bin_query_file_directory, grid, index, match_map);
