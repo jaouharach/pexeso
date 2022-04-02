@@ -4,8 +4,8 @@
 #include "../include/inv_index.h"
 #include "../include/cell.h"
 
-/* add entry to inverted index (cell -> {(table_id, set_pos)}) */
-enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_pos)
+/* add entry to inverted index (cell -> {(table_id, set_id)}) */
+enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size)
 {
     if(index == NULL)
         exit_with_failure("Error in in inv_index.c: Cannot add entry to NULL index.");
@@ -34,8 +34,9 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         
         // add set to list of distinct set ids
         index->distinct_sets[0].table_id = table_id;
-        index->distinct_sets[0].set_pos = set_pos;
-        
+        index->distinct_sets[0].set_id = set_id;
+        index->distinct_sets[0].set_size = set_size;
+
         // link set in cell entry to set in list of distinct sed ids
         new_entry->cell = cell;
         new_entry->sets[0] = 0; // first cell -> {first set}
@@ -49,7 +50,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
 
     // inverted index is not empty
     // check if set id has not been previously inserted (for another cell)
-    long long int set_idx = previously_indexed_set(index, table_id, set_pos);
+    long long int set_idx = previously_indexed_set(index, table_id, set_id);
     if(set_idx == -1) // if set not in inverted index, add set
     {
         unsigned int num_distinct_sets = index->num_distinct_sets;
@@ -59,7 +60,8 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         if(index->distinct_sets == NULL)
             exit_with_failure("Error in inv_index.c: Couldn't allocate memory for entry's new sets");
         index->distinct_sets[num_distinct_sets].table_id = table_id;
-        index->distinct_sets[num_distinct_sets].set_pos = set_pos;
+        index->distinct_sets[num_distinct_sets].set_id = set_id;
+        index->distinct_sets[num_distinct_sets].set_size = set_size;
 
         
         set_idx = index->num_distinct_sets; 
@@ -94,7 +96,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
     else // cell has entry in inverted index, append set to cell entry
     {
         // if pair cell --> {set_id} exists don't add set_id to entry
-        if(entry_has_set(index, entry_idx, table_id, set_pos))
+        if(entry_has_set(index, entry_idx, table_id, set_id))
             return OK;
 
         struct entry * curr_entry = &index->entries[entry_idx];
@@ -133,7 +135,7 @@ int has_cell(struct inv_index * index, struct cell * cell)
 }
 
 /* check if cell entry has set_id */
-bool entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned int table_id, unsigned int set_pos)
+bool entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned int table_id, unsigned int set_id)
 {
     struct entry * cell_entry = &index->entries[entry_idx];
 
@@ -144,14 +146,14 @@ bool entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned in
     for(int s = cell_entry->num_sets - 1; s >= 0; s--)
     {
         set_idx = cell_entry->sets[s];
-        if ((index->distinct_sets[set_idx].table_id == table_id) && (index->distinct_sets[set_idx].set_pos == set_pos))
+        if ((index->distinct_sets[set_idx].table_id == table_id) && (index->distinct_sets[set_idx].set_id == set_id))
             return true;
     }
     return false; 
 }
 
 /* check if set id has already been inserted into a cell entry */
-int previously_indexed_set(struct inv_index * index, unsigned int table_id, unsigned int set_pos)
+int previously_indexed_set(struct inv_index * index, unsigned int table_id, unsigned int set_id)
 {
     unsigned int num_distinct_sets = index->num_distinct_sets;
     if(num_distinct_sets == 0)
@@ -161,7 +163,7 @@ int previously_indexed_set(struct inv_index * index, unsigned int table_id, unsi
     {
         struct sid * curr_set = &index->distinct_sets[s];
         // both cell and curr_entry->cell point to the same object
-        if(curr_set->table_id == table_id && curr_set->set_pos == set_pos)
+        if(curr_set->table_id == table_id && curr_set->set_id == set_id)
             return s;
     }
 
@@ -185,10 +187,10 @@ void dump_inv_index_to_console(struct inv_index *index)
             set_idx = curr_entry->sets[s];
             if(s == curr_entry->num_sets - 1)
             {
-                printf("(%u, %u)", index->distinct_sets[set_idx].table_id, index->distinct_sets[set_idx].set_pos);
+                printf("(%u, %u)", index->distinct_sets[set_idx].table_id, index->distinct_sets[set_idx].set_id);
                 break;
             }
-            printf("(%u, %u) :: ", index->distinct_sets[set_idx].table_id, index->distinct_sets[set_idx].set_pos);
+            printf("(%u, %u) :: ", index->distinct_sets[set_idx].table_id, index->distinct_sets[set_idx].set_id);
         }
         printf("}\n");
     }

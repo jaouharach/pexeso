@@ -13,7 +13,7 @@ struct query_result
 
 struct query_settings
 {
-    unsigned int join_threshold; // T 
+    float join_threshold; // T 
     float dist_threshold; // tau
 };
 
@@ -49,7 +49,7 @@ enum response verify(struct grid * grid, struct pairs * pairs,
             struct inv_index * index, struct match_map * match_map, unsigned int query_set_size);
             
 /* initialize query settings */
-struct query_settings * init_query_settings(v_type dist_threshold, unsigned int join_threshold);
+struct query_settings * init_query_settings(v_type dist_threshold, float join_threshold);
 
 /* check if a vector is in the SQR of a query vector */
 bool vecotr_in_SQR(struct vector * v, struct vector * q, unsigned int num_pivots, float dist_threshold);
@@ -65,7 +65,7 @@ bool vector_in_RQR(struct vector * v, struct vector * q, unsigned int p, float d
     return OK if vector doesn't satisfy: d(q, p) − τ ≤ d(x, p) ≤ d(q, p) + τ
 */
 enum response pivot_filter(struct vector * q, struct vector * x, 
-                            unsigned int num_pivots, v_type dist_threshold);
+                            unsigned int num_pivots, float dist_threshold);
                             
 /* 
     Given two vectors q and x, a set P of pivot vectors, a distance function d, 
@@ -73,7 +73,7 @@ enum response pivot_filter(struct vector * q, struct vector * x,
     then q matches x.
 */
 enum response pivot_match(struct vector * q, struct vector * x, 
-                            unsigned int num_pivots, v_type dist_threshold);
+                            unsigned int num_pivots, float dist_threshold);
 /* 
    Given a cell c and a mapped query vector q in the pivot space,
    if c ∩ SQR(q, τ) = ∅, then for any mapped vector x ∈ c, 

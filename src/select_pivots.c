@@ -163,11 +163,25 @@ float min_distance(vector *outliers, unsigned int num_outliers, vector *v, unsig
     return min_d;
 }
 
-/* map vector to pivot space  vector --> vector_mapping*/
-void map_vector(vector *v, unsigned int v_len, vector *v_mapping, vector *pivots, unsigned int num_pivots)
+/* map vector to pivot space  v --> v'*/
+enum response map_vector(struct vector *v, unsigned int v_len, struct vector *v_mapping, struct grid_settings * settings)
 {
+    float d;
+    int out_of_pivot_space = 0;
+    struct vector * pivots_mtr = settings->pivots_mtr;
+    struct vector * extremity = settings->pivot_space_extremity;
+    unsigned int num_pivots = settings->num_pivots;
     for (int i = 0; i < num_pivots; i++)
-        v_mapping->values[i] = euclidean_distance(v, &pivots[i], v_len);   
+    {
+        d = euclidean_distance(v, &pivots_mtr[i], v_len);
+        if(d > extremity->values[i])
+            out_of_pivot_space = 1;
+        v_mapping->values[i] = d; 
+    } 
+    if(out_of_pivot_space == 1)
+        printf("\033[1;33m\nError in select_pivots.c: Vector mapping is out of pivot space!\033[0m\n");
+
+    return OK;
 }
 
 /*  get distance matrix of a dataset (mapping of vectors to the pivot space), 
@@ -187,7 +201,11 @@ vector * map_to_pivot_space(vector * dataset_mtr, int * dataset_dim, vector * pi
         if(dataset_ps[i].values == NULL)
             exit_with_failure("Error in select_pivots.c: couldn't allocate memory for values of vector mapping.");
         
-        map_vector(&dataset_mtr[i], num_dim_metric_space, &dataset_ps[i], pivots, num_pivots);
+        // map to pivot space
+        for (int j = 0; j < num_pivots; j++)
+        {
+            dataset_ps[i].values[j] = euclidean_distance(&dataset_mtr[i], &pivots[j], num_dim_metric_space);
+        } 
     }
     return dataset_ps;
 }

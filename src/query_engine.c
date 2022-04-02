@@ -10,7 +10,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                      struct inv_index *index, struct match_map *match_map, unsigned int query_set_size)
 {
     float dist_threshold = grid->settings->query_settings->dist_threshold;
-    unsigned int join_threshold = grid->settings->query_settings->join_threshold;
+    float join_threshold = grid->settings->query_settings->join_threshold;
 
     // check if pairs list is not empty
     if (pairs->num_pairs == 0)
@@ -22,6 +22,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
         for (int i = 0; i < pairs->num_pairs; i++)
         {
             struct matching_pair *mpair = &pairs->matching_pairs[i];
+            struct vector query_vector =  pairs->query_vectors[i];
             if (pairs->has_matches[i])
                 for (int m = 0; m < mpair->num_match; m++) // loop through match cells
                 {
@@ -37,7 +38,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     {
                         // update match count for all sets in matching cell
                         struct sid *curr_set = &index->distinct_sets[entry->sets[s]];
-                        update_match_count(match_map, curr_set, join_threshold);
+                        update_match_count(match_map, curr_set, join_threshold, query_vector.set_size);
                     }
                 }
         }
@@ -74,9 +75,9 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     if(set_idx == -1)
                         exit_with_failure("Error in query_rngine:c Couldn't find set position in match map.");
                     
-                    // lemma 7: skip set if it cannot be joinable on "join_threshold" vectors
-                    if (query_set_size - match_map->mismatch_count[set_idx] < join_threshold)
-                        continue;
+                    // (todo) lemma 7: skip set if it cannot be joinable on "join_threshold" vectors
+                    // if ((query_vector->set_size - match_map->mismatch_count[set_idx]) < ceil(join_threshold * query_vector->set_size ))
+                    //     continue;
 
                     if(candidate_cell->cell_size > 0)
                     {
@@ -85,8 +86,9 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                         for (int v = 0; v < candidate_cell->cell_size; v++)
                         {
                             // if vector belongs to set (curr set)
-                            if (candidate_vectors[v].mtr_vector->set_id == curr_set->set_pos && candidate_vectors[v].mtr_vector->table_id == curr_set->table_id)
+                            if (candidate_vectors[v].mtr_vector->set_id == curr_set->set_id && candidate_vectors[v].mtr_vector->table_id == curr_set->table_id)
                             {
+                                printf("\nvector belongs to set ()\n");
                                 // if candidate vector can be filtered by lemma 1
                                 if (pivot_filter(query_vector, candidate_vectors[v].ps_vector,
                                                 grid->settings->num_pivots, dist_threshold))
@@ -124,8 +126,10 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                             free(candidate_vectors[v].ps_vector->values);
                             free(candidate_vectors[v].ps_vector);
 
-                            if (match_map->match_count[set_idx] >= join_threshold)
+                            if (match_map->match_count[set_idx] >= ceil(join_threshold * query_vector->set_size))
                             {
+                                printf("\033[1;31m\nquery vector: (%u, %u, %u)\033[0m", query_vector->table_id, query_vector->set_id, query_vector->set_size);
+                                printf("\033[1;31m\njoin threshold = %f * %u = %f, match count = %u\033[0m", join_threshold, query_vector->set_size, ceil(join_threshold * query_vector->set_size), match_map->match_count[set_idx]);
                                 // mark current set (curr_entry) as joinable
                                 match_map->joinable[set_idx] = true;
                                 continue;
@@ -272,7 +276,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                 //     for(int i = 0; i < num_cell_vectors; i++)
                 //     {
                 //         set_id.table_id = cell_vectors[i].table_id;
-                //         set_id.set_pos = cell_vectors[i].set_id;
+                //         set_id.set_id = cell_vectors[i].set_id;
                 //         update_mismatch_count(map, &set_id);
                 //     }
                         
@@ -290,7 +294,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
 }
 
 /* initialize query settings */
-struct query_settings *init_query_settings(v_type dist_threshold, unsigned int join_threshold)
+struct query_settings *init_query_settings(v_type dist_threshold, float join_threshold)
 {
     struct query_settings *settings = malloc(sizeof(struct query_settings));
     settings->dist_threshold = dist_threshold;
@@ -337,7 +341,7 @@ bool vector_in_RQR(struct vector * v, struct vector * q, unsigned int p, float r
     return OK if vector doesn't satisfy: d(q, p) − τ ≤ d(x, p) ≤ d(q, p) + τ
 */
 enum response pivot_filter(struct vector *q, struct vector *x,
-                           unsigned int num_pivots, v_type dist_threshold)
+                           unsigned int num_pivots, float dist_threshold)
 {
     // find pivot such that d(q, p) − τ ≤ d(x, p) ≤ d(q, p) + τ
     bool filter = true;
@@ -346,7 +350,11 @@ enum response pivot_filter(struct vector *q, struct vector *x,
         if (((q->values[p] - dist_threshold) <= x->values[p]) && ((q->values[p] + dist_threshold) >= x->values[p]))
             filter = false;
     }
-    return filter ? OK : FAILED;
+
+    if(filter)
+        return OK;
+
+    return FAILED;
 }
 /*
     Given two vectors q and x, a set P of pivot vectors, a distance function d,
@@ -390,14 +398,15 @@ enum response vector_cell_filter(struct vector *q, struct cell *cell,
         }
     }
     
-    // all vectors in cell can be filtered
-    struct sid set_id;
-    for(int i = 0; i < cell->cell_size; i++)
-    {
-        set_id.table_id = cell_vectors[i].table_id;
-        set_id.set_pos = cell_vectors[i].set_id;
-        update_mismatch_count(map, &set_id);
-    }
+    // // all vectors in cell can be filtered
+    // struct sid sid;
+    // for(int i = 0; i < cell->cell_size; i++)
+    // {
+    //     sid.table_id = cell_vectors[i].table_id;
+    //     sid.set_id = cell_vectors[i].set_id;
+    //     sid.set_size = cell_vectors[i].set_size;
+    //     update_mismatch_count(map, &sid);
+    // }
         
 
     for(int i = 0; i < cell->cell_size; i++)
@@ -419,14 +428,14 @@ enum response cell_cell_filter(struct cell *cell, struct cell *query_cell,
                                unsigned int num_pivots, float dist_threshold, struct match_map * map)
 {
     // check if there is at least one vector in SQR of cq.center
-    dist_threshold = dist_threshold + (query_cell->edge_length / 2);
+    float tau = dist_threshold + (query_cell->edge_length / 2);
     long unsigned int num_cell_vectors = 0;
 
     vector *cell_vectors = get_sub_cells_vectors_ps(cell, num_pivots, &num_cell_vectors);
 
     for(int v = 0; v < num_cell_vectors; v++)
     {
-        if(vector_in_SQR(&cell_vectors[v], query_cell->center, num_pivots, dist_threshold))
+        if(vector_in_SQR(&cell_vectors[v], query_cell->center, num_pivots, tau))
         {
             // free memory
             for(int i = 0; i < num_cell_vectors; i++)
@@ -438,15 +447,16 @@ enum response cell_cell_filter(struct cell *cell, struct cell *query_cell,
         }
     }
 
-    printf("===== cell will be filtered!\n");
-     // all vectors in cell can be filtered
-    struct sid set_id;
-    for(int i = 0; i < cell->cell_size; i++)
-    {
-        set_id.table_id = cell_vectors[i].table_id;
-        set_id.set_pos = cell_vectors[i].set_id;
-        update_mismatch_count(map, &set_id);
-    }
+    // printf("===== cell will be filtered! tau = %f, new tau = %f\n", dist_threshold, tau);
+    //  // all vectors in cell can be filtered
+    // struct sid sid;
+    // for(int i = 0; i < cell->cell_size; i++)
+    // {
+    //     sid.table_id = cell_vectors[i].table_id;
+    //     sid.set_id = cell_vectors[i].set_id;
+    //     sid.set_size = cell_vectors[i].set_size;
+    //     update_mismatch_count(map, &sid);
+    // }
         
     // free memory
     for(int i = 0; i < num_cell_vectors; i++)
@@ -629,7 +639,7 @@ int has_query_vector(struct pairs *pairs, vector *query_vector)
 /* add candidate pair */
 enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct vector *q_mtr, struct cell *cell, unsigned int num_pivots, unsigned int mtr_vector_length)
 {
-    printf("\n_____ add candidate!\n");
+    printf("\n_____ add candidate! to (%u, %u, %u) \n", q->table_id, q->set_id, q->set_size);
     if (pairs == NULL)
         exit_with_failure("Error in query_engine.c: NULL pointer to result pairs!");
 
@@ -679,10 +689,12 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct v
         pairs->query_vectors[q_idx].table_id = q->table_id;
         pairs->query_vectors[q_idx].set_id = q->set_id;
         pairs->query_vectors[q_idx].pos = q->pos;
+        pairs->query_vectors[q_idx].set_size = q->set_size;
 
         pairs->query_vectors_mtr[q_idx].table_id = q_mtr->table_id;
         pairs->query_vectors_mtr[q_idx].set_id = q_mtr->set_id;
         pairs->query_vectors_mtr[q_idx].pos = q_mtr->pos;
+        pairs->query_vectors_mtr[q_idx].set_size = q_mtr->set_size;
 
         pairs->candidate_pairs[q_idx].num_candidates = 0;
         pairs->candidate_pairs[q_idx].cells = NULL;
@@ -758,10 +770,12 @@ enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct ve
         pairs->query_vectors[q_idx].table_id = q->table_id;
         pairs->query_vectors[q_idx].set_id = q->set_id;
         pairs->query_vectors[q_idx].pos = q->pos;
+        pairs->query_vectors[q_idx].set_size = q->set_size;
 
         pairs->query_vectors_mtr[q_idx].table_id = q_mtr->table_id;
         pairs->query_vectors_mtr[q_idx].set_id = q_mtr->set_id;
         pairs->query_vectors_mtr[q_idx].pos = q_mtr->pos;
+        pairs->query_vectors_mtr[q_idx].set_size = q_mtr->set_size;
         
         pairs->matching_pairs[q_idx].num_match = 0;
         pairs->matching_pairs[q_idx].cells = NULL;

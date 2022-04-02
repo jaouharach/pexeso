@@ -79,8 +79,9 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
     if (grid->settings->track_vector)
     {
         cell->vid[cell->cell_size].table_id = vector->table_id;
-        cell->vid[cell->cell_size].set_pos = vector->set_id;
+        cell->vid[cell->cell_size].set_id = vector->set_id;
         cell->vid[cell->cell_size].pos = vector->pos;
+        cell->vid[cell->cell_size].set_size = vector->set_size;
     }
     
     cell->cell_size++;
@@ -88,7 +89,7 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
     grid->total_records++;
 
     // add entry: cell -> {set_id} to inverted index    
-    inv_index_append_entry(index, cell, vector->table_id, vector->set_id);
+    inv_index_append_entry(index, cell, vector->table_id, vector->set_id, vector->set_size);
 
     return OK;
 }
@@ -319,9 +320,10 @@ vector * get_vectors_mtr(struct cell * cell, unsigned int vector_length_mtr)
         {
             for(int j = 0; j < vector_length_mtr; j++)
                 cell_vectors[i].values[j] = cell->file_buffer->mtr_buffered_list[i][j];
-                cell_vectors[i].set_id = cell->vid[i].set_pos;
+                cell_vectors[i].set_id = cell->vid[i].set_id;
                 cell_vectors[i].table_id = cell->vid[i].table_id;
                 cell_vectors[i].pos = cell->vid[i].pos;
+                cell_vectors[i].set_size = cell->vid[i].set_size;
         }
     }
     // (todo) if file buffer is in disk load vectors from disk
@@ -359,10 +361,10 @@ vector * get_vectors_ps(struct cell * cell, unsigned int num_pivots)
             
             for(int j = 0; j < num_pivots; j++)
                 cell_vectors[i].values[j] = cell->file_buffer->ps_buffered_list[i][j];
-            cell_vectors[i].set_id = cell->vid[i].set_pos;
+            cell_vectors[i].set_id = cell->vid[i].set_id;
             cell_vectors[i].table_id = cell->vid[i].table_id;
             cell_vectors[i].pos = cell->vid[i].pos;
-            
+            cell_vectors[i].set_size = cell->vid[i].set_size;
             // printf("cell v(%u, %u, %u)\n", cell_vectors[i]->table_id, cell_vectors[i]->set_id, cell_vectors[i]->pos);
         }
     }
@@ -422,13 +424,15 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
             for(int j = 0; j < settings->num_pivots; j++)
                 cell_vectors[i].ps_vector->values[j] = cell->file_buffer->ps_buffered_list[i][j];
             
-            cell_vectors[i].mtr_vector->set_id = cell->vid[i].set_pos;
+            cell_vectors[i].mtr_vector->set_id = cell->vid[i].set_id;
             cell_vectors[i].mtr_vector->table_id = cell->vid[i].table_id;
             cell_vectors[i].mtr_vector->pos = cell->vid[i].pos;
+            cell_vectors[i].mtr_vector->set_size = cell->vid[i].set_size;
 
-            cell_vectors[i].ps_vector->set_id = cell->vid[i].set_pos;
+            cell_vectors[i].ps_vector->set_id = cell->vid[i].set_id;
             cell_vectors[i].ps_vector->table_id = cell->vid[i].table_id;
             cell_vectors[i].ps_vector->pos = cell->vid[i].pos;
+            cell_vectors[i].ps_vector->set_size = cell->vid[i].set_size;
         }
     }
     // (todo) if file buffer is in disk load vectors from disk
@@ -527,9 +531,10 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, l
             for(int j = 0; j < num_pivots; j++)
                 cell_vectors[v].values[j] = leaves[i]->file_buffer->ps_buffered_list[k][j];
             
-            cell_vectors[v].set_id = leaves[i]->vid[k].set_pos;
+            cell_vectors[v].set_id = leaves[i]->vid[k].set_id;
             cell_vectors[v].table_id = leaves[i]->vid[k].table_id;
             cell_vectors[v].pos = leaves[i]->vid[k].pos;
+            cell_vectors[v].set_size = leaves[i]->vid[k].set_size;
         }
         v_idx = v_idx + leaves[i]->cell_size;
 

@@ -32,7 +32,7 @@
                 "--join-threshold",
                 "1",
                 "--dist-threshold",
-                "3.5",
+                "0",
                 "--metric-buffer-size",
                 "50",
                 "--pivot-buffer-size",

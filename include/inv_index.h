@@ -8,15 +8,6 @@ struct inv_index {
     struct sid * distinct_sets; // unique sets indexed in inverted index
 };
 
-// struct entry {
-//     struct sid * id;
-//     struct cell ** cells;
-//     unsigned int num_cells;
-//     // struct vector * vectors;
-// };
-
-// (todo) reverse index order cell -> sets
-
 struct entry {
     struct cell * cell; // one cell
     unsigned long long  * sets; // multiple sets, eatch set is the idx of set id in inverted index
@@ -24,16 +15,16 @@ struct entry {
 };
 
 /* add entry to inverted index */
-enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_pos);
+enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size);
 
 /* check if index has entry for cell  */
 int has_cell(struct inv_index * index, struct cell * cell);
 /* check if cell entry has set_id */
 
-bool entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned int table_id, unsigned int set_pos);
+bool entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned int table_id, unsigned int set_id);
 
 /* check if set id has already been inserted into a cell entry */
-int previously_indexed_set(struct inv_index * index, unsigned int table_id, unsigned int set_pos);
+int previously_indexed_set(struct inv_index * index, unsigned int table_id, unsigned int set_id);
 
 /* print inverted index */
 void dump_inv_index_to_console(struct inv_index *index);

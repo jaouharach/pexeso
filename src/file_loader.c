@@ -106,6 +106,8 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
                         // add vector to array of vectors
                         dataset[curr_total_vectors].set_id = vector->set_id;
                         dataset[curr_total_vectors].table_id = vector->table_id;
+                        dataset[curr_total_vectors].pos = vector->pos;
+                        dataset[curr_total_vectors].set_size = vector->set_size;
                         vector_cpy(&dataset[curr_total_vectors], vector, mtr_vector_length);
 
                         curr_total_vectors = curr_total_vectors + 1;
@@ -122,6 +124,8 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
                         // add vector to array of vectors
                         dataset[curr_total_vectors].set_id = vector->set_id;
                         dataset[curr_total_vectors].table_id = vector->table_id;
+                        dataset[curr_total_vectors].pos = vector->pos;
+                        dataset[curr_total_vectors].set_size = vector->set_size;
                         vector_cpy(&dataset[curr_total_vectors], vector, mtr_vector_length);
 
                         curr_total_vectors = curr_total_vectors + 1;
@@ -221,7 +225,7 @@ response index_binary_files(struct grid *grid, struct inv_index * index, const c
                     vector->table_id = table_id;
                     vector->set_id = set_id;
                     vector->pos = 0; // vector position in set
-                    
+                    vector->set_size = num_vectors;
                     set_id += 1;
                 }
                 else if (i <= (unsigned int)num_vectors * grid->settings->mtr_vector_length)

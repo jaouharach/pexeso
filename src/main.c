@@ -37,8 +37,9 @@ int main(int argc, char **argv)
     unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
 
     /* query settings (todo: change threshold to %) */
-    unsigned int join_threshold = 5; // T 
-    float dist_threshold = 0.25; // tau
+    float join_threshold = 1; // T 
+    float dist_threshold = 0.0; // tau = 0%
+    float max_dist = 2; // max euclidean distance between two vectors
 
 
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
@@ -140,23 +141,22 @@ int main(int argc, char **argv)
                 break;
             
             case 'j':
-                join_threshold = atoi(optarg);
-                //  (todo) change join threshold to be in %
-                // if (join_threshold > 1 || join_threshold < 0)
-                // {
-                //     fprintf(stderr, "Please change join thershold to be less than 1 and greater than 0.\n");
-                //     exit(-1);
-                // }
+                join_threshold = atof(optarg); // dist threshold is provided in % of the query set size
+                if (join_threshold > 1 || join_threshold < 0)
+                {
+                    fprintf(stderr, "Please change join thershold to be less than 1 and greater than 0.\n");
+                    exit(-1);
+                }
                 break;
 
             case 't':
-                dist_threshold = atof(optarg);
-                //  (todo) change distance threshold to be in %
-                // if (dist_threshold > 1 || dist_threshold < 0)
-                // {
-                //     fprintf(stderr, "Please change distance thershold to be less than 1 and greater than 0.\n");
-                //     exit(-1);
-                // }
+                dist_threshold = atof(optarg); // dist threshold is provided in %
+                if (dist_threshold > 1 || dist_threshold < 0)
+                {
+                    fprintf(stderr, "Please change distance thershold to be less than 1 and greater than 0.\n");
+                    exit(-1);
+                }
+                dist_threshold = dist_threshold * max_dist;
                 break;
 
             case 'c':
@@ -265,7 +265,7 @@ int main(int argc, char **argv)
     vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
     print_vector(pivot_space_extremity, num_pivots);
     
-
+    exit(1);
 
     /* initialize grid */
     printf("\n\nInitialize grid... ");

@@ -13,7 +13,7 @@ struct match_map {
 enum response init_match_map(struct inv_index * index, struct match_map * map);
 
 /* update match count for a given set */
-enum response update_match_count(struct match_map * map, struct sid * set_id, unsigned int join_threshold);
+enum response update_match_count(struct match_map * map, struct sid * set_id, float join_threshold, unsigned int query_set_size);
 
 /* update mismatch count for a given set */
 enum response update_mismatch_count(struct match_map * map, struct sid * set_id);

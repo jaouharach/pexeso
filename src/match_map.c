@@ -19,8 +19,9 @@ enum response init_match_map(struct inv_index * index, struct match_map * map)
         if(index->distinct_sets == NULL)
             exit_with_failure("Error in match_map.c: NULL pointer! couldn't link entry in matchmap to entry in inverted index!");
         
-        map->sets[s].set_pos = index->distinct_sets[s].set_pos;
         map->sets[s].table_id = index->distinct_sets[s].table_id;
+        map->sets[s].set_id = index->distinct_sets[s].set_id;
+        map->sets[s].set_size = index->distinct_sets[s].set_size;
         map->match_count[s] = 0;
         map->mismatch_count[s] = 0;
         map->joinable[s] = false;
@@ -30,27 +31,30 @@ enum response init_match_map(struct inv_index * index, struct match_map * map)
 }
 
 /* update match count for a given set */
-enum response update_match_count(struct match_map * map, struct sid * set_id, unsigned int join_threshold)
+enum response update_match_count(struct match_map * map, struct sid * sid, float join_threshold, unsigned int query_set_size)
 {
-    int set_idx = has_set(map, set_id);
+    int set_idx = has_set(map, sid);
     if(set_idx == -1)
         exit_with_failure("Error in match_map.c: Couldn't update match map, set id does not exist in match map!");
     
     map->match_count[set_idx] = map->match_count[set_idx] + 1;
 
-    if(map->match_count[set_idx] >= join_threshold)
+    if(map->match_count[set_idx] >= ceil(join_threshold * query_set_size))
+    {
+        printf("\033[1;31mjoin threshold = %f * %u = %f, match count = %u\033[0m", join_threshold, query_set_size, ceil(join_threshold * query_set_size), map->match_count[set_idx]);
         map->joinable[set_idx] = true;
-
+    }
     return OK;
 }
 
 /* update mismatch count for a given set */
-enum response update_mismatch_count(struct match_map * map, struct sid * set_id)
+enum response update_mismatch_count(struct match_map * map, struct sid * sid)
 {
-    int set_idx = has_set(map, set_id);
+    int set_idx = has_set(map, sid);
     if(set_idx == -1)
         exit_with_failure("Error in match_map.c: Couldn't update mismatch map, set id does not exist in match map!");
     map->mismatch_count[set_idx] = map->mismatch_count[set_idx] + 1;
+    return OK;
 }
 
 /* check if set id is in map */
@@ -61,7 +65,7 @@ int has_set(struct match_map * map, struct sid * sid)
 
     for(int s = 0; s < map->num_sets; s++)
     {
-        if(map->sets[s].table_id == sid->table_id && map->sets[s].set_pos == sid->set_pos)
+        if(map->sets[s].table_id == sid->table_id && map->sets[s].set_id == sid->set_id)
             return s;
     }
 
@@ -78,8 +82,8 @@ void dump_match_map_to_console(struct match_map * map)
     for(int s = 0; s < map->num_sets; s++)
     {
         curr_set = map->sets[s];
-        printf("\t%d: \033[1;33m (%u, %u) \033[0m=> {", s, curr_set.table_id, curr_set.set_pos);
-        printf("match = %u, mistach = %u, joinable: %s}\n", map->match_count[s], map->mismatch_count[s], map->joinable[s] ? "\033[0;32mtrue\033[0m" : "\033[1;31mfalse\033[0m");
+        printf("\t%d: \033[1;33m S: (%u, %u) |S| = %u\033[0m => {", s, curr_set.table_id, curr_set.set_id, curr_set.set_size);
+        printf("match = %u, mismatch = %u, joinable: %s}\n", map->match_count[s], map->mismatch_count[s], map->joinable[s] ? "\033[0;32mtrue\033[0m" : "\033[1;31mfalse\033[0m");
        
     }
     printf("\n\t>>>  END OF MAP  <<<\n\n\n");

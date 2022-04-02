@@ -137,9 +137,9 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
     if (v_mapping->values == NULL)
         exit_with_failure("Error in hgrid.c: Couldn't allocate memory for values of vector mapping.");
 
-    map_vector(vector, grid->settings->mtr_vector_length, v_mapping, grid->settings->pivots_mtr, grid->settings->num_pivots);
+    map_vector(vector, grid->settings->mtr_vector_length, v_mapping, grid->settings);
     
-
+    
     // find the closest cell in first level.
     float bsf = FLT_MAX;
     cell *cell = NULL;
@@ -205,7 +205,7 @@ void dump_grid_to_console(struct grid *grid)
                 printf("vectors list (total vectors = %u):\n", level->cells[j].cell_size);
                 for (int i = 0; i < level->cells[j].cell_size; i++)
                 {
-                    printf("(%u, %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_pos);
+                    printf("(%u, %u, %u, %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_id, level->cells[j].vid[i].pos, level->cells[j].vid[i].set_size);
                 }
             }
             else

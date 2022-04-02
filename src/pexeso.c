@@ -30,7 +30,7 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     verify(Dgrid, pairs, inv_index, match_map, Qgrid->total_records);
 
     // print Query grid
-    dump_grid_to_console(Qgrid);
+    // dump_grid_to_console(Qgrid);
 
     // print match map after quering
     // dump_match_map_to_console(match_map);
@@ -73,7 +73,7 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
     unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
 
     /* query settings */
-    unsigned int join_threshold = Dgrid->settings->query_settings->join_threshold; // T 
+    float join_threshold = Dgrid->settings->query_settings->join_threshold; // T 
     float dist_threshold = Dgrid->settings->query_settings->dist_threshold; // tau
 
     printf("\n\n\n\t..................................\n");

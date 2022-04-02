@@ -31,21 +31,24 @@ typedef struct entry entry;
 // vector id (used to track vector ids of all vectors in one cell)
 struct vid {
   unsigned int table_id;
-  unsigned int set_pos;
+  unsigned int set_id;
   unsigned int pos; // vector pos in set
+  unsigned int set_size; // total vectors in set
 };
 
 // set id 
 struct sid {
   unsigned int table_id;
-  unsigned int set_pos;
+  unsigned int set_id;
+  unsigned int set_size;
 };
 
 // vector
 struct vector{
 	unsigned int table_id;
 	unsigned int set_id;
-  unsigned int pos;
+  unsigned int pos; // vector position in set
+  unsigned int set_size;
 	v_type * values;
 };
 
