@@ -41,10 +41,10 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
 enum response create_cell_filename(struct grid_settings *settings, struct cell * cell);
 
 /* get list of vector in cell */
-vector * get_vectors_mtr(struct cell * cell, unsigned int vector_length_mtr);
+vector * get_vectors_mtr(struct cell * cell, struct grid_settings *settings, bool from_query_grid);
 
 /* get list of vector in cell (in pivot space) */
-vector * get_vectors_ps(struct cell * cell, unsigned int num_pivots);
+vector * get_vectors_ps(struct cell * cell, struct grid_settings * settings, bool from_query_grid);
 
 /* get pointer to leaf cells of a given cell */
 void get_leaf_cells(struct cell * cell, struct cell ** leaves, unsigned int * num_leaves);
@@ -54,10 +54,10 @@ void get_num_leaf_cells(struct cell * cell, unsigned int * num_leaves);
 
 /* get vector tuples (vectors in metric and ps space) */
 // (v1, v1'), (v2, v2'), (v3, v3')
-struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings * settings);
+struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings * settings, bool from_query_grid);
 
 /* get list of vector in the sub leaf cells of a non leaf cell (in pivot space) */
-vector * get_sub_cells_vectors_ps(struct cell * cell, unsigned int num_pivots, long unsigned int * num_vectors);
+vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * settings, long unsigned int * num_vectors, bool from_query_grid);
 
 /* check is cell is empty (has no vectors) */
 bool is_empty(struct cell * cell);

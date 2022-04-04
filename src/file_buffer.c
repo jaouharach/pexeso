@@ -14,6 +14,7 @@ enum response file_buffer_init(struct cell *cell)
         exit_with_failure("Error in file_buffer.c: Could not allocate memory for file buffer.\n");
 
     cell->file_buffer->in_disk = false;
+    cell->file_buffer->disk_count = 0; // total vectors in disk
 
     cell->file_buffer->mtr_buffered_list = NULL;
     cell->file_buffer->ps_buffered_list = NULL;
@@ -75,10 +76,8 @@ enum response add_file_buffer_to_map(struct grid *grid, struct cell *cell)
 /* only flushes vectors in metric space */
 enum response flush_buffer_to_disk(struct grid *grid, struct cell *cell)
 {
-    //is this file flush properly out1/06_R_0_(160,192,0.738156)_9
     if (cell->file_buffer->buffered_list_size > 0)
     {
-
         if (cell->filename == NULL)
             exit_with_failure("Error in file_buffer.c: Cannot flush the node to disk. "
                               "It does not have a filename.");
@@ -90,31 +89,41 @@ enum response flush_buffer_to_disk(struct grid *grid, struct cell *cell)
         full_filename = strcat(full_filename, cell->filename);
         full_filename = strcat(full_filename, "\0");
 
+        // if(grid->is_query_grid)
+        //     printf("query grid storing in file %s", full_filename);
+
+        // if(grid->is_query_grid == false)
+        //     printf("data grid storing in file %s", full_filename);
+
         FILE *vector_file = fopen(full_filename, "a");
 
         if (vector_file == NULL)
-            exit_with_failure("Error in file_buffer.c: Flushing node to disk... "
-                              "Could not open the filename.");
-
+        {
+            printf("\ncell file name : %s", full_filename);
+            exit_with_failure("Error in file_buffer.c: Flushing cell to disk, Could not open the filename.");
+        }
         int num_vectors = cell->file_buffer->buffered_list_size;
+        int disk_count = cell->file_buffer->disk_count;
 
         for (int i = 0; i < num_vectors; ++i)
         {
-            // (todo) flush vectors in pivot space
+            // flush metric vector
             if (!fwrite(cell->file_buffer->mtr_buffered_list[i], sizeof(v_type), grid->settings->mtr_vector_length, vector_file))
                 exit_with_failure("Error in file_buffer.c: Could not "
-                                  "write the timeseries to file.\n");
+                                  "write metric space vectors to file.\n");
+            // flush vector mapping (in pivot space)
+            if (!fwrite(cell->file_buffer->ps_buffered_list[i], sizeof(v_type), grid->settings->num_pivots, vector_file))
+                exit_with_failure("Error in file_buffer.c: Could not "
+                                  "write pivot space vectors to file.\n");
         }
-
+        
         if (fclose(vector_file))
-            exit_with_failure("Error in file_buffer.c: Flushing node to disk.. "
-                              "Could not close file.");
+            exit_with_failure("Error in file_buffer.c: Flushing cell to disk, Could not close file.");
 
         cell->file_buffer->disk_count += num_vectors;
 
         if (!clear_file_buffer(grid, cell))
-            exit_with_failure("Error in file_buffer.c: Flushing node to disk.. "
-                              "Could not clear the buffer.");
+            exit_with_failure("Error in file_buffer.c: Flushing cell to disk, Could not clear the buffer.");
 
         cell->file_buffer->in_disk = true;
 

@@ -161,20 +161,20 @@ int main(int argc, char **argv)
 
             case 'c':
                 mtr_buffered_memory_size = atoi(optarg);
-                if (mtr_buffered_memory_size < 10)
-                {
-                    fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
-                    exit(-1);
-                }
+                // if (mtr_buffered_memory_size < 10)
+                // {
+                //     fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
+                //     exit(-1);
+                // }
                 break;
 
             case 's':
                 ps_buffered_memory_size = atoi(optarg);
-                if (ps_buffered_memory_size < 10)
-                {
-                    fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
-                    exit(-1);
-                }
+                // if (ps_buffered_memory_size < 10)
+                // {
+                //     fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
+                //     exit(-1);
+                // }
                 break;
 
             case 'v':
@@ -265,8 +265,6 @@ int main(int argc, char **argv)
     vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
     print_vector(pivot_space_extremity, num_pivots);
     
-    exit(1);
-
     /* initialize grid */
     printf("\n\nInitialize grid... ");
     struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold);

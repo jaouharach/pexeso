@@ -82,13 +82,12 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     if(candidate_cell->cell_size > 0)
                     {
                         // get vector (in metric and pivot space) in candidate cell
-                        struct vector_tuple *candidate_vectors = get_vector_tuples(candidate_cell, grid->settings);
+                        struct vector_tuple *candidate_vectors = get_vector_tuples(candidate_cell, grid->settings, false);
                         for (int v = 0; v < candidate_cell->cell_size; v++)
                         {
                             // if vector belongs to set (curr set)
                             if (candidate_vectors[v].mtr_vector->set_id == curr_set->set_id && candidate_vectors[v].mtr_vector->table_id == curr_set->table_id)
                             {
-                                printf("\nvector belongs to set ()\n");
                                 // if candidate vector can be filtered by lemma 1
                                 if (pivot_filter(query_vector, candidate_vectors[v].ps_vector,
                                                 grid->settings->num_pivots, dist_threshold))
@@ -115,6 +114,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                                     }
                                     else
                                     {
+                                        
                                         match_map->mismatch_count[set_idx]++;
                                     }
                                 }
@@ -128,8 +128,8 @@ enum response verify(struct grid *grid, struct pairs *pairs,
 
                             if (match_map->match_count[set_idx] >= ceil(join_threshold * query_vector->set_size))
                             {
-                                printf("\033[1;31m\nquery vector: (%u, %u, %u)\033[0m", query_vector->table_id, query_vector->set_id, query_vector->set_size);
-                                printf("\033[1;31m\njoin threshold = %f * %u = %f, match count = %u\033[0m", join_threshold, query_vector->set_size, ceil(join_threshold * query_vector->set_size), match_map->match_count[set_idx]);
+                                // printf("\033[1;31m\nquery vector: (%u, %u, %u)\033[0m", query_vector->table_id, query_vector->set_id, query_vector->set_size);
+                                // printf("\033[1;31m\njoin threshold = %f * %u = %f, match count = %u\033[0m", join_threshold, query_vector->set_size, ceil(join_threshold * query_vector->set_size), match_map->match_count[set_idx]);
                                 // mark current set (curr_entry) as joinable
                                 match_map->joinable[set_idx] = true;
                                 continue;
@@ -162,12 +162,12 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                 if (cq->cell_size != 0 && cr->cell_size != 0) // cell are not empty
                 {
                     // get all q' and q in cq
-                    struct vector_tuple * query_vectors = get_vector_tuples(cq, settings);
+                    struct vector_tuple * query_vectors = get_vector_tuples(cq, settings, true);
                     for (int q = 0; q < cq->cell_size; q++)
                     {
                         // printf("(%u, %u, %u)\n", query_vector[q]->table_id, query_vector[q]->set_id, query_vector[q]->pos);
                         // cr is a match of q' by lemma 5
-                        if (vector_cell_match(query_vectors[q].ps_vector, cr, settings->num_pivots, dist_threshold))
+                        if (vector_cell_match(query_vectors[q].ps_vector, cr, settings, dist_threshold))
                         {
                             add_matching_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector,cr, settings->num_pivots, settings->mtr_vector_length); // add <q', cr>
                             // free memory
@@ -178,7 +178,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                         }
                         else
                         {
-                            if (!vector_cell_filter(query_vectors[q].ps_vector, cr, settings->num_pivots, dist_threshold, map))
+                            if (!vector_cell_filter(query_vectors[q].ps_vector, cr, settings, dist_threshold, map))
                                 add_candidate_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, settings->num_pivots, settings->mtr_vector_length); // add <q', cr>
                             // free memory
                             free(query_vectors[q].mtr_vector->values);
@@ -192,7 +192,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                 }
                 else if (cq->cell_size == 0)
                 {
-                    printf("Empty leaf query cell.\n\n");
+                    // printf("Empty leaf query cell.\n\n");
                     break;
                 }
             }
@@ -201,7 +201,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                 if(!is_empty(cq))
                 {
                     // lemma 6
-                    if (cell_cell_match(cr, cq, settings->num_pivots, dist_threshold))
+                    if (cell_cell_match(cr, cq, settings, dist_threshold))
                     {
                         unsigned int num_cr_leaves = 0, max_leaf_idx = 0;
                         get_num_leaf_cells(cr, &num_cr_leaves);
@@ -230,7 +230,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                             if(cq_leaves[ql]->cell_size == 0)
                                 continue;
 
-                            struct vector_tuple *query_vectors = get_vector_tuples(cq_leaves[ql], settings);
+                            struct vector_tuple *query_vectors = get_vector_tuples(cq_leaves[ql], settings, true);
                             for (int q = 0; q < cq_leaves[ql]->cell_size; q++)
                             {
                                 for (int l = 0; l < num_cr_leaves; l++)
@@ -255,14 +255,14 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                     
                     // lemma 4: cr cannot be pruned
                     else 
-                        if (cell_cell_filter(cr, cq, settings->num_pivots, dist_threshold, map) == FAILED)
+                        if (cell_cell_filter(cr, cq, settings, dist_threshold, map) == FAILED)
                         {
                             block(cq, cr, pairs, settings, map);
                         }
                 }
                 else
                 {
-                    printf("Empty query cell.\n\n");
+                    // printf("Empty query cell.\n\n");
                 }
 
                 // else // if all sub cells of cq are empty
@@ -299,7 +299,6 @@ struct query_settings *init_query_settings(v_type dist_threshold, float join_thr
     struct query_settings *settings = malloc(sizeof(struct query_settings));
     settings->dist_threshold = dist_threshold;
     settings->join_threshold = join_threshold;
-
     return settings;
 }
 /* check if a vector is in the SQR of a query vector */
@@ -382,14 +381,14 @@ enum response pivot_match(struct vector *q, struct vector *x,
    function returns OK if cell c can be filtered (pruned).
 */
 enum response vector_cell_filter(struct vector *q, struct cell *cell,
-                                 unsigned int num_pivots, float dist_threshold, struct match_map * map)
+                                 struct grid_settings * settings, float dist_threshold, struct match_map * map)
 {
     // printf("\nvector cell filter, cell size = %u\n", cell->cell_size);
     // check if there is at least one vector in SQR of q
-    vector *cell_vectors = get_vectors_ps(cell, num_pivots);
+    vector *cell_vectors = get_vectors_ps(cell, settings, false);
     for(int v = 0; v < cell->cell_size; v++)
     {
-        if(vector_in_SQR(&cell_vectors[v], q, num_pivots, dist_threshold))
+        if(vector_in_SQR(&cell_vectors[v], q, settings->num_pivots, dist_threshold))
         {
             for(int i = 0; i < cell->cell_size; i++)
                 free(cell_vectors[i].values);
@@ -425,17 +424,17 @@ enum response vector_cell_filter(struct vector *q, struct cell *cell,
    function returns OK if cell c can be filtered (pruned).
 */
 enum response cell_cell_filter(struct cell *cell, struct cell *query_cell,
-                               unsigned int num_pivots, float dist_threshold, struct match_map * map)
+                               struct grid_settings * settings, float dist_threshold, struct match_map * map)
 {
     // check if there is at least one vector in SQR of cq.center
     float tau = dist_threshold + (query_cell->edge_length / 2);
     long unsigned int num_cell_vectors = 0;
 
-    vector *cell_vectors = get_sub_cells_vectors_ps(cell, num_pivots, &num_cell_vectors);
+    vector *cell_vectors = get_sub_cells_vectors_ps(cell, settings, &num_cell_vectors, false);
 
     for(int v = 0; v < num_cell_vectors; v++)
     {
-        if(vector_in_SQR(&cell_vectors[v], query_cell->center, num_pivots, tau))
+        if(vector_in_SQR(&cell_vectors[v], query_cell->center, settings->num_pivots, tau))
         {
             // free memory
             for(int i = 0; i < num_cell_vectors; i++)
@@ -474,11 +473,11 @@ enum response cell_cell_filter(struct cell *cell, struct cell *query_cell,
    function returns OK if cell c is a match to q.
 */
 enum response vector_cell_match(struct vector *q, struct cell *cell,
-                                unsigned int num_pivots, v_type dist_threshold)
+                                struct grid_settings * settings, v_type dist_threshold)
 {   
-    vector *cell_vectors = get_vectors_ps(cell, num_pivots);
+    vector *cell_vectors = get_vectors_ps(cell, settings, false);
     float rqr;
-    for (int p = 0; p < num_pivots; p++)
+    for (int p = 0; p < settings->num_pivots; p++)
     {
         rqr = dist_threshold - q->values[p];
         if(rqr < 0) // no rectangle query region for pivot p
@@ -521,7 +520,7 @@ enum response vector_cell_match(struct vector *q, struct cell *cell,
    function returns OK if cell c is a match to cq.
 */
 enum response cell_cell_match(struct cell *cell, struct cell *query_cell,
-                              unsigned int num_pivots, float dist_threshold)
+                              struct grid_settings * settings, float dist_threshold)
 {
     long unsigned int num_cell_vectors = 0, num_query_vectors = 0;
     vector *cell_vectors, *query_vectors;
@@ -529,20 +528,20 @@ enum response cell_cell_match(struct cell *cell, struct cell *query_cell,
     if(cell->is_leaf == true && cell->cell_size != 0)
     {
         num_cell_vectors = cell->cell_size;
-        cell_vectors = get_vectors_ps(cell, num_pivots);
+        cell_vectors = get_vectors_ps(cell, settings, false);
     }
     else if(cell->is_leaf == false)
-        cell_vectors = get_sub_cells_vectors_ps(cell, num_pivots, &num_cell_vectors);
+        cell_vectors = get_sub_cells_vectors_ps(cell, settings, &num_cell_vectors, false);
     else
         return FAILED;
 
     if(query_cell->is_leaf == true && query_cell->cell_size != 0)
     {
         num_query_vectors = query_cell->cell_size;
-        query_vectors = get_vectors_ps(query_cell, num_pivots);
+        query_vectors = get_vectors_ps(query_cell, settings, true);
     }
     else if(query_cell->is_leaf == false)
-        query_vectors = get_sub_cells_vectors_ps(query_cell, num_pivots, &num_query_vectors);
+        query_vectors = get_sub_cells_vectors_ps(query_cell, settings, &num_query_vectors, true);
     else
         return FAILED;
     
@@ -551,7 +550,7 @@ enum response cell_cell_match(struct cell *cell, struct cell *query_cell,
 
     for(int q = 0; q < num_query_vectors; q++)
     {
-        int p = min_RQR(&query_vectors[q], num_pivots, dist_threshold);
+        int p = min_RQR(&query_vectors[q], settings->num_pivots, dist_threshold);
        
         if(p == -1) // no rectangle query region for query vector q
             continue;
@@ -639,7 +638,7 @@ int has_query_vector(struct pairs *pairs, vector *query_vector)
 /* add candidate pair */
 enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct vector *q_mtr, struct cell *cell, unsigned int num_pivots, unsigned int mtr_vector_length)
 {
-    printf("\n_____ add candidate! to (%u, %u, %u) \n", q->table_id, q->set_id, q->set_size);
+    // printf("\n_____ add candidate! to (%u, %u, %u) \n", q->table_id, q->set_id, q->set_size);
     if (pairs == NULL)
         exit_with_failure("Error in query_engine.c: NULL pointer to result pairs!");
 
@@ -649,7 +648,7 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct v
     // query vector doesn't exist in pairs list
     if (q_idx == -1 || num_query_vectors == 0)
     {
-        printf("\n\n\t*** *** *** Add query vector to pairs list (with its candidate)\n\n");
+        // printf("\n\n\t*** *** *** Add query vector to pairs list (with its candidate)\n\n");
         if (q_idx == -1)
             q_idx = num_query_vectors; // add at last pos
 
@@ -730,7 +729,7 @@ enum response add_matching_pair(struct pairs *pairs, struct vector *q, struct ve
     // query vector doesn't exist / the first to be added
     if (q_idx == -1 || num_query_vectors == 0)
     {
-        printf("\n\n\t*** *** *** Add query vector to pairs list (with its match)\n\n");
+        // printf("\n\n\t*** *** *** Add query vector to pairs list (with its match)\n\n");
         if (q_idx == -1)
             q_idx = num_query_vectors; // add at last pos
 

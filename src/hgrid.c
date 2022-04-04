@@ -13,7 +13,7 @@
 #include "../include/select_pivots.h"
 
 /* initialize grid */
-enum response init_grid(const char *root_directory,
+enum response init_grid(const char *work_dir,
                     unsigned int num_pivots,
                     vector *pivots_mtr,
                     vector *pivots_ps,
@@ -30,10 +30,7 @@ enum response init_grid(const char *root_directory,
                     struct query_settings * query_settings,
                     struct grid *grid)
 {
-    // make grid directory
-    if (!create_grid_dir(root_directory))
-        exit_with_failure("Error in hgrid.c: Couldn't create grid directory!");
-
+    
     // initialize grid settings
     grid->settings = (struct grid_settings *)malloc(sizeof(struct grid_settings));
     if (grid->settings == NULL)
@@ -43,8 +40,17 @@ enum response init_grid(const char *root_directory,
     grid->first_level = NULL;
     grid->total_records = 0;
     grid->is_query_grid  = is_query_grid; 
+    
+    grid->settings->work_directory = malloc(sizeof(char) * strlen(work_dir));
+    strcpy(grid->settings->work_directory, work_dir);
 
-    grid->settings->root_directory = root_directory;
+    grid->settings->root_directory = malloc(sizeof(char) *( strlen(work_dir) + 8));
+    strcpy(grid->settings->root_directory, work_dir);
+    if(is_query_grid == true)
+        strcat(grid->settings->root_directory, "/Qgrid/\0");
+    else
+        strcat(grid->settings->root_directory, "/Hgrid/\0");
+
     grid->settings->num_pivots = num_pivots; // number of dimensions is equal to the number of pivots
     grid->settings->pivots_mtr = pivots_mtr; // pivot vectors in metric space
     grid->settings->pivots_ps = pivots_ps;   // pivot vectors in pivot space
@@ -86,14 +92,19 @@ enum response init_grid(const char *root_directory,
         level: leaf level id (m)
         edge length: edge length of the leaf cell
         mag: magnitude of the center vector of the leaf cell
-        number of punctuation marks (underscores:2, parentheses:2, commas:1): total 5
+        number of punctuation marks (underscores:2, parentheses:2): total 4
+        commas: total (num_pivots - 1)
     */
 
     float edge_length_size = ceil(log10(INT_MAX) + 1);
-    float center_vector_size = ceil(log10(INT_MAX)) * 2;
+    float center_vector_size = ceil(log10(INT_MAX)) * grid->settings->num_pivots;
     // float num_vectors_size = ceil(log10(SHRT_MAX) + 1);
 
-    grid->settings->max_filename_size = 2 + edge_length_size + center_vector_size + 5;
+    grid->settings->max_filename_size = 2 + edge_length_size + center_vector_size + 4 + grid->settings->num_pivots - 1;
+
+    // make grid directory
+    if (!create_grid_dir(grid->settings->root_directory))
+        exit_with_failure("Error in hgrid.c: Couldn't create grid directory!");
 
     // initialize file buffer manager
     if (!init_file_buffer_manager(grid))
@@ -166,7 +177,8 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
     // print_vector(v_mapping, grid->settings->num_pivots);
 
     // append vector in metric format
-    append_vector_to_cell(grid, index, cell, vector, v_mapping);
+    if(!append_vector_to_cell(grid, index, cell, vector, v_mapping))
+        exit_with_failure("Error in hgrid.c: couldn't append vector to cell.");
 
     if(grid->is_query_grid)
         print_vector(v_mapping, grid->settings->num_pivots);
@@ -305,7 +317,7 @@ enum response level_write(struct grid *grid, struct level *level, FILE *file)
                 fwrite(curr_cell.filename, sizeof(char), filename_size, file);
                 fwrite(&(curr_cell.cell_size), sizeof(short), 1, file);
 
-                
+                // (todo) flush_buffer_to_disk
                 if (grid->settings->track_vector)
                 {
                     curr_cell.vid_pos = grid->vid_pos_ctr;
@@ -318,7 +330,6 @@ enum response level_write(struct grid *grid, struct level *level, FILE *file)
 
                 if(curr_cell.file_buffer != NULL)
                     flush_buffer_to_disk(grid, &curr_cell);
-
                 // (todo) update stats
             }
             else

@@ -2,9 +2,11 @@
 #include <float.h>
 #include <dirent.h>
 #include "globals.h"
-
+#include <string.h>
 struct grid_settings {
-    const char * root_directory;
+    char * root_directory; // where cell files will be stored
+    char * query_root_directory; // where query grid cell files will be stored
+    char * work_directory; // where Hgrid and Qrid will be stored
     vector * pivots_mtr; // pivot vectors in metric space  
     vector * pivots_ps; // pivot vectors in pivot space  
     unsigned int num_pivots; // |P|, number of dimensions in pivot space
@@ -40,7 +42,7 @@ struct grid{
   struct vid * vid_cache;
 };
 
-enum response init_grid(const char *root_directory,
+enum response init_grid(const char *work_dir,
                     unsigned int num_pivots,
                     vector *pivots_mtr,
                     vector *pivots_ps,

@@ -15,6 +15,7 @@ struct query_settings
 {
     float join_threshold; // T 
     float dist_threshold; // tau
+    char * query_directory; 
 };
 
 // pairs of candidate and matching cells for every query vector
@@ -82,7 +83,7 @@ enum response pivot_match(struct vector * q, struct vector * x,
    function returns OK if cell c can be filtered (pruned).
 */
 enum response vector_cell_filter(struct vector * q, struct cell * cell, 
-                            unsigned int num_pivots, float dist_threshold, struct match_map * map);
+                            struct grid_settings * settings, float dist_threshold, struct match_map * map);
                
 /* 
    Given a target cell c and a query cell cq in the pivot space, 
@@ -93,7 +94,7 @@ enum response vector_cell_filter(struct vector * q, struct cell * cell,
    function returns OK if cell c can be filtered (pruned).
 */
 enum response cell_cell_filter(struct cell * cell, struct cell * query_cell, 
-                            unsigned int num_pivots, float dist_threshold, struct match_map * map);
+                            struct grid_settings * settings, float dist_threshold, struct match_map * map);
 
 /* 
     Given a target cell c and a mapped query vector q in the pivot space,
@@ -103,7 +104,7 @@ enum response cell_cell_filter(struct cell * cell, struct cell * query_cell,
    function returns OK if cell c is a match to q.
 */
 enum response vector_cell_match(struct vector * q, struct cell * cell, 
-                            unsigned int num_pivots, float dist_threshold);
+                            struct grid_settings * settings, float dist_threshold);
 
 /* 
    Given a target cell c and a query cell cq in the pivot space, 
@@ -114,7 +115,7 @@ enum response vector_cell_match(struct vector * q, struct cell * cell,
    function returns OK if cell c is a match to cq.
 */
 enum response cell_cell_match(struct cell * cell, struct cell * query_cell, 
-                            unsigned int num_pivots, float dist_threshold);
+                            struct grid_settings * settings, float dist_threshold);
 
 /* min rectagle query region RQR of a query vector  */
 float min_RQR(struct vector *q, unsigned int num_pivots, float dist_threshold);

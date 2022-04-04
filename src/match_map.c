@@ -41,7 +41,7 @@ enum response update_match_count(struct match_map * map, struct sid * sid, float
 
     if(map->match_count[set_idx] >= ceil(join_threshold * query_set_size))
     {
-        printf("\033[1;31mjoin threshold = %f * %u = %f, match count = %u\033[0m", join_threshold, query_set_size, ceil(join_threshold * query_set_size), map->match_count[set_idx]);
+        // printf("\033[1;31mjoin threshold = %f * %u = %f, match count = %u\033[0m", join_threshold, query_set_size, ceil(join_threshold * query_set_size), map->match_count[set_idx]);
         map->joinable[set_idx] = true;
     }
     return OK;

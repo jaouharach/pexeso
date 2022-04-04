@@ -20,7 +20,8 @@ enum response init_file_buffer_manager(struct grid *grid)
     grid->buffer_manager->file_map_size = 0; // initially, zero files in file map
 
     // allocate memory for all vectors that will be indexed
-    set_buffered_memory_size(grid);
+    if(!set_buffered_memory_size(grid))
+        exit_with_failure("Error in file_buffer_manager.c: Couldn't set buffered memory size.");
 
     return OK;
 }
@@ -35,6 +36,7 @@ enum response set_buffered_memory_size(struct grid *grid)
         in this version buffered_memory_size is used for string vectors only and it does not 
         take into account memory required to store structs (file_buffer, cell, level ...)
     */
+
     unsigned long num_mtr_bytes = grid->settings->mtr_buffered_memory_size * 1024 * 1024;
     unsigned long num_ps_bytes = grid->settings->ps_buffered_memory_size * 1024 * 1024;
     
@@ -44,8 +46,8 @@ enum response set_buffered_memory_size(struct grid *grid)
     long max_mtr_buffered_vectors = (long)(num_mtr_bytes / mtr_vector_size_in_bytes);
     long max_ps_buffered_vectors = (long)(num_ps_bytes / ps_vector_size_in_bytes);
 
-    printf("max_mtr_buffered_vectors  = %lu\n", max_mtr_buffered_vectors);
-    printf("max_ps_buffered_vectors  = %lu\n", max_ps_buffered_vectors);
+    printf("\nmax_mtr_buffered_vectors  = %lu\n", max_mtr_buffered_vectors);
+    printf("\nmax_ps_buffered_vectors  = %lu\n", max_ps_buffered_vectors);
 
 
     grid->buffer_manager->mtr_memory_array = calloc(max_mtr_buffered_vectors, mtr_vector_size_in_bytes);
@@ -90,43 +92,48 @@ response get_file_buffer(struct grid *grid, struct cell *cell)
                            for the node.\n");
     }
 
-    // if buffer limit has been reached (todo) flush huffer to disk
-    int mtr_buffer_limit = grid->buffer_manager->max_mtr_record_index;
-    int ps_buffer_limit = grid->buffer_manager->max_ps_record_index;
+    // if buffer limit has been reached flush buffer to disk
+    int mtr_buffer_limit = grid->buffer_manager->max_mtr_record_index - (2 * grid->settings->max_leaf_size) ;
+    int ps_buffer_limit = grid->buffer_manager->max_ps_record_index  - (2 * grid->settings->max_leaf_size);
 
-    if (grid->buffer_manager->current_mtr_record_index > mtr_buffer_limit)
-        exit_with_failure("Error in file_buffer_manager.c: memory array has been completly filled! cannot add any more vectors. please increase  buffer memory size.");
-    
-    if (grid->buffer_manager->current_ps_record_index > ps_buffer_limit)
-        exit_with_failure("Error in file_buffer_manager.c: memory array has been completly filled! cannot add any more vectors. please increase  buffer memory size.");
-    
-    // if (grid->buffer_manager->current_record_index > buffer_limit)
-    // {
-    //     char *curr_time;
-    //     curr_time = NULL;
-    //     curr_time = malloc(sizeof(char) * 26);
-    //     get_current_time(curr_time);
+    if 
+    (
+        grid->buffer_manager->current_mtr_record_index > mtr_buffer_limit ||
+        grid->buffer_manager->current_ps_record_index > ps_buffer_limit
+    )
+    {
+        // if (grid->buffer_manager->current_mtr_record_index >= mtr_buffer_limit)
+        //     printf("Flush because metric buffer is full.\n");
+        // if (grid->buffer_manager->current_ps_record_index >= ps_buffer_limit)
+        //     printf("Flush because ppivot space buffer is full.\n");
 
-    //     printf("%s, batch remove ! %u  \n", curr_time, grid->buffer_manager->current_record_index);
-    //     free(curr_time);
+        char *curr_time;
+        curr_time = NULL;
+        curr_time = malloc(sizeof(char) * 26);
+        get_current_time(curr_time);
 
-    //     unsigned long to_size = 0;
-    //     struct file_map *currP = NULL;
-    //     currP = grid->buffer_manager->file_map;
+        printf("%s, mtr batch remove ! %u  ps batch remove ! %u \n", curr_time, grid->buffer_manager->current_mtr_record_index, grid->buffer_manager->current_ps_record_index);
+        free(curr_time);
 
-    //     while (currP != NULL)
-    //     {
-    //         //flush buffer with position idx in the file map of this grid
-    //         if (!flush_buffer_to_disk(grid, currP->file_buffer->cell)) //flush the actual buffer of the node
-    //             exit_with_failure("Error in file_buffer_manager.c: Could not flush the buffer \
-    //                                 for node to disk.\n");
+        unsigned long to_size = 0;
+        struct file_map *currP = NULL;
+        currP = grid->buffer_manager->file_map;
 
-    //         currP = currP->next;
-    //     }
-    //     memset(grid->buffer_manager->memory_array, 0, grid->buffer_manager->max_record_index);
-    //     grid->buffer_manager->current_record_index = 0;
-    //     grid->buffer_manager->current_record = grid->buffer_manager->memory_array;
-    // }
+        while (currP != NULL)
+        {
+            //flush buffer with position idx in the file map of this grid
+            if (!flush_buffer_to_disk(grid, currP->file_buffer->cell)) //flush the actual buffer of the node
+                exit_with_failure("Error in file_buffer_manager.c: Could not flush the buffer for cell to disk.\n");
+
+            currP = currP->next;
+        }
+        memset(grid->buffer_manager->mtr_memory_array, 0, grid->buffer_manager->max_mtr_record_index);
+        memset(grid->buffer_manager->ps_memory_array, 0, grid->buffer_manager->max_ps_record_index);
+        grid->buffer_manager->current_mtr_record_index = 0;
+        grid->buffer_manager->current_ps_record_index = 0;
+        grid->buffer_manager->current_mtr_record = grid->buffer_manager->mtr_memory_array;
+        grid->buffer_manager->current_ps_record = grid->buffer_manager->ps_memory_array;
+    }
 
     return OK;
 }

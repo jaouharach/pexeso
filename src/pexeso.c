@@ -9,6 +9,7 @@
 #include "../include/query_engine.h"
 #include "../include/file_loader.h"
 #include "../include/pexeso.h"
+#include <string.h>
 
 /* pexeso set similarity search algorithm (result in match map of Dgrid) */
 void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index * inv_index,
@@ -63,7 +64,6 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
     unsigned int mtr_buffered_memory_size = 1;
     unsigned int ps_buffered_memory_size = 1;
     unsigned int max_leaf_size = Dgrid->settings->max_leaf_size; // max vectors in one leaf cell
-    char * query_grid_dir = "/home/jaouhara/Projects/pexeso-debbug/pexeso/Qgrid/";
 
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
     
@@ -108,12 +108,15 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
     struct grid * Qgrid = (struct grid *) malloc(sizeof(struct grid));
     if (Qgrid == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
-
-    if (!init_grid(query_grid_dir, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
+    
+    if (!init_grid(Dgrid->settings->work_directory, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, *num_query_vectors, base, mtr_query_vector_length, 
                     mtr_buffered_memory_size, ps_buffered_memory_size, max_leaf_size, track_vector, 
                     true, Dgrid->settings->query_settings, Qgrid))
         exit_with_failure("Error in main.c: Couldn't initialize grid!");
+
+    // to allow getting query vectors from disk  using Dgrid settings
+    Dgrid->settings->query_root_directory = Qgrid->settings->root_directory;
 
     printf("(OK)\n");
 

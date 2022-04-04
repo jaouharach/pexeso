@@ -1,0 +1,1 @@
+-- fft-scale affects pivot selection which may result in data vectors being out of the pivot space.
