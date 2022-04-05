@@ -75,6 +75,9 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
     /* query settings */
     float join_threshold = Dgrid->settings->query_settings->join_threshold; // T 
     float dist_threshold = Dgrid->settings->query_settings->dist_threshold; // tau
+    int num_query_sets = Dgrid->settings->query_settings->num_query_sets;
+    int min_query_set_size = Dgrid->settings->query_settings->min_query_set_size;
+    int max_query_set_size = Dgrid->settings->query_settings->max_query_set_size;
 
     printf("\n\n\n\t..................................\n");
     printf("\t::      BUILD QUERY INDEX       ::\n");
@@ -137,13 +140,10 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
     /* insert dataset in grid (read and index all vectors in the data set) */
     printf("Index query vectors...");
     
-    if (!index_binary_files(Qgrid, inv_index, query_file_dir, num_query_files, base))
+    if (!index_query_binary_files(Qgrid, inv_index, query_file_dir, num_query_files, base, num_query_sets, min_query_set_size, max_query_set_size))
         exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
     printf("(OK)\n");
 
-    /* print grid */
-    // printf("-- QUERY GRID:\n\n");
-    // dump_grid_to_console(Qgrid);
 
     return Qgrid;
 }

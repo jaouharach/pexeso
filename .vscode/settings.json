@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "limits": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "match_map.h": "c",
+        "hgrid.h": "c"
     }
 }

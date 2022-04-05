@@ -114,10 +114,10 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                                     }
                                     else
                                     {
-                                        
                                         match_map->mismatch_count[set_idx]++;
                                     }
                                 }
+                                    match_map->total_checked_vectors[set_idx]++;
                             }
                             // free memory
                             free(candidate_vectors[v].mtr_vector->values);
@@ -294,11 +294,15 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
 }
 
 /* initialize query settings */
-struct query_settings *init_query_settings(v_type dist_threshold, float join_threshold)
+struct query_settings *init_query_settings(v_type dist_threshold, float join_threshold, int num_query_sets, int min_query_set_size, int max_query_set_size)
 {
     struct query_settings *settings = malloc(sizeof(struct query_settings));
     settings->dist_threshold = dist_threshold;
     settings->join_threshold = join_threshold;
+    settings->num_query_sets = num_query_sets;
+    settings->min_query_set_size = min_query_set_size;
+    settings->max_query_set_size = max_query_set_size;
+
     return settings;
 }
 /* check if a vector is in the SQR of a query vector */

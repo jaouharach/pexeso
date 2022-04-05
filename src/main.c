@@ -3,14 +3,14 @@
 #include "../include/hgrid.h"
 #include "../include/level.h"
 #include "../include/cell.h"
-#include "../include/file_loader.h"
 #include "../include/gsl_matrix.h"
 #include "../include/select_pivots.h"
-#include "../include/file_buffer.h"
-#include "../include/file_buffer_manager.h"
 #include "../include/match_map.h"
 #include "../include/query_engine.h"
 #include "../include/pexeso.h"
+#include "../include/file_buffer.h"
+#include "../include/file_buffer_manager.h"
+#include "../include/file_loader.h"
 #include <unistd.h>
 #include <getopt.h>
 
@@ -18,7 +18,7 @@
 int main(int argc, char **argv)
 {
     /* dataset */
-    const char * work_dir = "/home/jaouhara/Projects/pexeso-debbug/pexeso/Hgrid/";
+    const char * work_dir = "/home/jaouhara/Projects/pexeso-debbug/pexeso/";
     const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/"; //target directory
     const char * bin_query_file_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/query/"; //target directory
 
@@ -41,6 +41,10 @@ int main(int argc, char **argv)
     float dist_threshold = 0.0; // tau = 0%
     float max_dist = 2; // max euclidean distance between two vectors
 
+    /* num query sets to take from bin_query_file_directory, if equal to -1 the algorithm will take all sets in all files */
+    int num_query_sets = -1;
+    int min_query_set_size = 0;
+    int max_query_set_size = -1;
 
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
     unsigned int mode = 0; //  mode 0 = create grid and query
@@ -61,7 +65,11 @@ int main(int argc, char **argv)
             {"fft-scale", required_argument, 0, 'f'},
             {"join-threshold", required_argument, 0, 'j'},
             {"dist-threshold", required_argument, 0, 't'},
-            
+
+            {"num-query-sets", required_argument, 0, 'u'},
+            {"min-query-set-size", required_argument, 0, 'z'},
+            {"max-query-set-size", required_argument, 0, 'a'},
+
             {"metric-buffer-size", required_argument, 0, 'c'},
             {"pivot-buffer-size", required_argument, 0, 's'},
             
@@ -157,6 +165,33 @@ int main(int argc, char **argv)
                     exit(-1);
                 }
                 dist_threshold = dist_threshold * max_dist;
+                break;
+
+            case 'u':
+                num_query_sets = atoi(optarg);
+                if (num_query_sets < -1)
+                {
+                    fprintf(stderr, "Please change number of query sets to be greater than 0.\n");
+                    exit(-1);
+                }
+                break;
+            
+            case 'z':
+                min_query_set_size = atoi(optarg);
+                if (min_query_set_size < 0)
+                {
+                    fprintf(stderr, "Please change min query set size to be greater than or equal to 0.\n");
+                    exit(-1);
+                }
+                break;
+            
+            case 'a':
+                max_query_set_size = atoi(optarg);
+                if (max_query_set_size < -1)
+                {
+                    fprintf(stderr, "Please change max query set size to be greater than or equal to -1.\n");
+                    exit(-1);
+                }
                 break;
 
             case 'c':
@@ -267,7 +302,7 @@ int main(int argc, char **argv)
     
     /* initialize grid */
     printf("\n\nInitialize grid... ");
-    struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold);
+    struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size);
 
     struct grid * grid = (struct grid *) malloc(sizeof(struct grid));
     if (grid == NULL)

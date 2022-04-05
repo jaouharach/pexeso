@@ -98,3 +98,6 @@ enum response create_grid_dir(const char * dir_path);
 
 /* compare two pointers, returns true if both pointers point to the same object */
 bool pointer_cmp(void * p1, void * p2);
+
+/* get number of digits in integer */
+int get_ndigits(unsigned int n);

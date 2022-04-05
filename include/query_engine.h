@@ -15,7 +15,9 @@ struct query_settings
 {
     float join_threshold; // T 
     float dist_threshold; // tau
-    char * query_directory; 
+    int num_query_sets;
+    int min_query_set_size;
+    int max_query_set_size;
 };
 
 // pairs of candidate and matching cells for every query vector
@@ -50,7 +52,7 @@ enum response verify(struct grid * grid, struct pairs * pairs,
             struct inv_index * index, struct match_map * match_map, unsigned int query_set_size);
             
 /* initialize query settings */
-struct query_settings * init_query_settings(v_type dist_threshold, float join_threshold);
+struct query_settings * init_query_settings(v_type dist_threshold, float join_threshold, int num_query_sets, int min_query_set_size, int max_query_set_size);
 
 /* check if a vector is in the SQR of a query vector */
 bool vecotr_in_SQR(struct vector * v, struct vector * q, unsigned int num_pivots, float dist_threshold);

@@ -11,6 +11,8 @@ enum response init_match_map(struct inv_index * index, struct match_map * map)
     map->sets = (struct sid *)malloc(sizeof(struct sid) * index->num_distinct_sets); // points to set in inverted index
     map->match_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
     map->mismatch_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
+    map->total_checked_vectors = calloc(index->num_distinct_sets, sizeof(unsigned int));
+    
     map->joinable = calloc(index->num_distinct_sets, sizeof(bool));
 
     for(int s = 0; s < index->num_distinct_sets; s++)
@@ -24,7 +26,9 @@ enum response init_match_map(struct inv_index * index, struct match_map * map)
         map->sets[s].set_size = index->distinct_sets[s].set_size;
         map->match_count[s] = 0;
         map->mismatch_count[s] = 0;
+        map->total_checked_vectors[s] = 0;
         map->joinable[s] = false;
+        
 
     }
     return OK;
@@ -97,6 +101,7 @@ enum response match_map_destroy(struct match_map *map)
     free(map->joinable);
     free(map->match_count);
     free(map->mismatch_count);
+    free(map->total_checked_vectors);
     free(map);
     return OK;
 }

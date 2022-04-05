@@ -193,3 +193,15 @@ bool pointer_cmp(void * p1, void * p2)
 
     return false;
 }
+
+/* get number of digits in integer */
+int get_ndigits(unsigned int n)
+{
+	int total_digits = 0;
+	while(n!=0){
+		//4
+		n = n/10;
+		++total_digits;
+	}
+	return total_digits;
+}
