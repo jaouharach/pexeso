@@ -46,10 +46,10 @@ struct candidate_pair
 
 /* get candidate and matching cells of a query cell */
 enum response block(struct cell *query_cell, struct cell * r_cell, 
-                    struct pairs * pairs, struct grid_settings * settings, struct match_map * map);
+                    struct pairs * pairs, struct grid_settings * settings);
 
 enum response verify(struct grid * grid, struct pairs * pairs,
-            struct inv_index * index, struct match_map * match_map, unsigned int query_set_size);
+            struct inv_index * index, struct match_map * match_map);
             
 /* initialize query settings */
 struct query_settings * init_query_settings(v_type dist_threshold, float join_threshold, int num_query_sets, int min_query_set_size, int max_query_set_size);
@@ -85,7 +85,7 @@ enum response pivot_match(struct vector * q, struct vector * x,
    function returns OK if cell c can be filtered (pruned).
 */
 enum response vector_cell_filter(struct vector * q, struct cell * cell, 
-                            struct grid_settings * settings, float dist_threshold, struct match_map * map);
+                            struct grid_settings * settings, float dist_threshold);
                
 /* 
    Given a target cell c and a query cell cq in the pivot space, 
@@ -96,7 +96,7 @@ enum response vector_cell_filter(struct vector * q, struct cell * cell,
    function returns OK if cell c can be filtered (pruned).
 */
 enum response cell_cell_filter(struct cell * cell, struct cell * query_cell, 
-                            struct grid_settings * settings, float dist_threshold, struct match_map * map);
+                            struct grid_settings * settings, float dist_threshold);
 
 /* 
     Given a target cell c and a mapped query vector q in the pivot space,

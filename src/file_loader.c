@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include "../include/hgrid.h"
 #include "../include/match_map.h"
+#include "../include/query_engine.h"
+
 #include "../include/file_loader.h"
 
 vector * load_binary_files(const char *bin_files_directory, unsigned long num_files, unsigned long long total_vectors, unsigned int base, unsigned int mtr_vector_length)
@@ -285,11 +287,16 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
 }
 
 /* index raw binary vectors (in metric space), only index a specific number af sets */
-enum response index_query_binary_files(struct grid *grid, struct inv_index * index, const char *bin_files_directory, unsigned int num_files, unsigned int base, int num_query_sets, int min_query_set_size, int max_query_set_size)
+struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, struct inv_index * index, const char *bin_files_directory, unsigned int num_files, unsigned int base, int min_query_set_size, int max_query_set_size)
 {
     // printf("step 1.\n");
     unsigned int read_files = 0u; // numbre of read files so far
     unsigned int datasize, table_id, nsets, vector_length;
+
+    int num_query_sets = Dgrid->settings->query_settings->num_query_sets;
+    unsigned int set_counter = 0;
+    struct sid * query_sets = NULL;
+
     uint32_t num_vectors = 0u;
     vector *vector = (struct vector *)malloc(sizeof(struct vector));
     v_type val;
@@ -356,7 +363,7 @@ enum response index_query_binary_files(struct grid *grid, struct inv_index * ind
                     // printf("\t> Num vectors: %u\n", num_vectors);
 
                     // skip set if its size doesn't match requirements
-                    if(max_query_set_size != -1)
+                    if(max_query_set_size != -1 || min_query_set_size > 0)
                         if((unsigned int)num_vectors < min_query_set_size || (unsigned int)num_vectors > max_query_set_size)
                         {
                             fseek(bin_file, num_vectors * 4 * grid->settings->mtr_vector_length, SEEK_CUR);
@@ -365,15 +372,24 @@ enum response index_query_binary_files(struct grid *grid, struct inv_index * ind
                             total_bytes -= num_vectors * 4 * vector_length;
                             continue;
                         }
-
+                    // set id for all vectors in the current set
                     vector->table_id = table_id;
                     vector->set_id = set_id;
-                    vector->pos = 0; // vector position in set
+                    vector->pos = 0; // vector position in set 
                     vector->set_size = num_vectors;
-                    set_id += 1;
+                    
+                    // append set id to list of query sets
+                    set_counter++;
+                    query_sets = realloc(query_sets, sizeof(struct sid) * set_counter);
+                    query_sets[set_counter - 1].table_id = table_id;
+                    query_sets[set_counter - 1].set_id = set_id;
+                    query_sets[set_counter - 1].set_size = num_vectors;
 
+                    
                     if(num_query_sets != -1)
                         num_query_sets--; // read a new set (column)
+
+                    set_id += 1;
                 }
                 else if (i <= (unsigned int)num_vectors * grid->settings->mtr_vector_length)
                 {
@@ -424,7 +440,14 @@ enum response index_query_binary_files(struct grid *grid, struct inv_index * ind
     free(vector);
     free(dir);
 
-    return OK;
+    // check if we read more query sets than required
+    if(set_counter != num_query_sets)
+        if(num_query_sets != -1) // number of query set is specified
+            exit_with_failure("Error in pexeso.c: Function index_query_binary_files() has read more sets than what's required.");
+        else
+            Dgrid->settings->query_settings->num_query_sets = set_counter;
+
+    return query_sets;
 }
 
 bool is_binaryfile(const char *filename) // check if filename has extesion.
@@ -521,14 +544,14 @@ char * make_file_path(char * work_dir, unsigned int qtable_id, unsigned int qset
 	return filepath;
 }
 
-/* make query results dir */
-char * make_result_directory(char* algorithm, char * work_dir, unsigned int l, unsigned int nq, unsigned int min_qset_size, unsigned int max_qset_size)
+/* create directory to store query results */
+char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, unsigned int num_query_sets, unsigned int min_query_set_size, unsigned int max_query_set_size)
 {
-	char * result_dir_name = malloc(get_ndigits(l) + get_ndigits(nq)
-									+ get_ndigits(min_qset_size) + get_ndigits(max_qset_size)
+	char * result_dir_name = malloc(get_ndigits(l) + get_ndigits(num_query_sets)
+									+ get_ndigits(min_query_set_size) + get_ndigits(max_query_set_size)
 									+ strlen("/_l_q_min_max") + strlen(work_dir)+ strlen(algorithm) + 1);
 
-	sprintf(result_dir_name, "%s/%s_l%u_%uq_min%u_max%u", work_dir, algorithm, l, nq, min_qset_size, max_qset_size);
+	sprintf(result_dir_name, "%s/%s_l%u_%uq_min%u_max%u", work_dir, algorithm, l, num_query_sets, min_query_set_size, max_query_set_size);
 
 	printf("result directory name: %s\n", result_dir_name);
 	DIR* dir = opendir(result_dir_name);
@@ -545,10 +568,23 @@ char * make_result_directory(char* algorithm, char * work_dir, unsigned int l, u
 /* save query results to disk */
 enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, struct match_map * map)
 {
+    char * algorithm = "pexeso";
+    char * work_dir = Dgrid->settings->work_directory;
     unsigned int dataset_size = Dgrid->total_records;
     unsigned int mtr_vector_length = Dgrid->settings->mtr_vector_length;
     unsigned int l = 0; // total tables indexed in grid
     unsigned int dlsize = 0; // dataset size in MB
+    int num_query_sets = Dgrid->settings->query_settings->num_query_sets;
+    int min_query_set_size = Dgrid->settings->query_settings->min_query_set_size;
+    int max_query_set_size = Dgrid->settings->query_settings->max_query_set_size;
 
+    make_result_directory(work_dir, algorithm, l, num_query_sets, min_query_set_size, max_query_set_size);
 
+    // loop match maps for all query sets
+    // add entry to csv file
+    for(int s = 0; s < map->num_sets; s++)
+    {
+        
+
+    }
 }

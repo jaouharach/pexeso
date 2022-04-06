@@ -39,6 +39,12 @@
                 "30",
                 "--mode",
                 "0",
+                "--num-query-sets",
+                "-1",
+                "--min-query-set-size",
+                "2",
+                "--max-query-set-size",
+                "100"
             ],
             "stopAtEntry": false,
             "environment": [],

@@ -362,26 +362,16 @@ int main(int argc, char **argv)
         exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
     printf("(OK)\n");
 
-    printf("\n\nBuild match and mismatch map...");
-    struct match_map * match_map = malloc(sizeof(struct match_map));
-    if(match_map == NULL)
-        exit_with_failure("Error in main.c: Couldn't allocate memory for match map.");
 
-    if (!init_match_map(index, match_map))
-        exit_with_failure("Error in main.c: Couldn't initialize match map!");
-    printf("(OK)\n");
 
     /* print Rv grid */
     dump_grid_to_console(grid);
 
     /* querying */
-    pexeso(bin_query_file_directory, grid, index, match_map);
+    pexeso(bin_query_file_directory, grid, index);
 
     /* print inverted index */
     // dump_inv_index_to_console(index);
-
-    /* print match map */
-    dump_match_map_to_console(match_map);
 
     /* write grid to disk */
     if (!grid_write(grid))
@@ -395,9 +385,5 @@ int main(int argc, char **argv)
     if(!inv_index_destroy(index))
         exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
 
-    /* destroy match map */
-    if(!match_map_destroy(match_map))
-        exit_with_failure("Error main.c: Couldn't destroy match map.\n");
-    
     exit(0);
 }

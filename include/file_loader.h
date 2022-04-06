@@ -5,7 +5,7 @@ bool is_binaryfile(const char *filename);
 /* index raw binary vectors (in metric space) */
 enum response index_binary_files(struct grid *grid, struct inv_index * index, const char *bin_files_directory, unsigned int num_files, unsigned int base);
 /* index raw binary vectors (in metric space), only index a specific number af sets */
-enum response index_query_binary_files(struct grid *grid, struct inv_index * index, const char *bin_files_directory, unsigned int num_files, unsigned int base, int num_query_sets, int min_query_set_size, int max_query_set_size);
+struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, struct inv_index * index, const char *bin_files_directory, unsigned int num_files, unsigned int base, int min_query_set_size, int max_query_set_size);
 /* read all dataset files and create one big list of all the vectors in the dataset */
 vector * load_binary_files(const char *bin_files_directory, unsigned long num_files, unsigned long long total_vectors, unsigned int base, unsigned int mtr_vector_length);
 /* check dataset directory and count total files and number of vectors */
@@ -16,3 +16,5 @@ void save_to_query_result_file(char * csv_file, unsigned int qtable_id, unsigned
 char * make_file_path(char * work_dir, unsigned int qtable_id, unsigned int qset_id, unsigned int qset_size, unsigned int l, unsigned int dlsize, unsigned int vector_length, float runtime, unsigned int total_checked_vec);
 /* save query results to disk */
 enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, struct match_map * map);
+/* create directory to store query results */
+char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, unsigned int num_query_sets, unsigned int min_query_set_size, unsigned int max_query_set_size);

@@ -12,12 +12,25 @@
 #include <string.h>
 
 /* pexeso set similarity search algorithm (result in match map of Dgrid) */
-void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index * inv_index,
-             struct match_map * match_map)
+void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index * inv_index)
 {
     long long unsigned int num_query_vectors = 0;
-    // make grid for query file
-    struct grid * Qgrid = make_query_grid(Dgrid, inv_index, query_file_dir, &num_query_vectors);
+    unsigned int num_query_sets = 0;
+
+    // build query grid and get list of query sets
+    printf("\n\nBuilding query grid... ");
+    struct grid * Qgrid = (struct grid *) malloc(sizeof(struct grid));
+    if (Qgrid == NULL)
+        exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
+
+    struct sid * query_sets = build_query_grid(Qgrid, Dgrid, inv_index, query_file_dir, &num_query_vectors);
+
+    num_query_sets = Dgrid->settings->query_settings->num_query_sets;
+
+    //initialize match maps for query sets
+    printf("\n\nMaking match maps... ");
+    struct match_map * map =  init_match_maps(inv_index, query_sets, num_query_sets);
+
 
     // (todo) quick browsing 
 
@@ -25,17 +38,23 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     struct pairs * pairs = init_pairs();
     
     // block (generate a list of candidate en matching pairs)
-    block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings, match_map);
+    block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings);
 
     // verify (verify vectors in list of candidate pairs)
-    verify(Dgrid, pairs, inv_index, match_map, Qgrid->total_records);
+    verify(Dgrid, pairs, inv_index, map);
 
     // print Query grid
     // dump_grid_to_console(Qgrid);
 
     // print match map after quering
-    // dump_match_map_to_console(match_map);
+    for(int m = 0; m < num_query_sets; m++)
+        dump_match_map_to_console(map, m);
+    
 
+    /* destroy match map */
+    if(!match_maps_destroy(map, num_query_sets))
+        exit_with_failure("Error main.c: Couldn't destroy match map.\n");
+    
     // free memory: destroy query grid and result pairs
     destroy_pairs(pairs);
     query_grid_destroy(Qgrid);
@@ -55,7 +74,7 @@ void quick_browse(struct grid * Dgrid, struct grid * Qgrid)
     }
 }
 /* create query grid  */
-struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const char * query_file_dir, long long unsigned int * num_query_vectors)
+struct sid * build_query_grid(struct grid * Qgrid, struct grid * Dgrid, inv_index * inv_index, const char * query_file_dir, long long unsigned int * num_query_vectors)
 {   
     long unsigned int num_query_files = 0; // always = 1;
     unsigned int mtr_query_vector_length = Dgrid->settings->mtr_vector_length;
@@ -107,11 +126,6 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
     printf("(OK)\n");
 
     /* initialize grid */
-    printf("\n\nInitialize grid... ");
-    struct grid * Qgrid = (struct grid *) malloc(sizeof(struct grid));
-    if (Qgrid == NULL)
-        exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
-    
     if (!init_grid(Dgrid->settings->work_directory, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, *num_query_vectors, base, mtr_query_vector_length, 
                     mtr_buffered_memory_size, ps_buffered_memory_size, max_leaf_size, track_vector, 
@@ -140,10 +154,11 @@ struct grid * make_query_grid(struct grid * Dgrid, inv_index * inv_index, const 
     /* insert dataset in grid (read and index all vectors in the data set) */
     printf("Index query vectors...");
     
-    if (!index_query_binary_files(Qgrid, inv_index, query_file_dir, num_query_files, base, num_query_sets, min_query_set_size, max_query_set_size))
-        exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
+    
+    struct sid * query_sets = index_query_binary_files(Qgrid, Dgrid, inv_index, query_file_dir, num_query_files, base, min_query_set_size, max_query_set_size);
+    if (query_sets == NULL)
+        exit_with_failure("Error in main.c: Something went wrong, couldn't get list of query sets after indexing binary files.");
     printf("(OK)\n");
 
-
-    return Qgrid;
+    return query_sets;
 }
