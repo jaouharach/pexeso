@@ -11,9 +11,9 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
 /* check dataset directory and count total files and number of vectors */
 unsigned long long get_dataset_info(const char *bin_files_directory, unsigned long *num_files, unsigned long long *num_vectors, unsigned int *vector_length);
 /* save query results to csv file */
-void save_to_query_result_file(char * csv_file, unsigned int qtable_id, unsigned int qset_id, struct match_map * map);
+enum response  save_to_query_result_file(char * csv_file, struct sid * query_set, struct match_map * map);
 /* make result file name and path */
-char * make_file_path(char * work_dir, unsigned int qtable_id, unsigned int qset_id, unsigned int qset_size, unsigned int l, unsigned int dlsize, unsigned int vector_length, float runtime, unsigned int total_checked_vec);
+char * make_file_path(char * work_dir, struct sid * query_set, unsigned int l, unsigned int dlsize, unsigned int vector_length, float runtime, unsigned int total_checked_vec);
 /* save query results to disk */
 enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, struct match_map * map);
 /* create directory to store query results */

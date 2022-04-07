@@ -46,7 +46,7 @@ struct candidate_pair
 
 /* get candidate and matching cells of a query cell */
 enum response block(struct cell *query_cell, struct cell * r_cell, 
-                    struct pairs * pairs, struct grid_settings * settings);
+                    struct pairs * pairs, struct grid_settings * settings, struct match_map * match_map);
 
 enum response verify(struct grid * grid, struct pairs * pairs,
             struct inv_index * index, struct match_map * match_map);

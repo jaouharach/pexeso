@@ -42,9 +42,9 @@
                 "--num-query-sets",
                 "-1",
                 "--min-query-set-size",
-                "2",
+                "0",
                 "--max-query-set-size",
-                "100"
+                "-1"
             ],
             "stopAtEntry": false,
             "environment": [],

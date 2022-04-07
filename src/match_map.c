@@ -24,9 +24,9 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
         match_map[i].sets = (struct sid *)malloc(sizeof(struct sid) * index->num_distinct_sets); // points to set in inverted index
         match_map[i].match_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
         match_map[i].mismatch_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
-        match_map[i].total_checked_vectors = calloc(index->num_distinct_sets, sizeof(unsigned int));
         match_map[i].joinable = calloc(index->num_distinct_sets, sizeof(bool));
-
+        match_map[i].total_checked_vectors = 0;
+        match_map[i].query_time = 0;
 
         for(int s = 0; s < index->num_distinct_sets; s++)
         {
@@ -39,9 +39,7 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
             match_map[i].sets[s].set_size = index->distinct_sets[s].set_size;
             match_map[i].match_count[s] = 0;
             match_map[i].mismatch_count[s] = 0;
-            match_map[i].total_checked_vectors[s] = 0;
             match_map[i].joinable[s] = false;
-            
         }
     }
     
@@ -98,9 +96,11 @@ int get_match_map_idx(struct match_map *map, int num_query_sets, struct sid * si
 /* print map */
 void dump_match_map_to_console(struct match_map * map, unsigned int map_idx)
 {
-    printf("\n\n\n\t..............................\n");
-    printf("\t::  MATCH  & MISMATCH MAP FOR QUERY SET Q: (%u, %u), |Q| = %u ::\n", map->query_set.table_id, map->query_set.set_id, map->query_set.set_size);
-    printf("\t..............................\n\n\n");
+    printf("\n\n\n\t............................................................\n");
+    printf("\t::  MATCH  & MISMATCH MAP FOR QUERY SET Q: (%u, %u), |Q| = %u ::\n", map[map_idx].query_set.table_id, map[map_idx].query_set.set_id, map[map_idx].query_set.set_size);
+    printf("\t \t\t(Query time = %.2f seconds)\t\t\n", map->query_time);
+
+    printf("\t............................................................\n\n\n");
     struct sid curr_set;
     for(int s = 0; s < map[map_idx].num_sets; s++)
     {
@@ -122,7 +122,6 @@ enum response match_maps_destroy(struct match_map *map, int num_query_sets)
         free(map[i].joinable);
         free(map[i].match_count);
         free(map[i].mismatch_count);
-        free(map[i].total_checked_vectors);
     }
     free(map);
     return OK;

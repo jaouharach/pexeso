@@ -296,7 +296,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
     int num_query_sets = Dgrid->settings->query_settings->num_query_sets;
     unsigned int set_counter = 0;
     struct sid * query_sets = NULL;
-
+    
     uint32_t num_vectors = 0u;
     vector *vector = (struct vector *)malloc(sizeof(struct vector));
     v_type val;
@@ -385,7 +385,6 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     query_sets[set_counter - 1].set_id = set_id;
                     query_sets[set_counter - 1].set_size = num_vectors;
 
-                    
                     if(num_query_sets != -1)
                         num_query_sets--; // read a new set (column)
 
@@ -499,7 +498,7 @@ unsigned long long get_dataset_info(const char *bin_files_directory, unsigned lo
 }
 
 /* save query results to csv file */
-void save_to_query_result_file(char * csv_file, unsigned int qtable_id, unsigned int qset_id, struct match_map * map)
+enum response  save_to_query_result_file(char * csv_file, struct sid * query_set, struct match_map * map)
 {
 	FILE *fp;
 	int i,j;
@@ -513,17 +512,20 @@ void save_to_query_result_file(char * csv_file, unsigned int qtable_id, unsigned
 	
     // write results
     for(int i = 0; i < map->num_sets; i++){
-        if(map->sets[i].table_id == qtable_id && map->sets[i].set_id == qset_id)
+
+        if(map->joinable[i] == true)
         {
             fprintf(fp, "\n");
-            fprintf(fp,"%u:%u, %u:%u, 0, 0, [], [], na", qtable_id, qset_id, map->sets[i].table_id, map->sets[i].set_id);
+            fprintf(fp,"%u:%u, %u:%u, 0, 0, [], [], na", query_set->table_id, query_set->set_id, map->sets[i].table_id, map->sets[i].set_id);
         }
     }
-        fclose(fp);
+    fclose(fp);
+
+    return OK;
 }
 
 /* make result file name and path */
-char * make_file_path(char * work_dir, unsigned int qtable_id, unsigned int qset_id, unsigned int qset_size, unsigned int l, unsigned int dlsize, unsigned int vector_length, float runtime, unsigned int total_checked_vec)
+char * make_file_path(char * work_dir, struct sid * query_set, unsigned int l, unsigned int dlsize, unsigned int vector_length, float runtime, unsigned int total_checked_vec)
 {
     DIR* dir = opendir(work_dir);
 	if (!dir)
@@ -531,15 +533,15 @@ char * make_file_path(char * work_dir, unsigned int qtable_id, unsigned int qset
 		printf("WARNING! Experiment direstory '%s' does not exist!", work_dir);
 		exit(1);
 	}
-    char * filepath = malloc(get_ndigits(qtable_id) + get_ndigits(qset_id) + get_ndigits(l)
+    char * filepath = malloc(get_ndigits(query_set->table_id) + get_ndigits(query_set->set_id) + get_ndigits(l)
 							 + get_ndigits(dlsize) + get_ndigits(vector_length) + get_ndigits((unsigned int) runtime) + get_ndigits(total_checked_vec)
-							 + get_ndigits(qset_size) + strlen("TQ_Q_qsize_l_dlsize_len_runtime_ndistcalc_dataaccess.csv")
+							 + get_ndigits(query_set->set_size) + strlen("TQ_Q_qsize_l_dlsize_len_runtime_ndistcalc_dataaccess.csv")
 							 + strlen(work_dir)
 							 + 6 // float decimal precision for dlsize and runtime (.00)
 							 + 1);
 
 	sprintf(filepath, "%s/TQ%u_Q%u_qsize%u_l%u_dlsize%u_len%u_runtime%.4f_ndistcalc_dataaccess%u.csv"
-			, work_dir, qtable_id, qset_id, qset_size, l, dlsize, vector_length, runtime, total_checked_vec);
+			, work_dir, query_set->table_id, query_set->set_id, query_set->set_size, l, dlsize, vector_length, runtime, total_checked_vec);
 
 	return filepath;
 }
@@ -566,7 +568,7 @@ char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, u
 }
 
 /* save query results to disk */
-enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, struct match_map * map)
+enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, struct match_map * match_map)
 {
     char * algorithm = "pexeso";
     char * work_dir = Dgrid->settings->work_directory;
@@ -581,10 +583,23 @@ enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, str
     make_result_directory(work_dir, algorithm, l, num_query_sets, min_query_set_size, max_query_set_size);
 
     // loop match maps for all query sets
-    // add entry to csv file
-    for(int s = 0; s < map->num_sets; s++)
-    {
-        
+    struct sid *query_set = NULL;
+    struct match_map *curr_map;
+    unsigned int total_checked_vectors = 0;
+    float runtime = 0.0;
 
+    for(int m = 0; m < num_query_sets; m++)
+    {
+        curr_map = &match_map[m];
+        query_set = &curr_map->query_set;
+        total_checked_vectors = curr_map->total_checked_vectors;
+        runtime = curr_map->query_time;
+
+        char * file_path = make_file_path(work_dir, query_set, l, dlsize, mtr_vector_length, runtime, total_checked_vectors);
+        
+        if(!save_to_query_result_file(file_path, query_set, curr_map))
+            exit_with_failure("Error in file_loader.c: Couldn't save query results to csv file.");
     }
+
+    return OK;
 }

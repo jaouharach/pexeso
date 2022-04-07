@@ -38,7 +38,7 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     struct pairs * pairs = init_pairs();
     
     // block (generate a list of candidate en matching pairs)
-    block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings);
+    block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings, map);
 
     // verify (verify vectors in list of candidate pairs)
     verify(Dgrid, pairs, inv_index, map);

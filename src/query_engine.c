@@ -4,6 +4,7 @@
 #include "../include/cell.h"
 #include "../include/match_map.h"
 #include "../include/query_engine.h"
+#include <time.h>
 
 /* verify candiate pairs */
 enum response verify(struct grid *grid, struct pairs *pairs,
@@ -12,7 +13,16 @@ enum response verify(struct grid *grid, struct pairs *pairs,
     float dist_threshold = grid->settings->query_settings->dist_threshold;
     float join_threshold = grid->settings->query_settings->join_threshold;
     unsigned int num_query_sets = grid->settings->query_settings->num_query_sets;
-    struct sid * query_set = malloc(sizeof(struct sid));
+    
+    struct sid *query_set = malloc(sizeof(struct sid));
+    query_set->table_id = 0;
+    query_set->set_id = 0;
+    query_set->set_size = 0;
+
+    clock_t start_query_runtime; // start time to query current vector
+    clock_t end_query_runtime; // end time after query current vector
+
+    int map_idx = -1;
 
     // check if pairs list is not empty
     if (pairs->num_pairs == 0)
@@ -24,17 +34,19 @@ enum response verify(struct grid *grid, struct pairs *pairs,
         for (int i = 0; i < pairs->num_pairs; i++)
         {
             struct matching_pair *mpair = &pairs->matching_pairs[i];
-            struct vector query_vector =  pairs->query_vectors[i];
+            struct vector *query_vector =  &pairs->query_vectors[i];
             
+            start_query_runtime = clock();
             query_set->table_id = pairs->query_vectors[i].table_id;
             query_set->set_id = pairs->query_vectors[i].set_id;
             query_set->set_size = pairs->query_vectors[i].set_size;
-
-            int map_idx = get_match_map_idx(match_map, num_query_sets, query_set);
+            
+            map_idx = get_match_map_idx(match_map, num_query_sets, query_set);
             if(map_idx == -1)
                 exit_with_failure("Error in match_map.c Couldn't find match map of query set.");
-
+            
             if (pairs->has_matches[i])
+            {
                 for (int m = 0; m < mpair->num_match; m++) // loop through match cells
                 {
                     struct cell *match_cell = mpair->cells[m];
@@ -53,25 +65,30 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                         if(set_idx == -1)
                             exit_with_failure("Error in query_rngine:c Couldn't find set position in match map.");
                     
-                        update_match_count(match_map, map_idx, query_set, set_idx, join_threshold, query_vector.set_size);
+                        update_match_count(match_map, map_idx, query_set, set_idx, join_threshold, query_vector->set_size);
                     }
                 }
+            }
+            end_query_runtime = clock(); // time to query current vector
+            match_map[map_idx].query_time += end_query_runtime - start_query_runtime;
         }
     }
+
     for (int i = 0; i < pairs->num_pairs; i++)
     {
         struct candidate_pair *cpair = &pairs->candidate_pairs[i];
         struct vector *query_vector = &pairs->query_vectors[i]; // q'
         struct vector *query_vector_mtr = &pairs->query_vectors_mtr[i]; // q
 
+        start_query_runtime = clock();
         query_set->table_id = pairs->query_vectors[i].table_id;
         query_set->set_id = pairs->query_vectors[i].set_id;
         query_set->set_size = pairs->query_vectors[i].set_size;
 
-        int map_idx = get_match_map_idx(match_map, num_query_sets, query_set);
-            if(map_idx == -1)
-                exit_with_failure("Error in match_map.c Couldn't find match map of query set.");
-
+        map_idx = get_match_map_idx(match_map, num_query_sets, query_set);
+        if(map_idx == -1)
+            exit_with_failure("Error in match_map.c Couldn't find match map of query set.");
+            
         if (pairs->has_candidates[i]) // if current vector has candidate pair
         {
             for (int c = 0; c < cpair->num_candidates; c++) // loop through candidate cells
@@ -141,7 +158,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                                         update_mismatch_count(match_map, map_idx, set_idx);
                                     }
                                 }
-                                    match_map[map_idx].total_checked_vectors[set_idx]++;
+                                    match_map[map_idx].total_checked_vectors++;
                             }
                             // free memory
                             free(candidate_vectors[v].mtr_vector->values);
@@ -149,13 +166,6 @@ enum response verify(struct grid *grid, struct pairs *pairs,
 
                             free(candidate_vectors[v].ps_vector->values);
                             free(candidate_vectors[v].ps_vector);
-
-                            // if (match_map[map_idx].match_count[set_idx] >= ceil(join_threshold * query_vector->set_size))
-                            // {
-                            //     // mark current set (curr_entry) as joinable
-                            //     match_map[map_idx].joinable[set_idx] = true;
-                            //     continue;
-                            // }
                         }
                         // free memory
                         free(candidate_vectors);
@@ -163,15 +173,29 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                 }
             }
         }
+        // for current set stop time and add it to query time
+        end_query_runtime = clock();
+        match_map[map_idx].query_time += end_query_runtime - start_query_runtime;
+
     }
     return OK;
 }
 
 /* get candidate and matching cells of a query cell */
 enum response block(struct cell *query_cell, struct cell *root_cell,
-                    struct pairs *pairs, struct grid_settings *settings)
+                    struct pairs *pairs, struct grid_settings *settings, struct match_map * match_map)
 {
     float dist_threshold = settings->query_settings->dist_threshold;
+    struct sid *query_set = malloc(sizeof(struct sid));
+    query_set->table_id = 0;
+    query_set->set_id = 0;
+    query_set->set_size = 0;
+
+    clock_t start_query_runtime; // start time to query current vector
+    clock_t end_query_runtime; // end time after query current vector
+
+    int map_idx = -1;
+
     for (int i = 0; i < query_cell->num_child_cells; i++)
     {
         struct cell *cq = &query_cell->children[i];
@@ -187,6 +211,15 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                     struct vector_tuple * query_vectors = get_vector_tuples(cq, settings, true);
                     for (int q = 0; q < cq->cell_size; q++)
                     {
+                        start_query_runtime = clock();
+                        query_set->table_id = query_vectors[q].ps_vector->table_id;
+                        query_set->set_id = query_vectors[q].ps_vector->set_id;
+                        query_set->set_size = query_vectors[q].ps_vector->set_size;
+                        
+                        map_idx = get_match_map_idx(match_map, settings->query_settings->num_query_sets, query_set);
+                        if(map_idx == -1)
+                            exit_with_failure("Error in match_map.c Couldn't find match map of query set.");
+            
                         // printf("(%u, %u, %u)\n", query_vector[q]->table_id, query_vector[q]->set_id, query_vector[q]->pos);
                         // cr is a match of q' by lemma 5
                         if (vector_cell_match(query_vectors[q].ps_vector, cr, settings, dist_threshold))
@@ -208,6 +241,9 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                             free(query_vectors[q].ps_vector->values);
                             free(query_vectors[q].ps_vector);
                         }
+                        // for current set stop time and add it to query time
+                        end_query_runtime = clock();
+                        match_map[map_idx].query_time += end_query_runtime - start_query_runtime;
                     }
                     // free memory
                     free(query_vectors);
@@ -255,6 +291,15 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                             struct vector_tuple *query_vectors = get_vector_tuples(cq_leaves[ql], settings, true);
                             for (int q = 0; q < cq_leaves[ql]->cell_size; q++)
                             {
+                                start_query_runtime = clock();
+                                query_set->table_id = query_vectors[q].ps_vector->table_id;
+                                query_set->set_id = query_vectors[q].ps_vector->set_id;
+                                query_set->set_size = query_vectors[q].ps_vector->set_size;
+
+                                map_idx = get_match_map_idx(match_map, settings->query_settings->num_query_sets, query_set);
+                                if(map_idx == -1)
+                                    exit_with_failure("Error in match_map.c Couldn't find match map of query set.");
+            
                                 for (int l = 0; l < num_cr_leaves; l++)
                                 {
                                     // add cr to matching_pair
@@ -265,6 +310,9 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                                     free(query_vectors[q].ps_vector->values);
                                     free(query_vectors[q].ps_vector);
                                 }
+                                // for current set stop time and add it to query time
+                                end_query_runtime = clock();
+                                match_map[map_idx].query_time += end_query_runtime - start_query_runtime;
                             }
 
                             // free memory
@@ -279,36 +327,13 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                     else 
                         if (cell_cell_filter(cr, cq, settings, dist_threshold) == FAILED)
                         {
-                            block(cq, cr, pairs, settings);
+                            block(cq, cr, pairs, settings, match_map);
                         }
                 }
                 else
                 {
                     // printf("Empty query cell.\n\n");
                 }
-
-                // else // if all sub cells of cq are empty
-                // {
-                //     // update mismatch count for sets in cr
-                //     unsigned long num_cell_vectors = 0;
-                //     struct vector *cell_vectors = get_sub_cells_vectors_ps(cr, settings->num_pivots, &num_cell_vectors);
-                    
-                //     // all vectors in cell can be filtered
-                //     struct sid set_id;
-                //     for(int i = 0; i < num_cell_vectors; i++)
-                //     {
-                //         set_id.table_id = cell_vectors[i].table_id;
-                //         set_id.set_id = cell_vectors[i].set_id;
-                //         update_mismatch_count(map, &set_id);
-                //     }
-                        
-
-                //     for(int i = 0; i < num_cell_vectors; i++)
-                //         free(cell_vectors[i].values);
-                //     free(cell_vectors);
-                // }
-
-                
             }
         }
     }
