@@ -178,6 +178,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
         match_map[map_idx].query_time += end_query_runtime - start_query_runtime;
 
     }
+    free(query_set);
     return OK;
 }
 
@@ -337,6 +338,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
             }
         }
     }
+    free(query_set);
     return OK;
 }
 
@@ -481,7 +483,6 @@ enum response cell_cell_filter(struct cell *cell, struct cell *query_cell,
                 free(cell_vectors[i].values);
             free(cell_vectors);
 
-            printf("$$$$$ cell cannot be filtered!\n");
             return FAILED;
         }
     }

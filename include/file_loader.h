@@ -17,4 +17,4 @@ char * make_file_path(char * work_dir, struct sid * query_set, unsigned int l, u
 /* save query results to disk */
 enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, struct match_map * map);
 /* create directory to store query results */
-char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, unsigned int num_query_sets, unsigned int min_query_set_size, unsigned int max_query_set_size);
+char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, unsigned int num_query_sets, int min_query_set_size, int max_query_set_size);

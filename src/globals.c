@@ -198,7 +198,10 @@ bool pointer_cmp(void * p1, void * p2)
 int get_ndigits(unsigned int n)
 {
 	int total_digits = 0;
-	while(n!=0){
+    if (n < 0)
+        total_digits++;
+	while (n != 0)
+    {
 		//4
 		n = n/10;
 		++total_digits;

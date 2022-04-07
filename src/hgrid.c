@@ -41,7 +41,7 @@ enum response init_grid(const char *work_dir,
     grid->total_records = 0;
     grid->is_query_grid  = is_query_grid; 
     
-    grid->settings->work_directory = malloc(sizeof(char) * strlen(work_dir));
+    grid->settings->work_directory = malloc(sizeof(char) * (strlen(work_dir) + 1));
     strcpy(grid->settings->work_directory, work_dir);
 
     grid->settings->root_directory = malloc(sizeof(char) *( strlen(work_dir) + 8));
@@ -397,25 +397,25 @@ enum response grid_destroy_level(struct grid *grid, struct level *level)
 }
 enum response grid_destroy(struct grid *grid)
 {
+    if(grid->is_query_grid)
+        exit_with_failure("Error in hgrid.c: Calling grid destroy for query grid, please call query_grid_destroy() instead.");
+    
     grid_destroy_level(grid, grid->root);
 
-    // free pivot vectors
-    if(!grid->is_query_grid)
-    {
-        for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
-            free(grid->settings->pivots_mtr[p].values);
-        free(grid->settings->pivots_mtr);
+    for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
+        free(grid->settings->pivots_mtr[p].values);
+    free(grid->settings->pivots_mtr);
+
+    for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
+        free(grid->settings->pivots_ps[p].values);
+    free(grid->settings->pivots_ps);
     
-        for(int p = grid->settings->num_pivots - 1; p >= 0; p--)
-            free(grid->settings->pivots_ps[p].values);
-        free(grid->settings->pivots_ps);
-        
-        free(grid->settings->pivot_space_extremity->values);
-        free(grid->settings->pivot_space_extremity);
-        free(grid->settings->query_settings);
-    }
+    free(grid->settings->pivot_space_extremity->values);
+    free(grid->settings->pivot_space_extremity);
+    free(grid->settings->query_settings);
 
-
+    free(grid->settings->root_directory);
+    free(grid->settings->work_directory);
     // destroy settings
     free(grid->settings);
     free(grid);
@@ -428,6 +428,10 @@ enum response query_grid_destroy(struct grid *grid)
 {
     // query grid shares settings with data grid, only free levels and the grid
     grid_destroy_level(grid, grid->root);
+
+    free(grid->settings->root_directory);
+    free(grid->settings->work_directory);
+
     free(grid->settings);
     free(grid);
 

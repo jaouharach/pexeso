@@ -29,7 +29,7 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
 
     //initialize match maps for query sets
     printf("\n\nMaking match maps... ");
-    struct match_map * map =  init_match_maps(inv_index, query_sets, num_query_sets);
+    struct match_map * match_map =  init_match_maps(inv_index, query_sets, num_query_sets);
 
 
     // (todo) quick browsing 
@@ -38,21 +38,24 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     struct pairs * pairs = init_pairs();
     
     // block (generate a list of candidate en matching pairs)
-    block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings, map);
+    block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings, match_map);
 
     // verify (verify vectors in list of candidate pairs)
-    verify(Dgrid, pairs, inv_index, map);
+    verify(Dgrid, pairs, inv_index, match_map);
 
     // print Query grid
     // dump_grid_to_console(Qgrid);
 
     // print match map after quering
     for(int m = 0; m < num_query_sets; m++)
-        dump_match_map_to_console(map, m);
+        dump_match_map_to_console(match_map, m);
     
+    if(!save_results_to_disk(Dgrid, Qgrid, match_map))
+        exit_with_failure("Error in pexeso.c: Couldn't save query results to disk.");
+
 
     /* destroy match map */
-    if(!match_maps_destroy(map, num_query_sets))
+    if(!match_maps_destroy(match_map, num_query_sets))
         exit_with_failure("Error main.c: Couldn't destroy match map.\n");
     
     // free memory: destroy query grid and result pairs
