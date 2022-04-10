@@ -1,7 +1,49 @@
 #include "../include/hgrid.h"
 #include "../include/gsl_matrix.h"
 #include "../include/select_pivots.h"
+#include <float.h>
+#include <time.h>
 
+/* select best fft scale */
+struct best_fft* best_fft_scale(struct vector *dataset, int *dataset_dim, int *pivots_mtr_dim, unsigned int num_pivots, unsigned int max_fft)
+{
+    struct best_fft* bsf = malloc(sizeof(struct best_fft));
+
+    bsf->exremity = FLT_MIN;
+    vector * pivots_mtr = NULL;
+    for(unsigned int f = 5; f <= max_fft; f++)
+    {
+        printf("FFT SCALE = %u", f); 
+        for(int i = 0; i < 5; i++)
+        {
+            printf("\nTest %d:\n", i+1);
+            pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, f);
+            vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
+            vector * ps_extremity = get_extremity(pivots_ps, num_pivots);
+
+            if (ps_extremity->values[0] > bsf->exremity)
+            {
+                bsf->exremity = ps_extremity->values[0];
+                bsf->fft_scale = f;
+            }
+            print_vector(ps_extremity, num_pivots);
+
+            free(ps_extremity->values);
+            free(ps_extremity);
+            for(int p = 0; p < num_pivots; p++)
+            {
+                free(pivots_mtr[p].values);
+                free(pivots_ps[p].values);
+            }
+            free(pivots_mtr);
+            free(pivots_ps);
+        }
+    }
+    
+
+    printf("BSF = {scale = %u, ext = %.2f}\n", bsf->fft_scale, bsf->exremity);
+    return bsf;
+}
 /* pivot selection algorithm */
 vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_pivots, unsigned int fft_scale)
 {
@@ -88,8 +130,10 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
         warning("Warning in globals.c: number of outliers is greater or equal to total vectors in the dataset.");
 
     // pick an arbitrary vector as first outlier
+    srand (time(NULL));
     unsigned int rand_idx = (rand() % (num_vectors - 1));
     outliers_idx[0] = rand_idx;
+    printf("\nrand idx = %d\n", rand_idx);
     vector_cpy(&outliers[0], &data_set[rand_idx], v_len);
     
     // printf("first outlier: \n");

@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+struct best_fft
+{
+    int fft_scale;
+    float exremity;
+};
+
 /* pivot selection algorithm */
 vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_pivots, unsigned int fft_scale);
 
@@ -25,3 +31,6 @@ int * select_pivots_by_pca_result_angle(gsl_matrix * pca_result, int *result_dim
 
 /* check if a new outlier is already in the list of outliers */
 unsigned int in_outliers(int * outliers_idx, int new_outlier, int num_outliers);
+
+/* select best fft scale */
+struct best_fft* best_fft_scale(struct vector *dataset, int *dataset_dim, int *pivots_mtr_dim, unsigned int num_pivots, unsigned int max_fft);

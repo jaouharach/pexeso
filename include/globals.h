@@ -27,6 +27,7 @@ typedef struct query_result query_result;
 typedef struct query_settings query_settings;
 typedef struct inv_index inv_index;
 typedef struct entry entry;
+typedef struct best_fft best_fft;
 
 // vector id (used to track vector ids of all vectors in one cell)
 struct vid {

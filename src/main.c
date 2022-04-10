@@ -35,7 +35,8 @@ int main(int argc, char **argv)
     unsigned int num_levels = 3;  // m
     unsigned int num_pivots = 2;  // number of pivots
     unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
-
+    bool best_fft = 1; // serch for the best fft scale that will maximize extremity (have less vectors ou of pivot space)
+    unsigned int max_fft = 30; // max fft scale (search for the best fft scale that produces the farthest extrimity)
     /* query settings (todo: change threshold to %) */
     float join_threshold = 1; // T 
     float dist_threshold = 0.0; // tau = 0%
@@ -63,6 +64,8 @@ int main(int argc, char **argv)
             {"num-levels", required_argument, 0, 'l'},
             {"leaf-size", required_argument, 0, 'i'},
             {"fft-scale", required_argument, 0, 'f'},
+            {"best-fft", required_argument, 0, 'e'},
+            {"max-fft", required_argument, 0, 'k'},
             {"join-threshold", required_argument, 0, 'j'},
             {"dist-threshold", required_argument, 0, 't'},
 
@@ -148,6 +151,24 @@ int main(int argc, char **argv)
                 }
                 break;
             
+            case 'e':
+                best_fft = atoi(optarg);
+                if (best_fft != 0 && best_fft != 1)
+                {
+                    fprintf(stderr, "Please change best fft scale to be 0 or 1.\n");
+                    exit(-1);
+                }
+                break;
+            
+            case 'k':
+                max_fft = atoi(optarg);
+                if (max_fft < 0)
+                {
+                    fprintf(stderr, "Please change max fft scale to be greater than 0.\n");
+                    exit(-1);
+                }
+                break;
+
             case 'j':
                 join_threshold = atof(optarg); // dist threshold is provided in % of the query set size
                 if (join_threshold > 1 || join_threshold < 0)
@@ -267,9 +288,14 @@ int main(int argc, char **argv)
     int pivots_mtr_dim [] = {num_pivots, num_dim_metric_space};
 
     // get pivot vector in from metric dataset
-    vector * pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
-    
-    
+    vector * pivots_mtr = NULL;
+    if(!best_fft) // search for pivots using user defined fft_scale
+        pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
+
+    else
+        best_fft_scale(dataset, dataset_dim, pivots_mtr_dim, num_pivots, max_fft);
+
+    exit(1);
     // printf("selected pivots (metric space)\n");
     // for(int p = 0; p < num_pivots; p++)
     //     print_vector(&pivots_mtr[p], num_dim_metric_space);
