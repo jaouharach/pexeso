@@ -1,3 +1,7 @@
+Notes:
+------
+(!) Make sure that the c compiler support functio isnan() in package math.h
+
 PACKAGE MANAGER:
 ----------------
 
@@ -21,3 +25,6 @@ gcc globals.c select_pivots.c gsl_matrix.c hgrid.c inv_index.c level.c cell.c fi
 To run code:
 ----------------
 valgrind  --undef-value-errors=no ../bin/pexeso --work-dir /home/jaouhara/Documents/Projects/dssdl-projects/pexeso/Hgrid/ --dataset /home/jaouhara/Documents/Projects/dummy-data/bins-2 --queries /home/jaouhara/Documents/Projects/dummy-data/bins-2/queries --metric-space-dim 50 --pivot-space-dim 4 --num-levels 3 --leaf-size 450 --fft-scale 13 --join-threshold 1 --dist-threshold 0.5 --metric-buffer-size 30 --pivot-buffer-size 30 --mode 0
+
+
+bin/pexeso --work-dir /home/jaouhara.chanchaf/work-dir/pexeso --datalake /home/jaouhara.chanchaf/work-dir/data/wdc-2015/bins --datalake-size 10 --queries /home/jaouhara.chanchaf/work-dir/data/wdc-2015/bins --metric-space-dim 50 --pivot-space-dim 2 --num-levels 2 --leaf-size 623 --fft-scale 30 --join-threshold 1 --dist-threshold 0 --metric-buffer-size 700 --pivot-buffer-size 700 --qgrid-metric-buffer-size 100 --qgrid-pivot-buffer-size 100 --mode 0 --num-query-sets 2 --min-query-set-size 3 --max-query-set-size 10 --best-fft 1 --max-fft 6 --num-best-fft-iter 10

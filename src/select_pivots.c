@@ -4,45 +4,61 @@
 #include <float.h>
 #include <time.h>
 
-/* select best fft scale */
-struct best_fft* best_fft_scale(struct vector *dataset, int *dataset_dim, int *pivots_mtr_dim, unsigned int num_pivots, unsigned int max_fft)
+/* select pivots using best fft scale */
+struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *dataset_dim, int *pivots_mtr_dim, unsigned int num_pivots, unsigned int max_fft, unsigned short num_iter)
 {
-    struct best_fft* bsf = malloc(sizeof(struct best_fft));
-
-    bsf->exremity = FLT_MIN;
+    struct best_fft bsf;
+    bsf.exremity = FLT_MIN;
+    bsf.pivots_mtr = NULL;
     vector * pivots_mtr = NULL;
+    vector * pivots_ps = NULL;
+    vector * ps_extremity = NULL;
+
     for(unsigned int f = 5; f <= max_fft; f++)
     {
         printf("FFT SCALE = %u", f); 
-        for(int i = 0; i < 5; i++)
+        for(int i = 0; i < num_iter; i++)
         {
             printf("\nTest %d:\n", i+1);
             pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, f);
-            vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
-            vector * ps_extremity = get_extremity(pivots_ps, num_pivots);
+            pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
+            ps_extremity = get_extremity(pivots_ps, num_pivots);
 
-            if (ps_extremity->values[0] > bsf->exremity)
+            if (ps_extremity->values[0] > bsf.exremity)
             {
-                bsf->exremity = ps_extremity->values[0];
-                bsf->fft_scale = f;
+                bsf.exremity = ps_extremity->values[0];
+                bsf.fft_scale = f;
+                bsf.pivots_mtr = pivots_mtr;
+            }
+            else
+            {
+                for(int p = 0; p < num_pivots; p++)
+                {
+                    free(pivots_mtr[p].values);
+                    free(pivots_ps[p].values);
+                }
+                free(pivots_mtr);
+                free(pivots_ps);
+                pivots_mtr = NULL;
+                pivots_ps = NULL;
+
             }
             print_vector(ps_extremity, num_pivots);
-
             free(ps_extremity->values);
             free(ps_extremity);
-            for(int p = 0; p < num_pivots; p++)
-            {
-                free(pivots_mtr[p].values);
-                free(pivots_ps[p].values);
-            }
-            free(pivots_mtr);
-            free(pivots_ps);
         }
     }
-    
+    if(pivots_ps != NULL)
+    {
+        for(int p = 0; p < num_pivots; p++)
+        {
+            free(pivots_ps[p].values);
+        }
+        free(pivots_ps);
+    }
 
-    printf("BSF = {scale = %u, ext = %.2f}\n", bsf->fft_scale, bsf->exremity);
-    return bsf;
+    printf("Best FFT scale = {scale = %u, ext = %.2f}\n", bsf.fft_scale, bsf.exremity);
+    return bsf.pivots_mtr;
 }
 /* pivot selection algorithm */
 vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_pivots, unsigned int fft_scale)

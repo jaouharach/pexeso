@@ -8,8 +8,14 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
 struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, struct inv_index * index, const char *bin_files_directory, unsigned int num_files, unsigned int base, int min_query_set_size, int max_query_set_size);
 /* read all dataset files and create one big list of all the vectors in the dataset */
 vector * load_binary_files(const char *bin_files_directory, unsigned long num_files, unsigned long long total_vectors, unsigned int base, unsigned int mtr_vector_length);
-/* check dataset directory and count total files and number of vectors */
-unsigned long long get_dataset_info(const char *bin_files_directory, unsigned long *num_files, unsigned long long *num_vectors, unsigned int *vector_length);
+
+/* check datalake directory and count number of vectors (number of files is given as input */
+unsigned long long get_datalake_info(const char *bin_files_directory, unsigned long num_files, unsigned long long *num_vectors, unsigned int *vector_length);
+/* check datalake directory and count total files and number of vectors */
+unsigned long long get_full_datalake_info(const char *bin_files_directory, unsigned long *num_files, unsigned long long *num_vectors, unsigned int *vector_length);
+/* check query directory and count total files and number of vectors */
+void get_query_data_info(const char *bin_files_directory, int num_query_sets, int min_query_set_size, int max_query_set_size, unsigned long *num_files, unsigned long long *num_vectors, unsigned int *vector_length);
+
 /* save query results to csv file */
 enum response  save_to_query_result_file(char * csv_file, struct sid * query_set, struct match_map * map);
 /* make result file name and path */

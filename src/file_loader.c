@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <math.h>
 #include "../include/hgrid.h"
 #include "../include/match_map.h"
 #include "../include/query_engine.h"
@@ -114,6 +115,11 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
                         dataset[curr_total_vectors].table_id = vector->table_id;
                         dataset[curr_total_vectors].pos = vector->pos;
                         dataset[curr_total_vectors].set_size = vector->set_size;
+
+                        // sanity check: is vector contains nan value exit(1)
+                        if(isnan(vector->values[0]))
+                            exit_with_failure("Error in file_loader.c: found vector with nan value.");
+
                         vector_cpy(&dataset[curr_total_vectors], vector, mtr_vector_length);
 
                         curr_total_vectors = curr_total_vectors + 1;
@@ -132,8 +138,12 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
                         dataset[curr_total_vectors].table_id = vector->table_id;
                         dataset[curr_total_vectors].pos = vector->pos;
                         dataset[curr_total_vectors].set_size = vector->set_size;
-                        vector_cpy(&dataset[curr_total_vectors], vector, mtr_vector_length);
 
+                        // sanity check: is vector contains nan value exit(1)
+                        if(isnan(vector->values[0]))
+                            exit_with_failure("Error in file_loader.c: found vector with nan value.");
+
+                        vector_cpy(&dataset[curr_total_vectors], vector, mtr_vector_length);
                         curr_total_vectors = curr_total_vectors + 1;
 
                         i = 0;
@@ -440,11 +450,12 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
     free(dir);
 
     // check if we read more query sets than required
-    if(set_counter != num_query_sets)
-        if(num_query_sets != -1) // number of query set is specified
+    num_query_sets = Dgrid->settings->query_settings->num_query_sets;
+    if(num_query_sets != -1) // if number of query set is specified
+        if(set_counter != num_query_sets)
             exit_with_failure("Error in pexeso.c: Function index_query_binary_files() has read more sets than what's required.");
-        else
-            Dgrid->settings->query_settings->num_query_sets = set_counter;
+    else
+        Dgrid->settings->query_settings->num_query_sets = set_counter;
 
     return query_sets;
 }
@@ -457,7 +468,7 @@ bool is_binaryfile(const char *filename) // check if filename has extesion.
 }
 
 /* check dataset directory and count total files and number of vectors */
-unsigned long long get_dataset_info(const char *bin_files_directory, unsigned long *num_files, unsigned long long *num_vectors, unsigned int *vector_length)
+unsigned long long get_full_datalake_info(const char *bin_files_directory, unsigned long *num_files, unsigned long long *num_vectors, unsigned int *vector_length)
 {
     *num_files = 0ul;
     *num_vectors = 0ull;
@@ -484,6 +495,131 @@ unsigned long long get_dataset_info(const char *bin_files_directory, unsigned lo
             // get binary file info
             sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &v_len);
             *num_files = *num_files + 1;
+            *num_vectors += datasize;
+
+            // check if there exist files with different vector lengths
+            if(*vector_length != 0 && *vector_length != v_len)
+                exit_with_failure("Error in file_loader.c: Exit dataset directory. Found binary files with different vector lengths!.");
+
+            *vector_length = v_len;
+        }
+    }
+    // free memory
+    free(dir);
+}
+
+/* check query directory and count total files and number of vectors */
+void get_query_data_info(const char *bin_files_directory, int num_query_sets, int min_query_set_size, int max_query_set_size, unsigned long *total_files, unsigned long long *total_vectors, unsigned int *vector_length)
+{
+    *total_files = 0ul;
+    *total_vectors = 0ull;
+    *vector_length = 0u;
+    int base = 32;
+
+    // variables found in file name, datasize = total vactors in file, nsets = number of columns/tuples
+    unsigned int datasize, table_id, nsets, v_len;
+
+    DIR *dir;
+    struct dirent *dfile;
+    dir = opendir(bin_files_directory);
+
+    uint32_t num_vectors = 0u; // for current set
+
+    if (dir == NULL)
+        exit_with_failure("Error in file_loader.c: Unable to open binary files directory stream!\n");
+
+    // check every file in directory
+    while ((dfile = readdir(dir)) != NULL) 
+    {
+        if (dfile->d_type != DT_REG) // skip directories
+            continue;
+
+        if (is_binaryfile(dfile->d_name))
+        {
+            // printf("\n\nReading file %s ...\n", dfile->d_name);
+            // get fill path of bin file
+            char bin_file_path[PATH_MAX + 1] = "";
+            strcat(bin_file_path, bin_files_directory);
+            strcat(bin_file_path, "/");
+            strcat(bin_file_path, dfile->d_name);
+
+
+            // get binary file info
+            sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &v_len);
+            
+            
+            /* read binary file */
+            FILE *bin_file = fopen(bin_file_path, "rb");
+            unsigned int pick_curr_file = 0; // pick current file to be a query file
+            if (bin_file == NULL)
+                exit_with_failure("Error in file_loader.c: Binary file not found in directory!\n");
+
+            /* Start processing file: read every vector in binary file */
+            int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * v_len) + nsets) / 8;
+            // printf("File size in bytes = %u\n\n", total_bytes);
+
+            while (total_bytes)
+            {
+                
+                if(num_query_sets == 0)
+                    break;
+                    
+                //read first integer to check how many vactors in current set
+                fread(&num_vectors, sizeof(num_vectors), 1, bin_file);
+                total_bytes -= 4;
+                
+                // don't count set if its size doesn't match requirements
+                if(max_query_set_size != -1 || min_query_set_size > 0)
+                    if((unsigned int)num_vectors > min_query_set_size && (unsigned int)num_vectors < max_query_set_size)
+                    {
+                        *total_vectors += num_vectors;
+                        pick_curr_file = 1;
+                        if(num_query_sets != -1)
+                            num_query_sets--; // read a new set (column)
+                    }
+
+                fseek(bin_file, num_vectors * 4 * v_len, SEEK_CUR);
+                total_bytes -= num_vectors * 4 * v_len;
+            }
+            if (fclose(bin_file))
+                exit_with_failure("Error in file_loaders.c: Could not close binary.\n");
+
+            if(pick_curr_file == 1)
+                *total_files = *total_files + 1;
+            *vector_length = v_len;
+        }
+    }
+    // free memory
+    free(dir);
+}
+
+/* check datalake directory and count number of vectors (number of files is given as input */
+unsigned long long get_datalake_info(const char *bin_files_directory, unsigned long num_files, unsigned long long *num_vectors, unsigned int *vector_length)
+{
+    *num_vectors = 0ull;
+    *vector_length = 0u;
+
+    // variables found in file name, datasize = total vactors in file, nsets = number of columns/tuples
+    unsigned int datasize, table_id, nsets, v_len;
+
+    DIR *dir;
+    struct dirent *dfile;
+    dir = opendir(bin_files_directory);
+
+    if (dir == NULL)
+        exit_with_failure("Error in file_loader.c: Unable to open binary files directory stream!\n");
+
+    // check every file in directory
+    while ((dfile = readdir(dir)) != NULL && num_files > 0) 
+    {
+        if (dfile->d_type != DT_REG) // skip directories
+            continue;
+
+        if (is_binaryfile(dfile->d_name))
+        {
+            // get binary file info
+            sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &v_len);
+            num_files = num_files - 1;
             *num_vectors += datasize;
 
             // check if there exist files with different vector lengths

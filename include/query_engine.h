@@ -18,6 +18,8 @@ struct query_settings
     int num_query_sets;
     int min_query_set_size;
     int max_query_set_size;
+    unsigned int mtr_buffered_memory_size; // amount of memory (in MB) to store metric space vectors for query grid
+    unsigned int ps_buffered_memory_size; // amount of memory (in MB) to store pivot space vectors for query grid
 };
 
 // pairs of candidate and matching cells for every query vector
@@ -52,7 +54,8 @@ enum response verify(struct grid * grid, struct pairs * pairs,
             struct inv_index * index, struct match_map * match_map);
             
 /* initialize query settings */
-struct query_settings * init_query_settings(v_type dist_threshold, float join_threshold, int num_query_sets, int min_query_set_size, int max_query_set_size);
+struct query_settings * init_query_settings(v_type dist_threshold, float join_threshold, int num_query_sets, int min_query_set_size, int max_query_set_size, 
+                                            double mtr_buffered_memory_size, double ps_buffered_memory_size);
 
 /* check if a vector is in the SQR of a query vector */
 bool vecotr_in_SQR(struct vector * v, struct vector * q, unsigned int num_pivots, float dist_threshold);

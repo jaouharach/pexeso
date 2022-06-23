@@ -83,8 +83,8 @@ struct sid * build_query_grid(struct grid * Qgrid, struct grid * Dgrid, inv_inde
     unsigned int mtr_query_vector_length = Dgrid->settings->mtr_vector_length;
     unsigned int base = Dgrid->settings->base;
 
-    unsigned int mtr_buffered_memory_size = 1;
-    unsigned int ps_buffered_memory_size = 1;
+    unsigned int mtr_buffered_memory_size = Dgrid->settings->query_settings->mtr_buffered_memory_size;
+    unsigned int ps_buffered_memory_size = Dgrid->settings->query_settings->ps_buffered_memory_size;
     unsigned int max_leaf_size = Dgrid->settings->max_leaf_size; // max vectors in one leaf cell
 
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
@@ -107,9 +107,9 @@ struct sid * build_query_grid(struct grid * Qgrid, struct grid * Dgrid, inv_inde
 
     /* read all vectors in the data set */
     printf("\n\n\n\nReading query info...");
-    get_dataset_info(query_file_dir, &num_query_files, num_query_vectors, &mtr_query_vector_length);
+    get_query_data_info(query_file_dir, num_query_sets, min_query_set_size, max_query_set_size, &num_query_files, num_query_vectors, &mtr_query_vector_length);
     printf("(OK)\n");
-    printf("\tNumber of (.bin) files = %lu\n\tNumber of vectors = %llu\n\t"
+    printf("\tNumber of query tables = %lu\n\tNumber of query vectors = %llu\n\t"
             "Vector length in mtric spaces = %u\n\n", num_query_files, *num_query_vectors,
              mtr_query_vector_length);
 
@@ -119,8 +119,6 @@ struct sid * build_query_grid(struct grid * Qgrid, struct grid * Dgrid, inv_inde
 
     /* pivot space extremity */
     printf("\n\n(!) Use pivot vectors in Dgrid ...Extremity vector (in pivot space):\n");
-    
-    // vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
     vector * pivot_space_extremity = Dgrid->settings->pivot_space_extremity;
     vector * pivots_mtr = Dgrid->settings->pivots_mtr; // pivot vectors (in metric space)
     vector * pivots_ps = Dgrid->settings->pivots_ps; // pivot vectors (in pivot space)

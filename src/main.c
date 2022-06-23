@@ -22,7 +22,8 @@ int main(int argc, char **argv)
     const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/"; //target directory
     const char * bin_query_file_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/query/"; //target directory
 
-    unsigned long num_files = 0ul;
+    unsigned long total_dl_files = 0ul;
+
     unsigned int base = 32; // 32 bits to store numbers in binary files
     unsigned int mtr_vector_length = 100, num_dim_metric_space = 100;
     unsigned long long total_vectors = 0ull; // number of vectors in the whole data lake
@@ -31,11 +32,15 @@ int main(int argc, char **argv)
     double mtr_buffered_memory_size = 60; // memory  allocated for file buffers (in MB)
     double ps_buffered_memory_size = 10; // memory  allocated for file buffers (in MB)
 
+    double qgrid_mtr_buffered_memory_size = 60; // memory  allocated for file buffers (in MB) for query grid
+    double qgrid_ps_buffered_memory_size = 10; // memory  allocated for file buffers (in MB) for query grid
+
     /* grid settings */
     unsigned int num_levels = 3;  // m
     unsigned int num_pivots = 2;  // number of pivots
     unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
-    bool best_fft = 1; // serch for the best fft scale that will maximize extremity (have less vectors ou of pivot space)
+    bool best_fft = 1; // search for the best fft scale that will maximize extremity (have less vectors ou of pivot space)
+    unsigned short num_best_fft_iter = 5; // number of iteration to search for best fft
     unsigned int max_fft = 30; // max fft scale (search for the best fft scale that produces the farthest extrimity)
     /* query settings (todo: change threshold to %) */
     float join_threshold = 1; // T 
@@ -49,12 +54,14 @@ int main(int argc, char **argv)
 
     unsigned int track_vector = 1; // track vectors id (table_id, column_id)
     unsigned int mode = 0; //  mode 0 = create grid and query
+    unsigned int time_to_select_pivots = 0;
 
     while (1)
     {
         static struct option long_options[] = {
             {"work-dir", required_argument, 0, 'r'},
-            {"dataset", required_argument, 0, 'd'},
+            {"datalake", required_argument, 0, 'd'},
+            {"datalake-size", required_argument, 0, '#'}, // number of files (tables)
             {"queries", required_argument, 0, 'q'},
             {"bits", no_argument, 0, 'b'},
 
@@ -65,6 +72,7 @@ int main(int argc, char **argv)
             {"leaf-size", required_argument, 0, 'i'},
             {"fft-scale", required_argument, 0, 'f'},
             {"best-fft", required_argument, 0, 'e'},
+            {"num-best-fft-iter", required_argument, 0, '*'},
             {"max-fft", required_argument, 0, 'k'},
             {"join-threshold", required_argument, 0, 'j'},
             {"dist-threshold", required_argument, 0, 't'},
@@ -75,6 +83,9 @@ int main(int argc, char **argv)
 
             {"metric-buffer-size", required_argument, 0, 'c'},
             {"pivot-buffer-size", required_argument, 0, 's'},
+
+            {"qgrid-metric-buffer-size", required_argument, 0, '&'},
+            {"qgrid-pivot-buffer-size", required_argument, 0, '$'},
             
             {"track-vector", no_argument, 0, 'v'},
             {"mode", required_argument, 0, 'x'},
@@ -95,6 +106,10 @@ int main(int argc, char **argv)
 
             case 'd':
                 bin_files_directory = optarg;
+                break;
+
+            case '#':
+                total_dl_files = atoi(optarg);
                 break;
 
             case 'q':
@@ -159,6 +174,10 @@ int main(int argc, char **argv)
                     exit(-1);
                 }
                 break;
+
+            case '*':
+                num_best_fft_iter = atoi(optarg);
+                break;
             
             case 'k':
                 max_fft = atoi(optarg);
@@ -217,20 +236,38 @@ int main(int argc, char **argv)
 
             case 'c':
                 mtr_buffered_memory_size = atoi(optarg);
-                // if (mtr_buffered_memory_size < 10)
-                // {
-                //     fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
-                //     exit(-1);
-                // }
+                if (mtr_buffered_memory_size < 10)
+                {
+                    fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
+                    exit(-1);
+                }
                 break;
 
             case 's':
                 ps_buffered_memory_size = atoi(optarg);
-                // if (ps_buffered_memory_size < 10)
-                // {
-                //     fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
-                //     exit(-1);
-                // }
+                if (ps_buffered_memory_size < 10)
+                {
+                    fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
+                    exit(-1);
+                }
+                break;
+            
+            case '&':
+                qgrid_mtr_buffered_memory_size = atoi(optarg);
+                if (qgrid_mtr_buffered_memory_size < 5)
+                {
+                    fprintf(stderr, "Please change the bufferd memory size (for the query grid) to be greater than 5 MB.\n");
+                    exit(-1);
+                }
+                break;
+
+            case '$':
+                qgrid_ps_buffered_memory_size = atoi(optarg);
+                if (qgrid_ps_buffered_memory_size < 5)
+                {
+                    fprintf(stderr, "Please change the bufferd memory size (for the query grid) to be greater than 5 MB.\n");
+                    exit(-1);
+                }
                 break;
 
             case 'v':
@@ -260,24 +297,18 @@ int main(int argc, char **argv)
 
     /* read all vectors in the data set */
     printf("Reading dataset info...");
-    get_dataset_info(bin_files_directory, &num_files, &total_vectors, &mtr_vector_length);
+    if(total_dl_files == 0)
+        get_full_datalake_info(bin_files_directory, &total_dl_files, &total_vectors, &mtr_vector_length);
+    else
+        get_datalake_info(bin_files_directory, total_dl_files, &total_vectors, &mtr_vector_length);
     printf("(OK)\n");
 
-    printf("\tNumber of (.bin) files = %lu\n\tNumber of vectors = %llu\n\tVector length in mtric spaces = %u\n\n", num_files, total_vectors, mtr_vector_length);
+    printf("\tNumber of tables = %lu\n\tNumber of vectors = %llu\n\tVector length in mtric spaces = %u\n\n", total_dl_files, total_vectors, mtr_vector_length);
 
     printf("Loading dataset files...");
     vector * dataset = load_binary_files(bin_files_directory, 
-                                        num_files, total_vectors, base, mtr_vector_length);
+                                        total_dl_files, total_vectors, base, mtr_vector_length);
     
-    // printf("Dataset\n");
-    // for(int v = 0; v < total_vectors; v++)
-    // {
-    //     printf("\nvid:(%d, %d)", dataset[v].table_id, dataset[v].set_id);
-    //     print_vector(&dataset[v], mtr_vector_length);
-    // }
-    // printf("End of dataset\n");
-
-
     if(dataset == NULL)
         exit_with_failure("Error in main.c: Something went wrong, couldn't read dataset vectors!");
     printf("(OK)\n");
@@ -293,13 +324,9 @@ int main(int argc, char **argv)
         pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
 
     else
-        best_fft_scale(dataset, dataset_dim, pivots_mtr_dim, num_pivots, max_fft);
+        pivots_mtr = select_pivots_with_best_fft_scale(dataset, dataset_dim, pivots_mtr_dim, num_pivots, max_fft, num_best_fft_iter);
 
     exit(1);
-    // printf("selected pivots (metric space)\n");
-    // for(int p = 0; p < num_pivots; p++)
-    //     print_vector(&pivots_mtr[p], num_dim_metric_space);
-
 
     // free dataset (dataset was loaded into memory to get pivots)
     for(int dv = total_vectors - 1; dv >=0; dv--)
@@ -328,7 +355,7 @@ int main(int argc, char **argv)
     
     /* initialize grid */
     printf("\n\nInitialize grid... ");
-    struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size);
+    struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size, qgrid_ps_buffered_memory_size);
 
     struct grid * grid = (struct grid *) malloc(sizeof(struct grid));
     if (grid == NULL)
@@ -384,7 +411,7 @@ int main(int argc, char **argv)
     if(index == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for inverted index.");
 
-    if (!index_binary_files(grid, index, bin_files_directory, num_files, base))
+    if (!index_binary_files(grid, index, bin_files_directory, total_dl_files, base))
         exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
     printf("(OK)\n");
 

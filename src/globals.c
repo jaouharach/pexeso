@@ -14,6 +14,9 @@ float euclidean_distance(vector * v1, vector * v2, unsigned int v_len)
     if (v1 == NULL || v2 == NULL)
         exit_with_failure("Error in globals.c: NULL pointer to vector.");
 
+    if(isnan(v1->values[0]) || isnan(v1->values[0]))
+        exit_with_failure("Error in globals.c: Cannot compute euclidean distance for nan vector.");
+
     float d = 0.0;
     for(int j = 0; j < v_len; j++)
     {
