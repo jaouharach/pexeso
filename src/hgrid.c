@@ -112,6 +112,45 @@ enum response init_grid(const char *work_dir,
 
     return OK;
 }
+
+
+/* init statistics */
+enum response init_grid_stats(struct grid * grid)
+{
+    grid->stats = malloc(sizeof(struct stats_info));
+    if (grid->stats == NULL)
+        exit_with_failure("Error in hgrid.c: Could not allocate memory for stats structure.");
+    
+    grid->stats->total_cells_count = 0;
+    grid->stats->leaf_cells_count = 0;
+    grid->stats->empty_leaf_cells_count = 0;
+
+    grid->stats->loaded_vec_count = 0;
+    grid->stats->out_of_ps_space_vec_count = 0;
+    grid->stats->out_of_ps_space_qvec_count = 0;
+    grid->stats->checked_cells_count = 0;
+
+    grid->stats->total_queries_count = 0;
+
+    // timers 
+    grid->stats->idx_append_vec_to_leaf_total_time = 0;	
+	grid->stats->idx_append_vec_to_leaf_input_time = 0;
+	grid->stats->idx_append_vec_to_leaf_output_time = 0;
+	grid->stats->idx_append_vec_to_leaf_cpu_time = 0;
+
+    grid->stats->total_input_time = 0;
+    grid->stats->total_output_time = 0;
+    grid->stats->total_parse_time = 0;
+    grid->stats->total_query_time = 0;
+    grid->stats->total_pivot_selection_time = 0;
+    grid->stats->total_time = 0;
+
+    grid->stats->grid_building_total_time = 0;
+    grid->stats->grid_writing_total_time = 0;
+
+    return OK;  
+}
+
 /* get extremity vector of the pivot space, pivots must be outliers for extremity to be accurate */
 vector *get_extremity(vector *pivot_vectors, unsigned int num_pivots)
 {
@@ -148,7 +187,7 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
     if (v_mapping->values == NULL)
         exit_with_failure("Error in hgrid.c: Couldn't allocate memory for values of vector mapping.");
 
-    map_vector(vector, grid->settings->mtr_vector_length, v_mapping, grid->settings);
+    map_vector(vector, grid->settings->mtr_vector_length, v_mapping, grid->settings, grid->is_query_grid);
     
     
     // find the closest cell in first level.
@@ -418,6 +457,7 @@ enum response grid_destroy(struct grid *grid)
     free(grid->settings->work_directory);
     // destroy settings
     free(grid->settings);
+    free(grid->stats);
     free(grid);
 
     return OK;
@@ -443,10 +483,8 @@ enum response destroy_buffer_manager(struct grid *grid)
 
     if (grid->buffer_manager != NULL)
     {
-        // (todo) fix why this doesn't work for query grid
         struct file_map *currP;
         struct file_map *temp;
-
     
         temp = NULL;
         currP = grid->buffer_manager->file_map;
@@ -464,4 +502,47 @@ enum response destroy_buffer_manager(struct grid *grid)
         grid->buffer_manager = NULL;
     }
     return OK;
+}
+
+/* print stats */
+void print_grid_stats(struct grid * grid)
+{
+    printf("\n\n\n(s) Settings:\t-------------------------------------\n\n\n");
+
+    printf("Pivots_count\t%d\n", 
+        grid->settings->num_pivots);
+    
+    printf("Levels_count\t%d\n", 
+        grid->settings->num_levels);
+
+    printf("Leaf_cells_count\t%d\n", 
+        grid->settings->num_leaf_cells);
+    
+    printf("Empty_leaf_cells_count\t%ld\n", 
+        grid->stats->empty_leaf_cells_count);
+    
+    printf("(!) Warnings:\t-------------------------------------\n\n\n");
+    printf("Out_of_ps_space_vec_count\t%ld\n", 
+        grid->stats->out_of_ps_space_vec_count);
+
+    printf("Out_of_ps_space_qvec_count\t%ld\n", 
+        grid->stats->out_of_ps_space_qvec_count);
+
+    printf("(t) Time measure:\t-------------------------------------\n\n\n");
+
+    printf("Total_time\t%lf\n",
+         grid->stats->total_time / 1000000);
+
+    printf("Grid_building_total_time\t%lf\n",
+         grid->stats->grid_building_total_time / 1000000);
+        
+    printf("Grid_building_input_time\t%lf\n",
+         grid->stats->grid_building_input_time / 1000000);
+
+    printf("Grid_building_output_time\t%lf\n",
+         grid->stats->grid_building_output_time / 1000000);
+
+    printf("Total_pivot_selection_time\t%lf\n", 
+        grid->stats->total_pivot_selection_time / 1000000);
+    
 }

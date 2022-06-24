@@ -33,6 +33,7 @@ struct grid{
   struct level * root; // root level, num cells  = 1.
   struct level * first_level;
   struct grid_settings * settings;
+  struct stats_info * stats;
   struct file_buffer_manager * buffer_manager;
   bool is_query_grid;// if the grid is a Qgrid
   //file to track vector ids 
@@ -40,6 +41,39 @@ struct grid{
   FILE * vid_file;
   unsigned int vid_pos_ctr;
   struct vid * vid_cache;
+};
+
+struct stats_info {
+  // counters
+  unsigned long total_cells_count;
+  unsigned long leaf_cells_count;
+  unsigned long empty_leaf_cells_count;
+
+  unsigned long loaded_vec_count;
+  unsigned long out_of_ps_space_vec_count; // data vectors that are out of the pivot space
+  unsigned long out_of_ps_space_qvec_count; // query vectors that are out of the pivot space
+
+  unsigned long checked_cells_count;
+
+  unsigned long total_queries_count;
+
+  // timers 
+  double idx_append_vec_to_leaf_total_time;	
+	double idx_append_vec_to_leaf_input_time;
+	double idx_append_vec_to_leaf_output_time;
+	double idx_append_vec_to_leaf_cpu_time;
+
+  double total_input_time;
+  double total_output_time;
+  double total_parse_time;
+  double total_query_time;
+  double total_pivot_selection_time;
+  double total_time;
+
+  double grid_building_total_time; // time to build the grid from scratch
+  double grid_building_input_time;
+  double grid_building_output_time;
+  double grid_writing_total_time; // time to write the grid to disk
 };
 
 enum response init_grid(const char *work_dir,
@@ -58,6 +92,9 @@ enum response init_grid(const char *work_dir,
                     bool is_query_grid,
                     struct query_settings * query_settings,
                     struct grid *grid);
+
+/* init statistics */
+enum response init_grid_stats(struct grid * grid);
 
 /* get the farthest vector in the pivot space */
 vector * get_extremity(vector * pivot_vectors, unsigned int num_dim);
@@ -85,3 +122,6 @@ enum response level_write(struct grid *grid, struct level *level, FILE *file);
 
 /* destroy query grid */
 enum response query_grid_destroy(struct grid *grid);
+
+/* print stats */
+void print_grid_stats(struct grid * grid);

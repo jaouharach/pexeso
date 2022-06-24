@@ -1,11 +1,12 @@
 #include "../include/hgrid.h"
 #include "../include/gsl_matrix.h"
 #include "../include/select_pivots.h"
+#include "../include/stats.h"
 #include <float.h>
 #include <time.h>
 
 /* select pivots using best fft scale */
-struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *dataset_dim, int *dims, unsigned int max_fft, unsigned short num_iter)
+struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *dataset_dim, int *dims, unsigned int min_fft, unsigned int max_fft, unsigned short num_iter)
 {
     unsigned int num_pivots = dims[0];
     unsigned int metric_dim = dims[1];
@@ -20,7 +21,7 @@ struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *da
     vector * pivots_ps = NULL;
     vector * ps_extremity = NULL;
 
-    for(unsigned int f = 5; f <= max_fft; f++)
+    for(unsigned int f = min_fft; f <= max_fft; f++)
     {
         // printf("FFT SCALE = %u", f); 
         for(int i = 0; i < num_iter; i++)
@@ -233,7 +234,7 @@ float min_distance(vector *outliers, unsigned int num_outliers, vector *v, unsig
 }
 
 /* map vector to pivot space  v --> v'*/
-enum response map_vector(struct vector *v, unsigned int v_len, struct vector *v_mapping, struct grid_settings * settings)
+enum response map_vector(struct vector *v, unsigned int v_len, struct vector *v_mapping, struct grid_settings * settings, bool in_query_grid)
 {
     float d;
     int out_of_pivot_space = 0;
@@ -247,8 +248,15 @@ enum response map_vector(struct vector *v, unsigned int v_len, struct vector *v_
             out_of_pivot_space = 1;
         v_mapping->values[i] = d; 
     } 
+
     if(out_of_pivot_space == 1)
-        printf("\033[1;33m\n(!) Warning in select_pivots.c: Vector mapping is out of pivot space!\033[0m\n");
+    {
+        if(in_query_grid)
+            COUNT_NEW_OUT_OF_PIVOT_SPACE_QUERY_VECTOR
+        else
+            COUNT_NEW_OUT_OF_PIVOT_SPACE_VECTOR
+        // printf("\033[1;33m\n(!) Warning in select_pivots.c: Vector mapping is out of pivot space!\033[0m\n");
+    }
 
     return OK;
 }

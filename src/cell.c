@@ -8,7 +8,9 @@
 #include "../include/file_buffer_manager.h"
 #include "../include/file_buffer.h"
 #include "../include/inv_index.h"
+#include "../include/stats.h"
 #include <string.h>
+
 /* append vector to cell */
 response append_vector_to_cell(struct grid *grid, struct inv_index * index, struct cell *cell,struct vector *vector, struct vector * v_mapping)
 {
@@ -372,14 +374,18 @@ vector * get_vectors_mtr(struct cell * cell, struct grid_settings * settings, bo
             if(cell_vectors[i].values == NULL)
                 exit_with_failure("Error in cell.c: Couldn't allocate memory for cell vectors!");
             
+            COUNT_PARTIAL_INPUT_TIME_START
             fread(cell_vectors[i].values, sizeof(v_type), settings->mtr_vector_length, vectors_file);  
             fread(temp_mtr_values, sizeof(v_type), settings->num_pivots, vectors_file); // we only need mtr values
+            COUNT_PARTIAL_INPUT_TIME_END
             cell_vectors[i].set_id = cell->vid[i].set_id;
             cell_vectors[i].table_id = cell->vid[i].table_id;
             cell_vectors[i].pos = cell->vid[i].pos;
             cell_vectors[i].set_size = cell->vid[i].set_size; 
         }
+        COUNT_PARTIAL_INPUT_TIME_START
         fclose(vectors_file);
+        COUNT_PARTIAL_INPUT_TIME_END
 
         // read vectors in memory
         int last_idx = cell->file_buffer->buffered_list_size;
@@ -476,14 +482,18 @@ vector * get_vectors_ps(struct cell * cell, struct grid_settings * settings, boo
             if(cell_vectors[i].values == NULL)
                 exit_with_failure("Error in cell.c: Couldn't allocate memory for cell vectors!");
             
+            COUNT_PARTIAL_INPUT_TIME_START
             fread(temp_mtr_values, sizeof(v_type), settings->mtr_vector_length, vectors_file); // we only need ps values 
             fread(cell_vectors[i].values, sizeof(v_type), settings->num_pivots, vectors_file);
+            COUNT_PARTIAL_INPUT_TIME_END
             cell_vectors[i].set_id = cell->vid[i].set_id;
             cell_vectors[i].table_id = cell->vid[i].table_id;
             cell_vectors[i].pos = cell->vid[i].pos;
             cell_vectors[i].set_size = cell->vid[i].set_size; 
         }
+        COUNT_PARTIAL_INPUT_TIME_START
         fclose(vectors_file);
+        COUNT_PARTIAL_INPUT_TIME_END
         
         // read vectors in memory
         int last_idx = cell->file_buffer->buffered_list_size;
@@ -601,9 +611,10 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
         fseek(vectors_file, 0, SEEK_SET);
         for (int i = 0; i < cell->file_buffer->disk_count ; i++) 
         {  
+            COUNT_PARTIAL_INPUT_TIME_START
             fread( cell_vectors[i].mtr_vector->values, sizeof(v_type), settings->mtr_vector_length, vectors_file);
             fread(cell_vectors[i].ps_vector->values, sizeof(v_type), settings->num_pivots, vectors_file);
-            
+            COUNT_PARTIAL_INPUT_TIME_END
             cell_vectors[i].mtr_vector->set_id = cell->vid[i].set_id;
             cell_vectors[i].mtr_vector->table_id = cell->vid[i].table_id;
             cell_vectors[i].mtr_vector->pos = cell->vid[i].pos;
@@ -782,8 +793,10 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * set
                 if(cell_vectors[v].values == NULL)
                     exit_with_failure("Error in cell.c: Couldn't allocate memory for cell vectors!");
                 
+                COUNT_PARTIAL_INPUT_TIME_START
                 fread(temp_mtr_values, sizeof(v_type), settings->mtr_vector_length, vectors_file); // we only need ps values 
                 fread(cell_vectors[v].values, sizeof(v_type), settings->num_pivots, vectors_file);
+                COUNT_PARTIAL_INPUT_TIME_END
                 cell_vectors[v].set_id = leaves[i]->vid[k].set_id;
                 cell_vectors[v].table_id = leaves[i]->vid[k].table_id;
                 cell_vectors[v].pos = leaves[i]->vid[k].pos;

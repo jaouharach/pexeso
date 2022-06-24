@@ -104,10 +104,12 @@ void dump_match_map_to_console(struct match_map * map, unsigned int map_idx)
     struct sid curr_set;
     for(int s = 0; s < map[map_idx].num_sets; s++)
     {
-        curr_set = map[map_idx].sets[s];
-        printf("\t%d: \033[1;33m S: (%u, %u) |S| = %u\033[0m => {", s, curr_set.table_id, curr_set.set_id, curr_set.set_size);
-        printf("match = %u, mismatch = %u, joinable: %s}\n", map[map_idx].match_count[s], map[map_idx].mismatch_count[s], map[map_idx].joinable[s] ? "\033[0;32mtrue\033[0m" : "\033[1;31mfalse\033[0m");
-       
+        if(map[map_idx].joinable[s]) // only print joinable sets
+        {
+            curr_set = map[map_idx].sets[s];
+            printf("\t%d: \033[1;33m S: (%u, %u) |S| = %u\033[0m => {", s, curr_set.table_id, curr_set.set_id, curr_set.set_size);
+            printf("match = %u, mismatch = %u, joinable: %s}\n", map[map_idx].match_count[s], map[map_idx].mismatch_count[s], map[map_idx].joinable[s] ? "\033[0;32mtrue\033[0m" : "\033[1;31mfalse\033[0m");
+        }
     }
     printf("\n\t>>>  END OF MAP  <<<\n\n\n");
 

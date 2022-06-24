@@ -14,10 +14,15 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <time.h>
+#include "../include/stats.h"
 
 int main(int argc, char **argv)
 {
-    /* dataset */
+    /* initialize stats and start measure total time */
+    INIT_STATS()
+    COUNT_TOTAL_TIME_START
+
+    /* inputs */
     const char * work_dir = "/home/jaouhara/Projects/pexeso-debbug/pexeso/";
     const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/"; //target directory
     const char * bin_query_file_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/query/"; //target directory
@@ -295,6 +300,10 @@ int main(int argc, char **argv)
         }
     }
 
+    /* start count time  to select pivots and make the grid structure */
+    RESET_PARTIAL_COUNTERS()
+    COUNT_PARTIAL_TIME_START
+
     /* read all vectors in the data set */
     printf("Reading dataset info...");
     if(total_dl_files == 0)
@@ -325,18 +334,16 @@ int main(int argc, char **argv)
     vector * pivots_mtr = NULL;
     if(!best_fft) // search for pivots using user defined fft_scale
     {
-        start_pivot_selection_time = clock();
+        COUNT_PIVOT_SELECTION_TIME_START
         pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
-        end_pivot_selection_time = clock();
+        COUNT_PIVOT_SELECTION_TIME_END
     }
     else
     {
-        start_pivot_selection_time = clock();
-        pivots_mtr = select_pivots_with_best_fft_scale(dataset, dataset_dim, pivots_mtr_dim, max_fft, num_best_fft_iter);
-        end_pivot_selection_time = clock();
+        COUNT_PIVOT_SELECTION_TIME_START
+        pivots_mtr = select_pivots_with_best_fft_scale(dataset, dataset_dim, pivots_mtr_dim, fft_scale, max_fft, num_best_fft_iter);
+        COUNT_PIVOT_SELECTION_TIME_END
     }
-    printf("Time to select pivots = %.2f sec\n", (double)(end_pivot_selection_time - start_pivot_selection_time) / CLOCKS_PER_SEC);
-
 
     // free dataset (dataset was loaded into memory to get pivots)
     for(int dv = total_vectors - 1; dv >=0; dv--)
@@ -349,24 +356,17 @@ int main(int argc, char **argv)
     /* map pivot vectors to pivot space pi --> pi' */
     printf("\n\nTransforming pivots to pivot space... ");
     vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
-
-    // printf("selected pivots (pivot space)\n");
-    // for(int p = 0; p < num_pivots; p++)
-    //     print_vector(&pivots_ps[p], num_pivots);
-
     printf("(OK)\n");
     
 
     /* pivot space extremity */
     printf("\nextremity vector (in pivot space):\n");
-    // vector * pivot_space_extremity = get_rand_vector(num_pivots);
     vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
     print_vector(pivot_space_extremity, num_pivots);
     
     /* initialize grid */
     printf("\n\nInitialize grid... ");
     struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size, qgrid_ps_buffered_memory_size);
-
     struct grid * grid = (struct grid *) malloc(sizeof(struct grid));
     if (grid == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
@@ -376,32 +376,18 @@ int main(int argc, char **argv)
                     mtr_buffered_memory_size, ps_buffered_memory_size, max_leaf_size, track_vector, 
                     false, query_settings, grid))
         exit_with_failure("Error in main.c: Couldn't initialize grid!");
-
     printf("(OK)\n");
 
-    
 
-    /* Display settings */
-    printf("\n\t\t*** \tGRID SETTINGS\t ***\t\n");
-    printf("--------------------------------------------------------------\n");
-    printf("\t\tNumber of pivots = %d\n", grid->settings->num_pivots);
-    printf("\t\tNumber of levels = %d\n", grid->settings->num_levels);
-    printf("\t\tPivot space volume = %f\n", grid->settings->pivot_space_volume);
-    printf("\t\tNumber of leaf cells = %d\n", grid->settings->num_leaf_cells);
-    printf("\t\tLeaf cell edge length = %f\n", grid->settings->leaf_cell_edge_length);
-    
-    
-
-    printf("\t\tPivot vectors (in pivot space):\n\n");
-    for(int i = 0; i < num_pivots; i++)
-    {
-        print_vector(&grid->settings->pivots_ps[i], num_pivots);
-    }
-    printf("--------------------------------------------------------------\n");
-
+    /* initialize grid stats */
+    printf("\n\nInitialize grid stats... ");
+    if(!init_grid_stats(grid))
+        exit_with_failure("Error in main.c: Couldn't initialize grid stats!");
+        grid->stats->total_pivot_selection_time += pivot_selection_time;
+    printf("(OK)\n");
 
     /* Build levels */
-    printf("\n\nBuild levels... ");
+    printf("\n\nBuilding levels... ");
     if(!init_root(grid))
         exit_with_failure("Error in main.c: Couldn't initialize root level!");
 
@@ -425,11 +411,16 @@ int main(int argc, char **argv)
         exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
     printf("(OK)\n");
 
-
-
     /* print Rv grid */
     // dump_grid_to_console(grid);
 
+    COUNT_PARTIAL_TIME_END
+    grid->stats->grid_building_total_time += partial_time;
+    grid->stats->grid_building_input_time += partial_input_time;
+    grid->stats->grid_building_output_time += partial_output_time;
+    grid->stats->out_of_ps_space_vec_count += out_of_ps_space_vec_count;
+    grid->stats->out_of_ps_space_qvec_count += out_of_ps_space_qvec_count;
+    
     /* querying */
     pexeso(bin_query_file_directory, grid, index);
 
@@ -440,6 +431,11 @@ int main(int argc, char **argv)
     if (!grid_write(grid))
         exit_with_failure("Error main.c:  Could not save the grid to disk.\n");
     
+    /* end of endexing and quering */
+    COUNT_TOTAL_TIME_END
+    print_grid_stats(grid);
+    printf("End of proram: combined indexing and querying times : %.2f secs \n", total_time / 1000000);
+
     /* destroy grid */
     if (!grid_destroy(grid))
         exit_with_failure("Error main.c: Could not destroy grid.\n");

@@ -19,7 +19,7 @@ BIN	 :=$(BIN_DIR)pexeso
 #
 
 all: $(OBJS)
-	$(CC) -o $(BIN) $^ $(LDFLAGS) $(CFLAGS)
+	$(CC) $^  $(CFLAGS) $(LDFLAGS) -o $(BIN)
 	$(info Binary file $(BIN) has been generated.)
 
 $(OBJ_DIR)%.o: $(SRC_DIR)%.c

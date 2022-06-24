@@ -11,7 +11,7 @@
 #include "../include/match_map.h"
 #include "../include/query_engine.h"
 #include <dirent.h>
-
+#include "../include/stats.h"
 #include "../include/file_loader.h"
 
 vector * load_binary_files(const char *bin_files_directory, unsigned long num_files, unsigned long long total_vectors, unsigned int base, unsigned int mtr_vector_length)
@@ -96,7 +96,9 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
                     i++;
                     j = 0;
                     //read first integer to check how many vactors in current set
+                    COUNT_PARTIAL_INPUT_TIME_START
                     fread(&num_vectors, sizeof(num_vectors), 1, bin_file);
+                    COUNT_PARTIAL_INPUT_TIME_END
                     total_bytes -= 4;
                     // printf("Read set (%u, %u):\n", table_id, set_id);
                     // printf("\t> Num vectors: %u\n", num_vectors);
@@ -127,7 +129,9 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
                         curr_total_vectors = curr_total_vectors + 1;
                     }
 
+                    COUNT_PARTIAL_INPUT_TIME_START
                     fread((void *)(&val), sizeof(val), 1, bin_file);
+                    COUNT_PARTIAL_INPUT_TIME_END
                     total_bytes -= 4;
                     // printf("\t> value %d: %.10f\n", j, val);
                     vector->values[j] = val;
@@ -157,8 +161,10 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
                     j++;
                 }
             }
+            COUNT_PARTIAL_INPUT_TIME_START
             if (fclose(bin_file))
                 exit_with_failure("Error in file_loader.c: Could not close binary.\n");
+            COUNT_PARTIAL_INPUT_TIME_END
         }
     }
 
@@ -204,7 +210,7 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
             num_files--;
             read_files += 1;
 
-            printf("\n\nIndexing file %s ...\n", dfile->d_name);
+            // printf("\n\nIndexing file %s ...\n", dfile->d_name);
             // get fill path of bin file
             char bin_file_path[PATH_MAX + 1] = "";
             strcat(bin_file_path, bin_files_directory);
@@ -226,7 +232,7 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
 
             /* Start processing file: read every vector in binary file */
             int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * grid->settings->mtr_vector_length) + nsets) / 8;
-            printf("File size in bytes = %u\n\n", total_bytes);
+            // printf("File size in bytes = %u\n\n", total_bytes);
 
             while (total_bytes)
             {
@@ -234,8 +240,11 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
                 {
                     i++;
                     j = 0;
+
                     //read first integer to check how many vactors in current set
+                    COUNT_PARTIAL_INPUT_TIME_START
                     fread(&num_vectors, sizeof(num_vectors), 1, bin_file);
+                    COUNT_PARTIAL_INPUT_TIME_END
                     total_bytes -= 4;
                     // printf("Read set (%u, %u):\n", table_id, set_id);
                     // printf("\t> Num vectors: %u\n", num_vectors);
@@ -259,7 +268,9 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
                         vector->pos = vector->pos + 1;
                     }
 
+                    COUNT_PARTIAL_INPUT_TIME_START
                     fread((void *)(&val), sizeof(val), 1, bin_file);
+                    COUNT_PARTIAL_INPUT_TIME_END
                     total_bytes -= 4;
                     // printf("\t> value %d: %.10f\n", j, val);
                     vector->values[j] = val;
@@ -282,8 +293,10 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
                     j++;
                 }
             }
+            COUNT_PARTIAL_INPUT_TIME_START
             if (fclose(bin_file))
                 exit_with_failure("Error in file_loaders.c: Could not close binary.\n");
+            COUNT_PARTIAL_INPUT_TIME_END
         }
     }
 
@@ -336,7 +349,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
             num_files--;
             read_files += 1;
 
-            printf("\n\nIndexing file %s ...\n", dfile->d_name);
+            // printf("\n\nIndexing file %s ...\n", dfile->d_name);
             // get fill path of bin file
             char bin_file_path[PATH_MAX + 1] = "";
             strcat(bin_file_path, bin_files_directory);
@@ -358,7 +371,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
 
             /* Start processing file: read every vector in binary file */
             int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * grid->settings->mtr_vector_length) + nsets) / 8;
-            printf("File size in bytes = %u\n\n", total_bytes);
+            // printf("File size in bytes = %u\n\n", total_bytes);
 
             while (total_bytes)
             {
@@ -369,7 +382,9 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     i++;
                     j = 0;
                     //read first integer to check how many vactors in current set
+                    COUNT_PARTIAL_INPUT_TIME_START
                     fread(&num_vectors, sizeof(num_vectors), 1, bin_file);
+                    COUNT_PARTIAL_INPUT_TIME_END
                     total_bytes -= 4;
                     // printf("Read set (%u, %u):\n", table_id, set_id);
                     // printf("\t> Num vectors: %u\n", num_vectors);
@@ -414,8 +429,9 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                             exit_with_failure("Error in file_loaders.c:  Could not add vector to the grid.\n");
                         vector->pos = vector->pos + 1;
                     }
-
+                    COUNT_PARTIAL_INPUT_TIME_START
                     fread((void *)(&val), sizeof(val), 1, bin_file);
+                    COUNT_PARTIAL_INPUT_TIME_END
                     total_bytes -= 4;
                     // printf("\t> value %d: %.10f\n", j, val);
                     vector->values[j] = val;
@@ -438,8 +454,10 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     j++;
                 }
             }
+            COUNT_PARTIAL_INPUT_TIME_START
             if (fclose(bin_file))
                 exit_with_failure("Error in file_loaders.c: Could not close binary.\n");
+            COUNT_PARTIAL_INPUT_TIME_END
         }
     }
 
@@ -567,7 +585,9 @@ void get_query_data_info(const char *bin_files_directory, int num_query_sets, in
                     break;
                     
                 //read first integer to check how many vactors in current set
+                COUNT_PARTIAL_INPUT_TIME_START
                 fread(&num_vectors, sizeof(num_vectors), 1, bin_file);
+                COUNT_PARTIAL_INPUT_TIME_END
                 total_bytes -= 4;
                 
                 // don't count set if its size doesn't match requirements
@@ -579,12 +599,15 @@ void get_query_data_info(const char *bin_files_directory, int num_query_sets, in
                         if(num_query_sets != -1)
                             num_query_sets--; // read a new set (column)
                     }
-
+                COUNT_PARTIAL_INPUT_TIME_START
                 fseek(bin_file, num_vectors * 4 * v_len, SEEK_CUR);
+                COUNT_PARTIAL_INPUT_TIME_END
                 total_bytes -= num_vectors * 4 * v_len;
             }
+            COUNT_PARTIAL_INPUT_TIME_START
             if (fclose(bin_file))
                 exit_with_failure("Error in file_loaders.c: Could not close binary.\n");
+            COUNT_PARTIAL_INPUT_TIME_END
 
             if(pick_curr_file == 1)
                 *total_files = *total_files + 1;
@@ -670,7 +693,7 @@ char * make_file_path(char * work_dir, struct sid * query_set, unsigned int l, u
     DIR* dir = opendir(work_dir);
 	if (!dir)
     {
-		printf("WARNING! Experiment direstory '%s' does not exist!", work_dir);
+		printf("(!) Warning in file_loader: Experiment direstory '%s' does not exist!", work_dir);
 		exit(1);
 	}
     int string_size = get_ndigits(query_set->table_id) + get_ndigits(query_set->set_id) + get_ndigits(l)
@@ -696,20 +719,20 @@ char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, u
 {
     int string_size = get_ndigits(l) + get_ndigits(num_query_sets)
 									+ get_ndigits(min_query_set_size) + get_ndigits(max_query_set_size)
-									+ strlen("/_l_q_min_max") + strlen(work_dir)+ strlen(algorithm) + 1;
+									+ strlen("/_l_q_min_max") + strlen(work_dir)+ strlen(algorithm) + 5;
 
 	char * result_dir_name = malloc(sizeof(char) * string_size + 1);
-    result_dir_name[string_size - 1] = 0;
-
 	sprintf(result_dir_name, "%s/%s_l%u_%uq_min%d_max%d", work_dir, algorithm, l, num_query_sets, min_query_set_size, max_query_set_size);
+    result_dir_name[string_size - 1] = '\0';
 
+    printf("max set size = %d\n", max_query_set_size);
 	printf("Result directory name: %s\n", result_dir_name);
 	DIR* dir = opendir(result_dir_name);
 	if (dir)
-  {
-      printf("WARNING! Results directory already exists. Please delete directory : %s.\n", result_dir_name);
-      exit(-1);
-  }
+    {
+        printf("(!) Warning in file_loader.c: Results directory already exists. Please delete directory : %s.\n", result_dir_name);
+        exit(-1);
+    }
   mkdir(result_dir_name, 0777);
   
   return result_dir_name;
