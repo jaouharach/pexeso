@@ -13,7 +13,7 @@
 #include "../include/file_loader.h"
 #include <unistd.h>
 #include <getopt.h>
-
+#include <time.h>
 
 int main(int argc, char **argv)
 {
@@ -319,14 +319,24 @@ int main(int argc, char **argv)
     int pivots_mtr_dim [] = {num_pivots, num_dim_metric_space};
 
     // get pivot vector in from metric dataset
+    clock_t start_pivot_selection_time; // start time to select pivots
+    clock_t end_pivot_selection_time; // end time after selecting pivots
+
     vector * pivots_mtr = NULL;
     if(!best_fft) // search for pivots using user defined fft_scale
+    {
+        start_pivot_selection_time = clock();
         pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
-
+        end_pivot_selection_time = clock();
+    }
     else
-        pivots_mtr = select_pivots_with_best_fft_scale(dataset, dataset_dim, pivots_mtr_dim, num_pivots, max_fft, num_best_fft_iter);
+    {
+        start_pivot_selection_time = clock();
+        pivots_mtr = select_pivots_with_best_fft_scale(dataset, dataset_dim, pivots_mtr_dim, max_fft, num_best_fft_iter);
+        end_pivot_selection_time = clock();
+    }
+    printf("Time to select pivots = %.2f sec\n", (double)(end_pivot_selection_time - start_pivot_selection_time) / CLOCKS_PER_SEC);
 
-    exit(1);
 
     // free dataset (dataset was loaded into memory to get pivots)
     for(int dv = total_vectors - 1; dv >=0; dv--)

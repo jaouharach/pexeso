@@ -3,12 +3,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <math.h>
+#include <linux/limits.h>
+#include <sys/stat.h>
 #include "../include/hgrid.h"
 #include "../include/match_map.h"
 #include "../include/query_engine.h"
+#include <dirent.h>
 
 #include "../include/file_loader.h"
 
@@ -678,12 +680,12 @@ char * make_file_path(char * work_dir, struct sid * query_set, unsigned int l, u
 							 + 4 // float decimal precision for dlsize and runtime (.00)
 							 + 5;
 
-    char * filepath = malloc(string_size);
+    char * filepath = malloc(sizeof(char) * string_size + 1);
 
 	sprintf(filepath, "%s/TQ%u_Q%u_qsize%u_l%u_dlsize%u_len%u_runtime%.2f_ndistcalc_dataaccess%u.csv"
 			, work_dir, query_set->table_id, query_set->set_id, query_set->set_size, l, dlsize, vector_length, runtime, total_checked_vec);
     
-    filepath[string_size - 1] = '\0';
+    filepath[string_size - 1] = 0;
     
     free(dir);
 	return filepath;
@@ -692,9 +694,12 @@ char * make_file_path(char * work_dir, struct sid * query_set, unsigned int l, u
 /* create directory to store query results */
 char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, unsigned int num_query_sets, int min_query_set_size, int max_query_set_size)
 {
-	char * result_dir_name = malloc(get_ndigits(l) + get_ndigits(num_query_sets)
+    int string_size = get_ndigits(l) + get_ndigits(num_query_sets)
 									+ get_ndigits(min_query_set_size) + get_ndigits(max_query_set_size)
-									+ strlen("/_l_q_min_max") + strlen(work_dir)+ strlen(algorithm) + 1);
+									+ strlen("/_l_q_min_max") + strlen(work_dir)+ strlen(algorithm) + 1;
+
+	char * result_dir_name = malloc(sizeof(char) * string_size + 1);
+    result_dir_name[string_size - 1] = 0;
 
 	sprintf(result_dir_name, "%s/%s_l%u_%uq_min%d_max%d", work_dir, algorithm, l, num_query_sets, min_query_set_size, max_query_set_size);
 
@@ -736,7 +741,7 @@ enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, str
     for(int m = 0; m < num_query_sets; m++)
     {
         curr_map = &match_map[m];
-        query_set = &curr_map->query_set;
+        query_set = &(curr_map->query_set);
         total_checked_vectors = curr_map->total_checked_vectors;
         runtime = curr_map->query_time;
 

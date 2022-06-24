@@ -2,7 +2,7 @@
 CC=gcc
 LDFLAGS := -lm -lgsl -lgslcblas -lmcheck
 CFLAGS_INC := 
-CFLAGS := -g -Wall -I
+CFLAGS := -g
 #
 
 ## directories
@@ -19,7 +19,7 @@ BIN	 :=$(BIN_DIR)pexeso
 #
 
 all: $(OBJS)
-	$(CC) -o $(BIN) $^ $(LDFLAGS)
+	$(CC) -o $(BIN) $^ $(LDFLAGS) $(CFLAGS)
 	$(info Binary file $(BIN) has been generated.)
 
 $(OBJ_DIR)%.o: $(SRC_DIR)%.c

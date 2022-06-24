@@ -5,44 +5,53 @@
 #include <time.h>
 
 /* select pivots using best fft scale */
-struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *dataset_dim, int *pivots_mtr_dim, unsigned int num_pivots, unsigned int max_fft, unsigned short num_iter)
+struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *dataset_dim, int *dims, unsigned int max_fft, unsigned short num_iter)
 {
+    unsigned int num_pivots = dims[0];
+    unsigned int metric_dim = dims[1];
+
     struct best_fft bsf;
     bsf.exremity = FLT_MIN;
-    bsf.pivots_mtr = NULL;
+    bsf.pivots_mtr = malloc(sizeof(struct vector) * num_pivots);
+    for(int p = 0; p < num_pivots; p++)
+        bsf.pivots_mtr[p].values = malloc(sizeof(v_type) * metric_dim);
+
     vector * pivots_mtr = NULL;
     vector * pivots_ps = NULL;
     vector * ps_extremity = NULL;
 
     for(unsigned int f = 5; f <= max_fft; f++)
     {
-        printf("FFT SCALE = %u", f); 
+        // printf("FFT SCALE = %u", f); 
         for(int i = 0; i < num_iter; i++)
         {
-            printf("\nTest %d:\n", i+1);
+            // printf("\nTest %d:\n", i+1);
             pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, f);
-            pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
+            pivots_ps = map_to_pivot_space(pivots_mtr, dims, pivots_mtr, num_pivots);
             ps_extremity = get_extremity(pivots_ps, num_pivots);
 
             if (ps_extremity->values[0] > bsf.exremity)
             {
                 bsf.exremity = ps_extremity->values[0];
                 bsf.fft_scale = f;
-                bsf.pivots_mtr = pivots_mtr;
-            }
-            else
-            {
-                for(int p = 0; p < num_pivots; p++)
-                {
-                    free(pivots_mtr[p].values);
-                    free(pivots_ps[p].values);
-                }
-                free(pivots_mtr);
-                free(pivots_ps);
-                pivots_mtr = NULL;
-                pivots_ps = NULL;
 
+                // copy pivots to bsf
+                for(int p = 0; p < num_pivots; p++)
+                    for(int m = 0; m < metric_dim; m++)
+                    {
+                        bsf.pivots_mtr[p].values[m] = pivots_mtr[p].values[m];
+                    }
             }
+            for(int p = 0; p < num_pivots; p++)
+            {
+                free(pivots_mtr[p].values);
+                free(pivots_ps[p].values);
+            }
+            free(pivots_mtr);
+            free(pivots_ps);
+            pivots_mtr = NULL;
+            pivots_ps = NULL;
+
             print_vector(ps_extremity, num_pivots);
             free(ps_extremity->values);
             free(ps_extremity);
@@ -63,7 +72,7 @@ struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *da
 /* pivot selection algorithm */
 vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_pivots, unsigned int fft_scale)
 {
-    printf("dataset dim %d, num pivots %d, fft scale %d\n\n\n", dataset_dim[1], num_pivots, fft_scale);
+    // printf("dataset dim %d, num pivots %d, fft scale %d\n\n\n", dataset_dim[1], num_pivots, fft_scale);
     // run fft to get a candidate set of outliers
     int num_cp = num_pivots*fft_scale; // number of candidate pivots
 
@@ -149,7 +158,7 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
     srand (time(NULL));
     unsigned int rand_idx = (rand() % (num_vectors - 1));
     outliers_idx[0] = rand_idx;
-    printf("\nrand idx = %d\n", rand_idx);
+    // printf("\nrand idx = %d\n", rand_idx);
     vector_cpy(&outliers[0], &data_set[rand_idx], v_len);
     
     // printf("first outlier: \n");
@@ -183,7 +192,7 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
             }
         }
         if(bsf_v == -1)
-            exit_with_failure("Error int select_pivots.c: Something went wrong! cannot add outlier of index -1, no such vector in the dataset.");
+            exit_with_failure("Error in select_pivots.c: Something went wrong! cannot add outlier of index -1, no such vector in the dataset.");
         
         for(int v = 0; v < v_len; v++)
             outliers[i].values[v] = data_set[bsf_v].values[v];
@@ -239,7 +248,7 @@ enum response map_vector(struct vector *v, unsigned int v_len, struct vector *v_
         v_mapping->values[i] = d; 
     } 
     if(out_of_pivot_space == 1)
-        printf("\033[1;33m\nError in select_pivots.c: Vector mapping is out of pivot space!\033[0m\n");
+        printf("\033[1;33m\n(!) Warning in select_pivots.c: Vector mapping is out of pivot space!\033[0m\n");
 
     return OK;
 }

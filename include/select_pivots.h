@@ -34,4 +34,4 @@ int * select_pivots_by_pca_result_angle(gsl_matrix * pca_result, int *result_dim
 unsigned int in_outliers(int * outliers_idx, int new_outlier, int num_outliers);
 
 /* select best fft scale */
-struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *dataset_dim, int *pivots_mtr_dim, unsigned int num_pivots, unsigned int max_fft, unsigned short num_iter);
+struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *dataset_dim, int *dims, unsigned int max_fft, unsigned short num_iter);
