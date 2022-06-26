@@ -6,11 +6,11 @@
 #include <unistd.h>
 #include <math.h>
 #include <linux/limits.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #include "../include/hgrid.h"
 #include "../include/match_map.h"
 #include "../include/query_engine.h"
-#include <dirent.h>
 #include "../include/stats.h"
 #include "../include/file_loader.h"
 
@@ -346,9 +346,6 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
 
         if (is_binaryfile(dfile->d_name))
         {
-            num_files--;
-            read_files += 1;
-
             // printf("\n\nIndexing file %s ...\n", dfile->d_name);
             // get fill path of bin file
             char bin_file_path[PATH_MAX + 1] = "";
@@ -371,10 +368,12 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
 
             /* Start processing file: read every vector in binary file */
             int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * grid->settings->mtr_vector_length) + nsets) / 8;
+            int count_curr_file = 0;
             // printf("File size in bytes = %u\n\n", total_bytes);
 
             while (total_bytes)
             {
+                //printf("mtr vec len = %d\n", grid->settings->mtr_vector_length);
                 if (i == 0)
                 {
                     if(num_query_sets == 0)
@@ -393,12 +392,22 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     if(max_query_set_size != -1 || min_query_set_size > 0)
                         if((unsigned int)num_vectors < min_query_set_size || (unsigned int)num_vectors > max_query_set_size)
                         {
-                            fseek(bin_file, num_vectors * 4 * grid->settings->mtr_vector_length, SEEK_CUR);
+                            //printf("\n(!) current set is too small (%d, %d) in file %s, size = %d, curr total bytes = %d\n", table_id, set_id, dfile->d_name, num_vectors, total_bytes);
+                            fseek(bin_file, num_vectors * 4 * vector_length, SEEK_CUR);
                             i = 0;
                             j = 0;
+                            
                             total_bytes -= num_vectors * 4 * vector_length;
+                            num_vectors = 0u;
                             continue;
                         }
+                    
+                    if(count_curr_file == 0)
+                    {
+                        num_files--;
+                        read_files += 1;
+                        count_curr_file = 1;
+                    }
                     // set id for all vectors in the current set
                     vector->table_id = table_id;
                     vector->set_id = set_id;
@@ -407,6 +416,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     
                     // append set id to list of query sets
                     set_counter++;
+                    //printf("\n(!) set counter = %d", set_counter);
                     query_sets = realloc(query_sets, sizeof(struct sid) * set_counter);
                     query_sets[set_counter - 1].table_id = table_id;
                     query_sets[set_counter - 1].set_id = set_id;
@@ -470,10 +480,12 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
     free(dir);
 
     // check if we read more query sets than required
-    num_query_sets = Dgrid->settings->query_settings->num_query_sets;
     if(num_query_sets != -1) // if number of query set is specified
-        if(set_counter != num_query_sets)
+        if(set_counter != Dgrid->settings->query_settings->num_query_sets)
+        {
+            printf("(!) set counter = %d, num_query_sets = %d\n", set_counter, num_query_sets);
             exit_with_failure("Error in pexeso.c: Function index_query_binary_files() has read more sets than what's required.");
+        }
     else
         Dgrid->settings->query_settings->num_query_sets = set_counter;
 
@@ -766,7 +778,7 @@ enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, str
         curr_map = &match_map[m];
         query_set = &(curr_map->query_set);
         total_checked_vectors = curr_map->total_checked_vectors;
-        runtime = curr_map->query_time;
+        runtime = curr_map->query_time / 1000000;
 
         char * file_path = make_file_path(result_dir, query_set, l, dlsize, mtr_vector_length, runtime, total_checked_vectors);
         

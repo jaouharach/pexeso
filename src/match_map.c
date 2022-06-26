@@ -98,7 +98,7 @@ void dump_match_map_to_console(struct match_map * map, unsigned int map_idx)
 {
     printf("\n\n\n\t............................................................\n");
     printf("\t::  MATCH  & MISMATCH MAP FOR QUERY SET Q: (%u, %u), |Q| = %u ::\n", map[map_idx].query_set.table_id, map[map_idx].query_set.set_id, map[map_idx].query_set.set_size);
-    printf("\t \t\t(Query time = %.2f seconds)\t\t\n", map[map_idx].query_time);
+    printf("\t \t\t(Query time = %.2f seconds)\t\t\n", map[map_idx].query_time / 1000000);
 
     printf("\t............................................................\n\n\n");
     struct sid curr_set;

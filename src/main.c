@@ -423,18 +423,21 @@ int main(int argc, char **argv)
     
     /* querying */
     pexeso(bin_query_file_directory, grid, index);
-
+    grid->stats->total_query_time += total_query_time;
+    
     /* print inverted index */
     // dump_inv_index_to_console(index);
 
     /* write grid to disk */
     if (!grid_write(grid))
         exit_with_failure("Error main.c:  Could not save the grid to disk.\n");
-    
+    grid->stats->grid_building_output_time += partial_output_time;
+
     /* end of endexing and quering */
     COUNT_TOTAL_TIME_END
     print_grid_stats(grid);
     printf("End of proram: combined indexing and querying times : %.2f secs \n", total_time / 1000000);
+    grid->stats->total_time = total_time;
 
     /* destroy grid */
     if (!grid_destroy(grid))

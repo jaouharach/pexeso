@@ -11,7 +11,7 @@
 #include "../include/file_buffer_manager.h"
 #include "../include/gsl_matrix.h"
 #include "../include/select_pivots.h"
-
+#include "../include/stats.h"
 /* initialize grid */
 enum response init_grid(const char *work_dir,
                     unsigned int num_pivots,
@@ -287,7 +287,9 @@ enum response grid_write(struct grid *grid)
     root_filename = strcpy(root_filename, grid->settings->root_directory);
     root_filename = strcat(root_filename, "root.idx\0");
 
+    COUNT_PARTIAL_OUTPUT_TIME_START
     FILE *root_file = fopen(root_filename, "wb");
+    COUNT_PARTIAL_OUTPUT_TIME_END
     if (root_file == NULL)
         exit_with_failure("Error in hgrid.c: Couldn't open grid file 'root.idx'.");
 
@@ -302,7 +304,9 @@ enum response grid_write(struct grid *grid)
             exit_with_failure("Error in hgrid.c: Couldn't allocate memory for root.idx");
         strcpy(vid_filename, grid->settings->root_directory);
         strcat(vid_filename, "vid.idx\0");
+        COUNT_PARTIAL_OUTPUT_TIME_START
         grid->vid_file = fopen(vid_filename, "wb");
+        COUNT_PARTIAL_OUTPUT_TIME_END
         if (grid->vid_file == NULL)
             exit_with_failure("Error in hgrid.c: Couldn't open vid.idx");
         grid->vid_pos_ctr = 0;
@@ -318,32 +322,39 @@ enum response grid_write(struct grid *grid)
     unsigned long long total_records = grid->total_records;
 
     // write settings
+    COUNT_PARTIAL_OUTPUT_TIME_START
     fwrite(&num_leaf_cells, sizeof(unsigned int), 1, root_file);
     fwrite(&mtr_buffered_memory_size, sizeof(double), 1, root_file);
     fwrite(&ps_buffered_memory_size, sizeof(double), 1, root_file);
     fwrite(&mtr_vector_length, sizeof(unsigned int), 1, root_file);
     fwrite(&max_leaf_size, sizeof(unsigned int), 1, root_file);
     fwrite(&total_records, sizeof(unsigned long long), 1, root_file);
+    COUNT_PARTIAL_OUTPUT_TIME_END
 
     // write levels
     level_write(grid, grid->first_level, root_file);
+
+    COUNT_PARTIAL_OUTPUT_TIME_START
     fseek(root_file, 0L, SEEK_SET);
     fwrite(&grid->settings->num_levels, sizeof(unsigned int), 1, root_file);
 
     fclose(root_file);
     fclose(grid->vid_file);
+    COUNT_PARTIAL_OUTPUT_TIME_END
     return OK;
 }
 
 /* write level cells to disk */
 enum response level_write(struct grid *grid, struct level *level, FILE *file)
 {
+    COUNT_PARTIAL_OUTPUT_TIME_START
     fwrite(&(level->is_first), sizeof(unsigned char), 1, file);
     fwrite(&(level->is_leaf), sizeof(unsigned char), 1, file);
     fwrite(&(level->id), sizeof(unsigned int), 1, file);
     fwrite(&(level->num_cells), sizeof(unsigned int), 1, file);
     fwrite(&(level->cell_edge_length), sizeof(unsigned int), 1, file);
-    
+    COUNT_PARTIAL_OUTPUT_TIME_END
+
     if (level->is_leaf)
     {
         for (int c = 0; c < level->num_cells; c++)
@@ -352,17 +363,22 @@ enum response level_write(struct grid *grid, struct level *level, FILE *file)
             if (curr_cell.filename != NULL && curr_cell.is_leaf)
             {
                 int filename_size = strlen(curr_cell.filename);
+                COUNT_PARTIAL_OUTPUT_TIME_START
                 fwrite(&filename_size, sizeof(int), 1, file);
                 fwrite(curr_cell.filename, sizeof(char), filename_size, file);
                 fwrite(&(curr_cell.cell_size), sizeof(short), 1, file);
+                COUNT_PARTIAL_OUTPUT_TIME_END
 
                 // (todo) flush_buffer_to_disk
                 if (grid->settings->track_vector)
                 {
                     curr_cell.vid_pos = grid->vid_pos_ctr;
+                    
                     // save vids to file
+                    COUNT_PARTIAL_OUTPUT_TIME_START
                     fwrite(&(curr_cell.vid_pos), sizeof(unsigned int), 1, file);
                     fwrite(curr_cell.vid, sizeof(struct vid), curr_cell.cell_size, grid->vid_file);
+                    COUNT_PARTIAL_OUTPUT_TIME_END
 
                     grid->vid_pos_ctr += curr_cell.cell_size;
                 }
@@ -521,14 +537,14 @@ void print_grid_stats(struct grid * grid)
     printf("Empty_leaf_cells_count\t%ld\n", 
         grid->stats->empty_leaf_cells_count);
     
-    printf("(!) Warnings:\t-------------------------------------\n\n\n");
+    printf("\n\n\n(!) Warnings:\t-------------------------------------\n\n\n");
     printf("Out_of_ps_space_vec_count\t%ld\n", 
         grid->stats->out_of_ps_space_vec_count);
 
     printf("Out_of_ps_space_qvec_count\t%ld\n", 
         grid->stats->out_of_ps_space_qvec_count);
 
-    printf("(t) Time measure:\t-------------------------------------\n\n\n");
+    printf("\n\n\n(t) Time measures in seconds:\t-------------------------------------\n\n\n");
 
     printf("Total_time\t%lf\n",
          grid->stats->total_time / 1000000);
@@ -544,5 +560,10 @@ void print_grid_stats(struct grid * grid)
 
     printf("Total_pivot_selection_time\t%lf\n", 
         grid->stats->total_pivot_selection_time / 1000000);
+
+    printf("Total_query_time\t%lf\n", 
+        grid->stats->total_query_time / 1000000);
+
+    printf("\n\n\n");
     
 }

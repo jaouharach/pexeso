@@ -5,6 +5,7 @@
 #include "../include/cell.h"
 #include "../include/file_buffer.h"
 #include "../include/file_buffer_manager.h"
+#include "../include/stats.h"
 
 enum response file_buffer_init(struct cell *cell)
 {
@@ -95,7 +96,9 @@ enum response flush_buffer_to_disk(struct grid *grid, struct cell *cell)
         // if(grid->is_query_grid == false)
         //     printf("data grid storing in file %s", full_filename);
 
+        COUNT_PARTIAL_OUTPUT_TIME_START
         FILE *vector_file = fopen(full_filename, "a");
+        COUNT_PARTIAL_OUTPUT_TIME_END
 
         if (vector_file == NULL)
         {
@@ -105,6 +108,7 @@ enum response flush_buffer_to_disk(struct grid *grid, struct cell *cell)
         int num_vectors = cell->file_buffer->buffered_list_size;
         int disk_count = cell->file_buffer->disk_count;
 
+        COUNT_PARTIAL_OUTPUT_TIME_START
         for (int i = 0; i < num_vectors; ++i)
         {
             // flush metric vector
@@ -116,9 +120,9 @@ enum response flush_buffer_to_disk(struct grid *grid, struct cell *cell)
                 exit_with_failure("Error in file_buffer.c: Could not "
                                   "write pivot space vectors to file.\n");
         }
-        
         if (fclose(vector_file))
             exit_with_failure("Error in file_buffer.c: Flushing cell to disk, Could not close file.");
+        COUNT_PARTIAL_OUTPUT_TIME_END
 
         cell->file_buffer->disk_count += num_vectors;
 
