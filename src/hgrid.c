@@ -125,7 +125,13 @@ enum response init_grid_stats(struct grid * grid)
     grid->stats->leaf_cells_count = 0;
     grid->stats->empty_leaf_cells_count = 0;
 
+    grid->stats->loaded_files_count = 0;
+    grid->stats->loaded_files_size = 0;
+    grid->stats->loaded_query_files_count = 0;
+    grid->stats->loaded_query_files_size = 0;
     grid->stats->loaded_vec_count = 0;
+    grid->stats->loaded_qvec_count = 0;
+
     grid->stats->out_of_ps_space_vec_count = 0;
     grid->stats->out_of_ps_space_qvec_count = 0;
     grid->stats->checked_cells_count = 0;
@@ -219,8 +225,8 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
     if(!append_vector_to_cell(grid, index, cell, vector, v_mapping))
         exit_with_failure("Error in hgrid.c: couldn't append vector to cell.");
 
-    if(grid->is_query_grid)
-        print_vector(v_mapping, grid->settings->num_pivots);
+    // if(grid->is_query_grid)
+    //     print_vector(v_mapping, grid->settings->num_pivots);
     // free memory
     free(v_mapping->values);
     free(v_mapping);

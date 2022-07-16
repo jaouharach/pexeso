@@ -441,7 +441,7 @@ int main(int argc, char **argv)
     /* end of endexing and quering */
     COUNT_TOTAL_TIME_END
     print_grid_stats(grid);
-    printf("End of proram: combined indexing and querying times : %.2f secs \n", total_time / 1000000);
+    printf("End of progam: combined indexing and querying times : %.2f secs \n", total_time / 1000000);
     grid->stats->total_time = total_time;
 
     /* destroy grid */

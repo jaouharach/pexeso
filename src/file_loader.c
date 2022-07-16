@@ -171,7 +171,6 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
     if (read_files == 0)
         exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory.\n");
 
-    printf("total_read_files = %d", read_files);
     // free memory
     free(vector->values);
     free(vector);
@@ -208,9 +207,12 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
 
         if (is_binaryfile(dfile->d_name))
         {
+            if(num_files == 0) break;
+
+            printf("data_file: %s\n", dfile->d_name);
+
             num_files--;
             read_files += 1;
-
 
             // printf("\n\nIndexing file %s ...\n", dfile->d_name);
             // get fill path of bin file
@@ -329,7 +331,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
     unsigned int datasize, table_id, nsets, vector_length;
 
     int num_query_sets = Dgrid->settings->query_settings->num_query_sets;
-    unsigned int set_counter = 0;
+    unsigned int set_counter = 0; // count query sets (columns)
     struct sid * query_sets = NULL;
     
     uint32_t num_vectors = 0u;
@@ -347,7 +349,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
     if (vector->values == NULL)
         exit_with_failure("Error in file_loader.c: Could not allocate memory for vector values.");
 
-    while ((dfile = readdir(dir)) != NULL && num_files > 0) // each file in directory
+    while ((dfile = readdir(dir)) != NULL) // each file in directory
     {
         if(num_query_sets == 0)
             break;
@@ -414,6 +416,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     
                     if(count_curr_file == 0)
                     {
+                        printf("query_file: %s\n", dfile->d_name);
                         COUNT_NEW_LOADED_QUERY_FILE
                         COUNT_SIZE_NEW_LOADED_QUERY_FILE(total_bytes)
                         num_files--;
@@ -428,6 +431,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     
                     // append set id to list of query sets
                     set_counter++;
+
                     //printf("\n(!) set counter = %d", set_counter);
                     query_sets = realloc(query_sets, sizeof(struct sid) * set_counter);
                     query_sets[set_counter - 1].table_id = table_id;
@@ -755,7 +759,7 @@ char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, u
     result_dir_name[string_size - 1] = '\0';
 
     printf("max set size = %d\n", max_query_set_size);
-	printf("Result directory name: %s\n", result_dir_name);
+	// printf("Result directory name: %s\n", result_dir_name);
 	DIR* dir = opendir(result_dir_name);
 	if (dir)
     {

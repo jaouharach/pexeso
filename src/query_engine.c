@@ -226,7 +226,8 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                         // cr is a match of q' by lemma 5
                         if (vector_cell_match(query_vectors[q].ps_vector, cr, settings, dist_threshold))
                         {
-                            add_matching_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector,cr, settings->num_pivots, settings->mtr_vector_length); // add <q', cr>
+                            if (! add_matching_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector,cr, settings->num_pivots, settings->mtr_vector_length)) // add <q', cr>
+                                exit_with_failure("Error in query_engine.c: couldn't add matching pair.");
                             // free memory
                             free(query_vectors[q].mtr_vector->values);
                             free(query_vectors[q].mtr_vector);
