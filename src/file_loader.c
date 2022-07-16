@@ -171,6 +171,7 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
     if (read_files == 0)
         exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory.\n");
 
+    printf("total_read_files = %d", read_files);
     // free memory
     free(vector->values);
     free(vector);
@@ -200,7 +201,7 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
     if (vector->values == NULL)
         exit_with_failure("Error in file_loader.c: Could not allocate memory for vector values.");
 
-    while ((dfile = readdir(dir)) != NULL && num_files > 0) // each file in directory
+    while ((dfile = readdir(dir)) != NULL && num_files >= 0) // each file in directory
     {
         if (dfile->d_type != DT_REG) // skip directories
             continue;
@@ -209,6 +210,7 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
         {
             num_files--;
             read_files += 1;
+
 
             // printf("\n\nIndexing file %s ...\n", dfile->d_name);
             // get fill path of bin file
@@ -233,6 +235,9 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
             /* Start processing file: read every vector in binary file */
             int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * grid->settings->mtr_vector_length) + nsets) / 8;
             // printf("File size in bytes = %u\n\n", total_bytes);
+            
+            COUNT_NEW_LOADED_FILE
+            COUNT_SIZE_NEW_LOADED_FILE(total_bytes)
 
             while (total_bytes)
             {
@@ -265,6 +270,9 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
                         // insert vector in grid
                         if (!grid_insert(grid, index, vector))
                             exit_with_failure("Error in file_loaders.c:  Could not add vector to the grid.\n");
+                        
+                        COUNT_NEW_LOADED_VEC
+
                         vector->pos = vector->pos + 1;
                     }
 
@@ -282,6 +290,8 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
                         // insert vector in grid
                         if (!grid_insert(grid, index, vector))
                             exit_with_failure("Error in file_loader.c:  Could not add vector to the grid.\n");
+                        
+                        COUNT_NEW_LOADED_VEC
 
                         i = 0;
                         j = 0;
@@ -404,6 +414,8 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     
                     if(count_curr_file == 0)
                     {
+                        COUNT_NEW_LOADED_QUERY_FILE
+                        COUNT_SIZE_NEW_LOADED_QUERY_FILE(total_bytes)
                         num_files--;
                         read_files += 1;
                         count_curr_file = 1;
@@ -437,6 +449,9 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                         // insert vector in grid
                         if (!grid_insert(grid, index, vector))
                             exit_with_failure("Error in file_loaders.c:  Could not add vector to the grid.\n");
+                        
+                        COUNT_NEW_LOADED_QUERY_VEC
+
                         vector->pos = vector->pos + 1;
                     }
                     COUNT_PARTIAL_INPUT_TIME_START
@@ -453,6 +468,8 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                         // insert vector in grid
                         if (!grid_insert(grid, index, vector))
                             exit_with_failure("Error in file_loader.c:  Could not add vector to the grid.\n");
+
+                        COUNT_NEW_LOADED_QUERY_VEC
 
                         i = 0;
                         j = 0;
@@ -757,8 +774,8 @@ enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, str
     char * work_dir = Dgrid->settings->work_directory;
     unsigned int dataset_size = Dgrid->total_records;
     unsigned int mtr_vector_length = Dgrid->settings->mtr_vector_length;
-    unsigned int l = 0; // total tables indexed in grid
-    unsigned int dlsize = 0; // dataset size in MB
+    unsigned int l = Dgrid->stats->loaded_files_count; // total tables indexed in grid
+    unsigned int dlsize = Dgrid->stats->loaded_files_size / (1024 * 1024 * 1024); // dataset size in GB
     int num_query_sets = Dgrid->settings->query_settings->num_query_sets;
     int min_query_set_size = Dgrid->settings->query_settings->min_query_set_size;
     int max_query_set_size = Dgrid->settings->query_settings->max_query_set_size;

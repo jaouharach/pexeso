@@ -420,7 +420,12 @@ int main(int argc, char **argv)
     grid->stats->grid_building_output_time += partial_output_time;
     grid->stats->out_of_ps_space_vec_count += out_of_ps_space_vec_count;
     grid->stats->out_of_ps_space_qvec_count += out_of_ps_space_qvec_count;
-    
+    grid->stats->loaded_files_count += loaded_files_count;
+    grid->stats->loaded_query_files_count += loaded_query_files_count;
+    grid->stats->loaded_files_size += loaded_files_size;
+    grid->stats->loaded_query_files_size += loaded_query_files_size;
+    grid->stats->loaded_vec_count += loaded_vec_count;
+    grid->stats->loaded_qvec_count += loaded_qvec_count;
     /* querying */
     pexeso(bin_query_file_directory, grid, index);
     grid->stats->total_query_time += total_query_time;

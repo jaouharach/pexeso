@@ -49,7 +49,16 @@ struct stats_info {
   unsigned long leaf_cells_count;
   unsigned long empty_leaf_cells_count;
 
-  unsigned long loaded_vec_count;
+  double loaded_files_size; // total size of loaded data tables (in Bytes)
+  double loaded_query_files_size; // total size of loaded query tables (in Bytes)
+
+  unsigned long loaded_files_count; // total loaded data tables 
+  unsigned long loaded_query_files_count; // total loaded query tables 
+
+  unsigned long loaded_vec_count; // total loaded data vectors 
+  unsigned long loaded_qvec_count; // total loaded query vectors 
+
+
   unsigned long out_of_ps_space_vec_count; // data vectors that are out of the pivot space
   unsigned long out_of_ps_space_qvec_count; // query vectors that are out of the pivot space
 

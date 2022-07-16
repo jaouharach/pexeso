@@ -9,7 +9,15 @@ unsigned long empty_leaf_cells_count;
 unsigned long max_leaf_size;
 unsigned long min_leaf_size;
 
-unsigned long loaded_vec_count;
+double loaded_files_size; // total size of loaded data tables (in Bytes)
+double loaded_query_files_size; // total size of loaded query tables (in Bytes)
+
+unsigned long loaded_files_count; // total loaded data tables 
+unsigned long loaded_query_files_count; // total loaded query tables 
+
+unsigned long loaded_vec_count; // total loaded data vectors 
+unsigned long loaded_qvec_count; // total loaded query vectors 
+
 unsigned long out_of_ps_space_vec_count;
 unsigned long out_of_ps_space_qvec_count;
 
@@ -62,17 +70,27 @@ double pivot_selection_time;
                     max_leaf_size = 0;\
                     min_leaf_size = LONG_MAX;\
                     empty_leaf_cells_count =0;\
+                    loaded_files_count = 0;\
+                    loaded_query_files_count = 0;\
+                    loaded_files_size = 0;\
+                    loaded_query_files_size = 0;\
                     loaded_vec_count = 0;\
+                    loaded_qvec_count = 0;\
                     checked_cells_count = 0;\
                     out_of_ps_space_vec_count = 0;\
-                    out_of_ps_space_qvec_count = 0;\
-                    query_set_count = 0;\
-                    query_vec_count = 0;
+                    out_of_ps_space_qvec_count = 0;
 
-#define COUNT_NEW_OUT_OF_PIVOT_SPACE_VECTOR ++out_of_ps_space_vec_count;
-#define COUNT_NEW_OUT_OF_PIVOT_SPACE_QUERY_VECTOR ++out_of_ps_space_qvec_count;
-#define COUNT_NEW_QUERY_SET ++query_set_count;
-#define COUNT_NEW_QUERY_VEC ++query_vec_count;
+#define COUNT_NEW_LOADED_VEC loaded_vec_count++;
+#define COUNT_NEW_LOADED_QUERY_VEC loaded_qvec_count++;
+#define COUNT_NEW_LOADED_FILE loaded_files_count++;
+#define COUNT_NEW_LOADED_QUERY_FILE loaded_query_files_count++;
+
+#define COUNT_SIZE_NEW_LOADED_FILE(f_size) loaded_files_size += f_size;
+#define COUNT_SIZE_NEW_LOADED_QUERY_FILE(f_size) loaded_query_files_size += f_size;
+
+#define COUNT_NEW_OUT_OF_PIVOT_SPACE_VECTOR out_of_ps_space_vec_count++;
+#define COUNT_NEW_OUT_OF_PIVOT_SPACE_QUERY_VECTOR out_of_ps_space_qvec_count++;
+
 
 #define COUNT_NEW_QUERY_TIME(qt) total_query_time += qt;
 

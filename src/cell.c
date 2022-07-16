@@ -75,7 +75,10 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
     grid->buffer_manager->current_ps_record_index++;
 
     if(cell->cell_size >= max_leaf_size)
+    {
+        printf("\n\ncell size = %d, max leaf size = %d \n", cell->cell_size, max_leaf_size);
         exit_with_failure("Error int cell.c: cell size cannot exceed max leaf size!");
+    }
 
     // track vector
     if (grid->settings->track_vector)

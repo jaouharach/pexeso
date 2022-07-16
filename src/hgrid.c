@@ -523,6 +523,27 @@ enum response destroy_buffer_manager(struct grid *grid)
 /* print stats */
 void print_grid_stats(struct grid * grid)
 {
+    printf("\n\n\n(d) Datalake:\t-------------------------------------\n\n\n");
+    printf("Loaded_files_count\t%ld\n", 
+        grid->stats->loaded_files_count);
+
+    printf("Loaded_files_size\t%.3f (in GB)\n", 
+        grid->stats->loaded_files_size / (1024 * 1024 * 1024));
+    
+    printf("Loaded_vec_count\t%ld\n", 
+        grid->stats->loaded_vec_count);
+    
+    printf("\n\n\n(q) Query:\t-------------------------------------\n\n\n");
+
+    printf("Loaded_query_files_count\t%ld\n", 
+        grid->stats->loaded_query_files_count);
+
+    printf("Loaded_query_files_size\t%.3f (in GB)\n", 
+        grid->stats->loaded_query_files_size / (1024 * 1024 * 1024));
+    
+    printf("Loaded_qvec_count\t%ld\n", 
+        grid->stats->loaded_qvec_count);
+
     printf("\n\n\n(s) Settings:\t-------------------------------------\n\n\n");
 
     printf("Pivots_count\t%d\n", 
