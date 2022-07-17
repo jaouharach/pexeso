@@ -360,9 +360,9 @@ int main(int argc, char **argv)
     
 
     /* pivot space extremity */
-    printf("\nextremity vector (in pivot space):\n");
+    // printf("\nextremity vector (in pivot space):\n");
     vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
-    print_vector(pivot_space_extremity, num_pivots);
+    // print_vector(pivot_space_extremity, num_pivots);
     
     /* initialize grid */
     printf("\n\nInitialize grid... ");
@@ -428,16 +428,20 @@ int main(int argc, char **argv)
     grid->stats->out_of_ps_space_qvec_count += out_of_ps_space_qvec_count;
 
     grid->stats->loaded_files_count += loaded_files_count;
-    grid->stats->loaded_query_files_count += loaded_query_files_count;
+    grid->stats->loaded_sets_count += loaded_sets_count;
     grid->stats->loaded_files_size += loaded_files_size;
-    grid->stats->loaded_query_files_size += loaded_query_files_size;
     grid->stats->loaded_vec_count += loaded_vec_count;
-    grid->stats->loaded_qvec_count += loaded_qvec_count;
+    
 
 
     /* querying */
     pexeso(bin_query_file_directory, grid, index);
     grid->stats->total_query_time += total_query_time;
+    
+    grid->stats->loaded_query_files_count += loaded_query_files_count;
+    grid->stats->loaded_query_sets_count += loaded_query_sets_count;
+    grid->stats->loaded_query_files_size += loaded_query_files_size;
+    grid->stats->loaded_qvec_count += loaded_qvec_count;
     
     /* print inverted index */
     // dump_inv_index_to_console(index);
@@ -449,9 +453,14 @@ int main(int argc, char **argv)
 
     /* end of endexing and quering */
     COUNT_TOTAL_TIME_END
-    print_grid_stats(grid);
-    printf("End of progam: combined indexing and querying times : %.2f secs \n", total_time / 1000000);
     grid->stats->total_time = total_time;
+
+    /* print grid statistics */
+    print_grid_stats(grid);
+
+
+    printf("End of progam: combined indexing and querying time : %.2f secs \n", total_time / 1000000);
+    
 
     /* destroy grid */
     if (!grid_destroy(grid))

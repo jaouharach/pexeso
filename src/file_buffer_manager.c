@@ -46,8 +46,8 @@ enum response set_buffered_memory_size(struct grid *grid)
     long max_mtr_buffered_vectors = (long)(num_mtr_bytes / mtr_vector_size_in_bytes);
     long max_ps_buffered_vectors = (long)(num_ps_bytes / ps_vector_size_in_bytes);
 
-    printf("\nmax_mtr_buffered_vectors  = %lu\n", max_mtr_buffered_vectors);
-    printf("\nmax_ps_buffered_vectors  = %lu\n", max_ps_buffered_vectors);
+    printf("\n(!) Max_mtr_buffered_vectors  = %lu\n", max_mtr_buffered_vectors);
+    printf("\n(!) Max_ps_buffered_vectors  = %lu\n", max_ps_buffered_vectors);
 
 
     grid->buffer_manager->mtr_memory_array = calloc(max_mtr_buffered_vectors, mtr_vector_size_in_bytes);

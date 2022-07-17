@@ -209,7 +209,7 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
         {
             if(num_files == 0) break;
 
-            printf("data_file: %s\n", dfile->d_name);
+            // printf("data_file: %s\n", dfile->d_name);
 
             num_files--;
             read_files += 1;
@@ -261,8 +261,8 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
                     vector->pos = 0; // vector position in set
                     vector->set_size = num_vectors;
                     
-                    printf("\nnew data set: t %u, c %u, size %u\n", table_id, set_id, num_vectors);
-
+                    // printf("\nnew data set: t %u, c %u, size %u\n", table_id, set_id, num_vectors);
+                    COUNT_NEW_LOADED_SET
                     set_id += 1;
                 }
                 else if (i <= (unsigned int)num_vectors * grid->settings->mtr_vector_length)
@@ -420,7 +420,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     
                     if(count_curr_file == 0)
                     {
-                        printf("query_file: %s\n", dfile->d_name);
+                        // printf("query_file: %s\n", dfile->d_name);
                         COUNT_NEW_LOADED_QUERY_FILE
                         COUNT_SIZE_NEW_LOADED_QUERY_FILE(total_bytes)
                         num_files--;
@@ -437,8 +437,9 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     vector->pos = 0; // vector position in set 
                     vector->set_size = num_vectors;
                     
-                    printf("\nnew query set: t %u, c %u, size %u\n", table_id, set_id, num_vectors);
+                    // printf("\nnew query set: t %u, c %u, size %u\n", table_id, set_id, num_vectors);
                     // append set id to list of query sets
+                    COUNT_NEW_LOADED_QUERY_SET
                     set_counter++;
 
                     //printf("\n(!) set counter = %d", set_counter);
@@ -590,6 +591,9 @@ void get_query_data_info(const char *bin_files_directory, int num_query_sets, in
     // check every file in directory
     while ((dfile = readdir(dir)) != NULL) 
     {
+        if(num_query_sets == 0)
+            break;
+
         if (dfile->d_type != DT_REG) // skip directories
             continue;
 
@@ -631,13 +635,14 @@ void get_query_data_info(const char *bin_files_directory, int num_query_sets, in
                 
                 // don't count set if its size doesn't match requirements
                 if(max_query_set_size != -1 || min_query_set_size > 0)
-                    if((unsigned int)num_vectors > min_query_set_size && (unsigned int)num_vectors < max_query_set_size)
+                    if((unsigned int)num_vectors >= min_query_set_size && (unsigned int)num_vectors <= max_query_set_size)
                     {
                         *total_vectors += num_vectors;
                         pick_curr_file = 1;
                         if(num_query_sets != -1)
                             num_query_sets--; // read a new set (column)
                     }
+                
                 COUNT_PARTIAL_INPUT_TIME_START
                 fseek(bin_file, num_vectors * 4 * v_len, SEEK_CUR);
                 COUNT_PARTIAL_INPUT_TIME_END
@@ -764,7 +769,7 @@ char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, u
 	sprintf(result_dir_name, "%s/%s_l%u_%uq_min%d_max%d", work_dir, algorithm, l, num_query_sets, min_query_set_size, max_query_set_size);
     result_dir_name[string_size - 1] = '\0';
 
-    printf("max set size = %d\n", max_query_set_size);
+    // printf("max set size = %d\n", max_query_set_size);
 	// printf("Result directory name: %s\n", result_dir_name);
 	DIR* dir = opendir(result_dir_name);
 	if (dir)

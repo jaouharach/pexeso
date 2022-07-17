@@ -53,7 +53,6 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
 /* update match count for a given set */
 enum response update_match_count(struct match_map * map_list, int map_idx, struct sid * query_set, int set_idx, float join_threshold, unsigned int query_set_size)
 {
-    printf("\nnew match!!!\n");
     map_list[map_idx].match_count[set_idx] = map_list[map_idx].match_count[set_idx] + 1;
 
     if(map_list[map_idx].match_count[set_idx] >= ceil(join_threshold * query_set_size))

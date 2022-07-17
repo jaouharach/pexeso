@@ -26,7 +26,6 @@ struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *da
         // printf("FFT SCALE = %u", f); 
         for(int i = 0; i < num_iter; i++)
         {
-            // printf("\nTest %d:\n", i+1);
             pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, f);
             pivots_ps = map_to_pivot_space(pivots_mtr, dims, pivots_mtr, num_pivots);
             ps_extremity = get_extremity(pivots_ps, num_pivots);
@@ -53,7 +52,9 @@ struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *da
             pivots_mtr = NULL;
             pivots_ps = NULL;
 
-            print_vector(ps_extremity, num_pivots);
+            printf("\rFFT = %d, extremity = %.2f (%d/%d)", f, ps_extremity->values[0],  i+1, num_iter);
+            fflush(stdout);
+            // print_vector(ps_extremity, num_pivots);
             free(ps_extremity->values);
             free(ps_extremity);
         }
@@ -67,7 +68,7 @@ struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *da
         free(pivots_ps);
     }
 
-    printf("Best FFT scale = {scale = %u, ext = %.2f}\n", bsf.fft_scale, bsf.exremity);
+    printf("\nBest scale = {fft = %u, extremity = %.2f}\n", bsf.fft_scale, bsf.exremity);
     return bsf.pivots_mtr;
 }
 /* pivot selection algorithm */

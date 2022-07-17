@@ -54,6 +54,8 @@ struct stats_info {
 
   unsigned long loaded_files_count; // total loaded data tables 
   unsigned long loaded_query_files_count; // total loaded query tables 
+  unsigned long loaded_sets_count; // total data sets (columns)
+  unsigned long loaded_query_sets_count; // total query sets (columns)
 
   unsigned long loaded_vec_count; // total loaded data vectors 
   unsigned long loaded_qvec_count; // total loaded query vectors 

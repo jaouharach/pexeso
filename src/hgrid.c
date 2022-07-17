@@ -127,8 +127,12 @@ enum response init_grid_stats(struct grid * grid)
     grid->stats->empty_leaf_cells_count = 0;
 
     grid->stats->loaded_files_count = 0;
-    grid->stats->loaded_files_size = 0;
     grid->stats->loaded_query_files_count = 0;
+
+    grid->stats->loaded_sets_count = 0;
+    grid->stats->loaded_query_sets_count = 0; 
+
+    grid->stats->loaded_files_size = 0;
     grid->stats->loaded_query_files_size = 0;
     grid->stats->loaded_vec_count = 0;
     grid->stats->loaded_qvec_count = 0;
@@ -239,7 +243,7 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
 void dump_grid_to_console(struct grid *grid)
 {
     printf("\n\n\n\t.................................\n");
-    printf("\t::          HGRID              ::\n");
+    printf("\t::          GRID              ::\n");
     printf("\t.................................\n\n\n");
     printf("|\n|\n|\nv\n");
     level *level = grid->root;
@@ -279,14 +283,14 @@ void dump_grid_to_console(struct grid *grid)
         printf("|\n|\n|\nv\n");
         level = level->next;
     }
-    printf("\n\t>>>  END OF HGRID  <<<\n\n\n");
+    printf("\n\t>>>  END OF GRID  <<<\n\n\n");
 }
 
 /* write grid to disk */
 enum response grid_write(struct grid *grid)
 {
     // (todo) update fct to write root level
-    printf(">>> Storing grid : %s\n", grid->settings->root_directory);
+    printf("Storing grid : %s\n", grid->settings->root_directory);
     // make root.idx file
     char *root_filename = malloc(sizeof(char) * (strlen(grid->settings->root_directory) + 9));
     if (root_filename == NULL)
@@ -536,23 +540,29 @@ void print_grid_stats(struct grid * grid)
     printf("\n\n\n(d) Datalake:\t-------------------------------------\n\n\n");
     printf("Loaded_files_count\t%ld\n", 
         grid->stats->loaded_files_count);
-
-    printf("Loaded_files_size\t%.3f (in GB)\n", 
-        grid->stats->loaded_files_size / (1024 * 1024 * 1024));
     
+    printf("Loaded_sets_count\t%ld\n", 
+        grid->stats->loaded_sets_count);
+
     printf("Loaded_vec_count\t%ld\n", 
         grid->stats->loaded_vec_count);
+    
+    printf("Loaded_files_size\t%.3f (in GB)\n", 
+        grid->stats->loaded_files_size / (1024 * 1024 * 1024));
     
     printf("\n\n\n(q) Query:\t-------------------------------------\n\n\n");
 
     printf("Loaded_query_files_count\t%ld\n", 
         grid->stats->loaded_query_files_count);
 
-    printf("Loaded_query_files_size\t%.3f (in GB)\n", 
-        grid->stats->loaded_query_files_size / (1024 * 1024 * 1024));
+    printf("Loaded_query_sets_count\t%ld\n", 
+        grid->stats->loaded_query_sets_count);
     
     printf("Loaded_qvec_count\t%ld\n", 
         grid->stats->loaded_qvec_count);
+    
+    printf("Loaded_query_files_size\t%.3f (in GB)\n", 
+        grid->stats->loaded_query_files_size / (1024 * 1024 * 1024));
 
     printf("\n\n\n(s) Settings:\t-------------------------------------\n\n\n");
 

@@ -46,9 +46,8 @@ enum response init_levels(struct grid *grid)
         
         // cell edge length = (V / num_cells) ^ 1/|P|
         new_level->cell_edge_length = pow((grid->settings->pivot_space_volume / new_level->num_cells), (1.0/grid->settings->num_pivots));
-        printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
-        // printf("\nCurr Level %u, num_cells = %d, cell_edge_length = %f\n", curr_level->id, curr_level->num_cells, curr_level->cell_edge_length);    
-        printf("\nNew Level %u, num_cells = %d, cell_edge_length = %f\n", id, new_level->num_cells, new_level->cell_edge_length);    
+        // printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
+        // printf("\nNew Level %u, num_cells = %d, cell_edge_length = %f\n", id, new_level->num_cells, new_level->cell_edge_length);    
         
         // (!) link cells in curr_level to cells in new level (curr_cell = current cell in next level)
         for(int i = 0, curr_cell = 0; i < curr_level->num_cells; i++)
@@ -82,7 +81,7 @@ enum response init_levels(struct grid *grid)
             free(temp_child_cells);
         }
         
-        printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
+        // printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
         new_level->next = NULL;
         curr_level = curr_level->next; // change current last level in list of levels.
     }
@@ -117,8 +116,8 @@ enum response init_first_level(struct grid *grid)
     if (grid->first_level->cells == NULL)
         exit_with_failure("Error in level.c: Could not allocate memory for first level cells.");
 
-    printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
-    printf("\nLevel %u, num_cells = %d, cell_edge_length = %f\n", grid->first_level->id, grid->first_level->num_cells, grid->first_level->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
+    // printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
+    // printf("\nLevel %u, num_cells = %d, cell_edge_length = %f\n", grid->first_level->id, grid->first_level->num_cells, grid->first_level->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
 
     /* create cells in first level */
     for(int c = 0; c < grid->first_level->num_cells; c++)
@@ -182,11 +181,11 @@ enum response init_first_level(struct grid *grid)
                         grid->settings->num_pivots, center_vectors, temp, 0, &curr_vector);
 
     // printf("\n-> Making child cells for root cell\n");
-    for(int j = 0; j < grid->root->cells[0].num_child_cells; j++)
-    {
+    // for(int j = 0; j < grid->root->cells[0].num_child_cells; j++)
+    // {
         // printf("++ cell %d isleaf: %s\n", j, grid->root->cells[0].children[j].is_leaf ? "true" : "false");
         // print_vector(grid->root->cells[0].children[j].center, grid->settings->num_pivots);
-    }
+    // }
     free(temp.values);
     free(distinct_coordinates);
     return OK;
@@ -216,8 +215,8 @@ enum response init_root(struct grid *grid)
     if (root->cells == NULL)
         exit_with_failure("Error in level.c: Could not allocate memory for first level cells.");
 
-    printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
-    printf("\nLevel %u, num_cells = %d, cell_edge_length = %f\n", root->id, root->num_cells, root->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
+    // printf("\n¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨");
+    // printf("\nLevel %u, num_cells = %d, cell_edge_length = %f\n", root->id, root->num_cells, root->cell_edge_length); // cell edge length = (V / num_cells) ^ 1/|P|
 
     /* create cells in root level */
     init_cell(&root->cells[0], root->cell_edge_length, num_child_cells);

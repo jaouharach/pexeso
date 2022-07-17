@@ -28,7 +28,7 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     num_query_sets = Dgrid->settings->query_settings->num_query_sets;
 
     //initialize match maps for query sets
-    printf("\n\nMaking match maps... ");
+    printf("\n\nInit match maps... ");
     struct match_map * match_map =  init_match_maps(inv_index, query_sets, num_query_sets);
 
 
@@ -38,9 +38,11 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     struct pairs * pairs = init_pairs();
     
     // block (generate a list of candidate en matching pairs)
+    printf("\n\nBlock...\n\n");
     block(Qgrid->root->cells, Dgrid->root->cells, pairs, Dgrid->settings, match_map);
 
     // verify (verify vectors in list of candidate pairs)
+    printf("\n\nVerify...\n\n");
     verify(Dgrid, pairs, inv_index, match_map);
 
     // print Query grid
@@ -118,11 +120,11 @@ struct sid * build_query_grid(struct grid * Qgrid, struct grid * Dgrid, inv_inde
 
 
     /* pivot space extremity */
-    printf("\n\n(!) Use pivot vectors in Dgrid ...Extremity vector (in pivot space):\n");
+    // printf("\n\n(!) Use pivot vectors in Dgrid ...Extremity vector (in pivot space):\n");
     vector * pivot_space_extremity = Dgrid->settings->pivot_space_extremity;
     vector * pivots_mtr = Dgrid->settings->pivots_mtr; // pivot vectors (in metric space)
     vector * pivots_ps = Dgrid->settings->pivots_ps; // pivot vectors (in pivot space)
-    print_vector(pivot_space_extremity, num_pivots);
+    // print_vector(pivot_space_extremity, num_pivots);
     
     printf("(OK)\n");
 

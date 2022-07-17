@@ -14,6 +14,8 @@ double loaded_query_files_size; // total size of loaded query tables (in Bytes)
 
 unsigned long loaded_files_count; // total loaded data tables 
 unsigned long loaded_query_files_count; // total loaded query tables 
+unsigned long loaded_sets_count; // total data sets (columns)
+unsigned long loaded_query_sets_count; // total query sets (columns)
 
 unsigned long loaded_vec_count; // total loaded data vectors 
 unsigned long loaded_qvec_count; // total loaded query vectors 
@@ -72,6 +74,8 @@ double pivot_selection_time;
                     empty_leaf_cells_count =0;\
                     loaded_files_count = 0;\
                     loaded_query_files_count = 0;\
+                    loaded_sets_count = 0;\
+                    loaded_query_sets_count = 0;\
                     loaded_files_size = 0;\
                     loaded_query_files_size = 0;\
                     loaded_vec_count = 0;\
@@ -84,6 +88,9 @@ double pivot_selection_time;
 #define COUNT_NEW_LOADED_QUERY_VEC loaded_qvec_count++;
 #define COUNT_NEW_LOADED_FILE loaded_files_count++;
 #define COUNT_NEW_LOADED_QUERY_FILE loaded_query_files_count++;
+
+#define COUNT_NEW_LOADED_SET loaded_sets_count++;
+#define COUNT_NEW_LOADED_QUERY_SET loaded_query_sets_count++;
 
 #define COUNT_SIZE_NEW_LOADED_FILE(f_size) loaded_files_size += f_size;
 #define COUNT_SIZE_NEW_LOADED_QUERY_FILE(f_size) loaded_query_files_size += f_size;
