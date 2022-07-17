@@ -15,10 +15,10 @@ struct entry {
 };
 
 /* add entry to inverted index */
-enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size);
+enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size, unsigned int num_pivots);
 
 /* check if index has entry for cell  */
-int has_cell(struct inv_index * index, struct cell * cell);
+int has_cell(struct inv_index * index, struct cell * cell, unsigned int num_pivots);
 /* check if cell entry has set_id */
 
 bool entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned int table_id, unsigned int set_id);

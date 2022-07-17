@@ -5,12 +5,12 @@
 #include "../include/cell.h"
 
 /* add entry to inverted index (cell -> {(table_id, set_id)}) */
-enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size)
+enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size, unsigned int num_pivots)
 {
     if(index == NULL)
         exit_with_failure("Error in in inv_index.c: Cannot add entry to NULL index.");
 
-    int entry_idx = has_cell(index, cell);
+    int entry_idx = has_cell(index, cell, num_pivots);
     
     // empty inverted index
     if(index->num_entries == 0)
@@ -117,7 +117,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
 }
 
 /* check if index has entry for cell  */
-int has_cell(struct inv_index * index, struct cell * cell)
+int has_cell(struct inv_index * index, struct cell * cell, unsigned int num_pivots)
 { 
     unsigned int num_entries = index->num_entries;
     if(num_entries == 0)
@@ -126,8 +126,18 @@ int has_cell(struct inv_index * index, struct cell * cell)
     for(int e = num_entries - 1; e >= 0; e--)
     {
         struct entry * curr_entry = &index->entries[e];
-        // both cell and curr_entry->cell point to the same object
-        if(pointer_cmp(curr_entry->cell, cell))
+        int match = 1;
+        // both cell and curr_entry->cell have the same celter
+        for(int p = 0; p < num_pivots; p++)
+        {
+            // for two cells to be the same they must have the same center vector
+            if(cell->center->values[p] != curr_entry->cell->center->values[p])
+            {
+                match = 0;
+                break;
+            }
+        }
+        if(match == 1)
             return e;
     }
     

@@ -93,7 +93,7 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
     grid->total_records++;
 
     // add entry: cell -> {set_id} to inverted index
-    if(!inv_index_append_entry(index, cell, vector->table_id, vector->set_id, vector->set_size))
+    if(!inv_index_append_entry(index, cell, vector->table_id, vector->set_id, vector->set_size, grid->settings->num_pivots))
         exit_with_failure("Error in cell.c: Couldn't append cell entry to inverted index.");
 
     return OK;

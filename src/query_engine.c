@@ -13,7 +13,8 @@ enum response verify(struct grid *grid, struct pairs *pairs,
     float dist_threshold = grid->settings->query_settings->dist_threshold;
     float join_threshold = grid->settings->query_settings->join_threshold;
     unsigned int num_query_sets = grid->settings->query_settings->num_query_sets;
-    
+    unsigned int num_pivots = grid->settings->num_pivots;
+
     struct sid *query_set = malloc(sizeof(struct sid));
     query_set->table_id = 0;
     query_set->set_id = 0;
@@ -50,7 +51,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     struct cell *match_cell = mpair->cells[m];
 
                     // get sets in matching cell, look for cell entry in inverted index
-                    int entry_idx = has_cell(index, match_cell);
+                    int entry_idx = has_cell(index, match_cell, num_pivots);
                     if (entry_idx == -1)
                         exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for matching cell!");
 
@@ -98,9 +99,13 @@ enum response verify(struct grid *grid, struct pairs *pairs,
             for (int c = 0; c < cpair->num_candidates; c++) // loop through candidate cells
             {
                 struct cell *candidate_cell = cpair->cells[c];
-                int entry_idx = has_cell(index, candidate_cell);
+                int entry_idx = has_cell(index, candidate_cell, num_pivots);
                 if (entry_idx == -1)
-                    exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for candidate cell!");
+                    {
+                        print_vector(candidate_cell->center, num_pivots);
+                        exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for candidate cell!");
+                    }
+                    
 
                 // printf("of entry index %d\n", entry_idx);
                 // find entry of candidate cell in inverted index
@@ -236,6 +241,15 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                     struct vector_tuple * query_vectors = get_vector_tuples(cq, settings, true);
                     for (int q = 0; q < cq->cell_size; q++)
                     {
+                        // check if current cell is already a candidate cell (added by quick browsing)
+                        if(is_candidate_cell(pairs, query_vectors[q].ps_vector, cr, settings->num_pivots) == 1)
+                        {
+                            free(query_vectors[q].mtr_vector->values);
+                            free(query_vectors[q].mtr_vector);
+                            free(query_vectors[q].ps_vector->values);
+                            free(query_vectors[q].ps_vector);
+                            continue;
+                        }
                         query_set->table_id = query_vectors[q].ps_vector->table_id;
                         query_set->set_id = query_vectors[q].ps_vector->set_id;
                         query_set->set_size = query_vectors[q].ps_vector->set_size;
@@ -251,7 +265,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                         // cr is a match of q' by lemma 5
                         if (vector_cell_match(query_vectors[q].ps_vector, cr, settings, dist_threshold))
                         {
-                            if (! add_matching_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector,cr, settings->num_pivots, settings->mtr_vector_length)) // add <q', cr>
+                            if (!add_matching_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector,cr, settings->num_pivots, settings->mtr_vector_length)) // add <q', cr>
                             {
                                 // printf("\n(+c) new candidate pair : (%.2f, %.2f)", cr->center->values[0], cr->center->values[1]);  
                                 exit_with_failure("Error in query_engine.c: couldn't add matching pair.");
@@ -705,6 +719,40 @@ int has_query_vector(struct pairs *pairs, vector *query_vector)
 
     return -1;
 }
+
+/* check if cell is already a candidate pair with query vector (through quick browsing) */
+int is_candidate_cell(struct pairs * pairs, struct vector * q, struct cell * cell, unsigned int num_pivots)
+{
+    int q_idx = has_query_vector(pairs, q);
+
+    // if query vector has no pairs
+    if(q_idx == -1)
+        return 0;
+
+    struct candidate_pair *cp = &pairs->candidate_pairs[q_idx];
+
+    struct cell * candidate_cell = NULL;
+    int match = 1;
+
+    for(int i = 0; i < cp->num_candidates; i++)
+    {
+        candidate_cell = cp->cells[i];
+        match = 1;
+        for(int p = 0; p < num_pivots; p++)
+        {
+            // for two cells to be the same they must have the same center vector
+            if(cell->center->values[p] != candidate_cell->center->values[p])
+            {
+                match = 0;
+                break;
+            }
+        }
+        if(match == 1)
+            return 1;
+    }
+    return 0;
+}
+
 /* add candidate pair */
 enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct vector *q_mtr, struct cell *cell, unsigned int num_pivots, unsigned int mtr_vector_length)
 {
@@ -776,7 +824,7 @@ enum response add_candidate_pair(struct pairs *pairs, struct vector *q, struct v
         pairs->num_pairs++;
     }
 
-    // add candidate (todo: check if candidate cell already exists)
+    // add candidate 
     struct candidate_pair *cp = &pairs->candidate_pairs[q_idx];
     cp->cells = realloc(cp->cells, sizeof(struct cell *) * (cp->num_candidates + 1));
     if (cp->cells == NULL)

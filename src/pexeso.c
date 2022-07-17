@@ -28,14 +28,18 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     num_query_sets = Dgrid->settings->query_settings->num_query_sets;
 
     //initialize match maps for query sets
-    printf("\n\nInit match maps... ");
+    // printf("\n\nInit match maps... ");
     struct match_map * match_map =  init_match_maps(inv_index, query_sets, num_query_sets);
 
 
-    // (todo) quick browsing 
-
     // init list of candidate and matching pairs
     struct pairs * pairs = init_pairs();
+
+
+    // (todo) quick browsing
+    printf("\n\nQuick browsing... ");
+    quick_browse(Dgrid, Qgrid, pairs, Dgrid->settings);
+ 
     
     // block (generate a list of candidate en matching pairs)
     printf("\n\nBlock...\n\n");
@@ -66,16 +70,59 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
 }
 
 /* quick browsing: evaluate leaf cells in Qgrid in Dgrid inverted index and get candidate pairs */
-void quick_browse(struct grid * Dgrid, struct grid * Qgrid)
+void quick_browse(struct grid * Dgrid, struct grid * Qgrid, struct pairs * pairs, struct grid_settings * settings)
 {
-    struct cell * cell = Qgrid->root->cells; // get cell in root level
-    struct cell ** qgrid_leaves = NULL;
-    unsigned int  * num_leaves  = 0;
-    get_leaf_cells(cell, qgrid_leaves, num_leaves);
-    
-    for(int l = 0; l < *num_leaves; l++)
+    unsigned int num_pivots = Dgrid->settings->num_pivots;
+
+    struct level * level = Dgrid->root;
+    struct level * qlevel = Qgrid->root; 
+
+    while(!level->is_leaf) // go to leaf level in data grid
+        level = level->next;
+
+    while(!qlevel->is_leaf) // go to leaf level in query grid
+        qlevel = qlevel->next;
+
+    struct cell * cr, *cq;
+    for(int i = 0; i < level->num_cells; i++)
     {
-        
+        cr = &level->cells[i];
+        if(cr->cell_size == 0)
+            continue;
+        for(int j = 0; j < qlevel->num_cells; j++)
+        {
+            cq = &qlevel->cells[j];
+
+            // skip if query cell is empty
+            if(cq->cell_size == 0)
+                continue;
+
+            for(int p = 0; p < num_pivots; p++)
+                if(cr->center->values[p] != cq->center->values[p])
+                    continue;
+
+            // cq and cr refer to the same region
+            // printf("\n(QB) same region!\n");
+            // print_vector(cr->center, num_pivots);
+            // print_vector(cq->center, num_pivots);
+            
+            // create candiate pair <q', cr> for every query vector in cq
+            // get all q' and q in cq
+            struct vector_tuple * query_vectors = get_vector_tuples(cq, settings, true);
+            for (int q = 0; q < cq->cell_size; q++)
+            {
+                // add <q', cr>
+                add_candidate_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, settings->num_pivots, settings->mtr_vector_length); 
+                
+                free(query_vectors[q].mtr_vector->values);
+                free(query_vectors[q].mtr_vector);
+                free(query_vectors[q].ps_vector->values);
+                free(query_vectors[q].ps_vector);
+            }
+            // free memory
+            free(query_vectors);
+    
+        }
     }
 }
 /* create query grid  */

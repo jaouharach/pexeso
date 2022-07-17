@@ -57,6 +57,9 @@ enum response verify(struct grid * grid, struct pairs * pairs,
 struct query_settings * init_query_settings(v_type dist_threshold, float join_threshold, int num_query_sets, int min_query_set_size, int max_query_set_size, 
                                             double mtr_buffered_memory_size, double ps_buffered_memory_size);
 
+/* check if candidate pair already exists */
+int is_candidate_cell(struct pairs * pairs, struct vector * q, struct cell * cell, unsigned int num_pivots);
+
 /* check if a vector is in the SQR of a query vector */
 bool vecotr_in_SQR(struct vector * v, struct vector * q, unsigned int num_pivots, float dist_threshold);
 
