@@ -411,21 +411,30 @@ int main(int argc, char **argv)
         exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
     printf("(OK)\n");
 
+    /* count empty leafs in grid */
+    int num_empty_leaves = count_empty_leaf_cells(grid);
+    grid->stats->empty_leaf_cells_count = num_empty_leaves;
+
     /* print Rv grid */
     // dump_grid_to_console(grid);
 
     COUNT_PARTIAL_TIME_END
+
     grid->stats->grid_building_total_time += partial_time;
     grid->stats->grid_building_input_time += partial_input_time;
     grid->stats->grid_building_output_time += partial_output_time;
+
     grid->stats->out_of_ps_space_vec_count += out_of_ps_space_vec_count;
     grid->stats->out_of_ps_space_qvec_count += out_of_ps_space_qvec_count;
+
     grid->stats->loaded_files_count += loaded_files_count;
     grid->stats->loaded_query_files_count += loaded_query_files_count;
     grid->stats->loaded_files_size += loaded_files_size;
     grid->stats->loaded_query_files_size += loaded_query_files_size;
     grid->stats->loaded_vec_count += loaded_vec_count;
     grid->stats->loaded_qvec_count += loaded_qvec_count;
+
+
     /* querying */
     pexeso(bin_query_file_directory, grid, index);
     grid->stats->total_query_time += total_query_time;

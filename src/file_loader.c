@@ -260,6 +260,9 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
                     vector->set_id = set_id;
                     vector->pos = 0; // vector position in set
                     vector->set_size = num_vectors;
+                    
+                    printf("\nnew data set: t %u, c %u, size %u\n", table_id, set_id, num_vectors);
+
                     set_id += 1;
                 }
                 else if (i <= (unsigned int)num_vectors * grid->settings->mtr_vector_length)
@@ -353,6 +356,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
     {
         if(num_query_sets == 0)
             break;
+
         if (dfile->d_type != DT_REG) // skip directories
             continue;
 
@@ -404,15 +408,15 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     if(max_query_set_size != -1 || min_query_set_size > 0)
                         if((unsigned int)num_vectors < min_query_set_size || (unsigned int)num_vectors > max_query_set_size)
                         {
-                            //printf("\n(!) current set is too small (%d, %d) in file %s, size = %d, curr total bytes = %d\n", table_id, set_id, dfile->d_name, num_vectors, total_bytes);
                             fseek(bin_file, num_vectors * 4 * vector_length, SEEK_CUR);
                             i = 0;
                             j = 0;
-                            
+                            set_id += 1; 
                             total_bytes -= num_vectors * 4 * vector_length;
                             num_vectors = 0u;
                             continue;
                         }
+                        
                     
                     if(count_curr_file == 0)
                     {
@@ -423,12 +427,17 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                         read_files += 1;
                         count_curr_file = 1;
                     }
+
+                    if(num_query_sets != -1)
+                        num_query_sets--; // read a new set (column)
+                    
                     // set id for all vectors in the current set
                     vector->table_id = table_id;
                     vector->set_id = set_id;
                     vector->pos = 0; // vector position in set 
                     vector->set_size = num_vectors;
                     
+                    printf("\nnew query set: t %u, c %u, size %u\n", table_id, set_id, num_vectors);
                     // append set id to list of query sets
                     set_counter++;
 
@@ -437,9 +446,6 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                     query_sets[set_counter - 1].table_id = table_id;
                     query_sets[set_counter - 1].set_id = set_id;
                     query_sets[set_counter - 1].set_size = num_vectors;
-
-                    if(num_query_sets != -1)
-                        num_query_sets--; // read a new set (column)
 
                     set_id += 1;
                 }

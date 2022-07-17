@@ -7,6 +7,7 @@ struct match_map {
     bool * joinable;
     unsigned int * match_count;
     unsigned int * mismatch_count;
+    unsigned int * u; // num vectors in column Q that have no matches column in S
     unsigned int total_checked_vectors;
     unsigned int num_sets;
     float query_time;

@@ -134,3 +134,6 @@ enum response query_grid_destroy(struct grid *grid);
 
 /* print stats */
 void print_grid_stats(struct grid * grid);
+
+/* count empty leaf cells */
+int count_empty_leaf_cells(struct grid * grid);

@@ -24,6 +24,7 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
         match_map[i].sets = (struct sid *)malloc(sizeof(struct sid) * index->num_distinct_sets); // points to set in inverted index
         match_map[i].match_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
         match_map[i].mismatch_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
+        match_map[i].u = calloc(index->num_distinct_sets, sizeof(unsigned int));
         match_map[i].joinable = calloc(index->num_distinct_sets, sizeof(bool));
         match_map[i].total_checked_vectors = 0;
         match_map[i].query_time = 0;
@@ -39,6 +40,7 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
             match_map[i].sets[s].set_size = index->distinct_sets[s].set_size;
             match_map[i].match_count[s] = 0;
             match_map[i].mismatch_count[s] = 0;
+            match_map[i].u[s] = 0;
             match_map[i].joinable[s] = false;
         }
     }
@@ -51,6 +53,7 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
 /* update match count for a given set */
 enum response update_match_count(struct match_map * map_list, int map_idx, struct sid * query_set, int set_idx, float join_threshold, unsigned int query_set_size)
 {
+    printf("\nnew match!!!\n");
     map_list[map_idx].match_count[set_idx] = map_list[map_idx].match_count[set_idx] + 1;
 
     if(map_list[map_idx].match_count[set_idx] >= ceil(join_threshold * query_set_size))
@@ -108,7 +111,7 @@ void dump_match_map_to_console(struct match_map * map, unsigned int map_idx)
         {
             curr_set = map[map_idx].sets[s];
             printf("\t%d: \033[1;33m S: (%u, %u) |S| = %u\033[0m => {", s, curr_set.table_id, curr_set.set_id, curr_set.set_size);
-            printf("match = %u, mismatch = %u, joinable: %s}\n", map[map_idx].match_count[s], map[map_idx].mismatch_count[s], map[map_idx].joinable[s] ? "\033[0;32mtrue\033[0m" : "\033[1;31mfalse\033[0m");
+            printf("match = %u, mismatch = %u, |U| = %u, joinable: %s}\n", map[map_idx].match_count[s], map[map_idx].mismatch_count[s], map[map_idx].u[s], map[map_idx].joinable[s] ? "\033[0;32mtrue\033[0m" : "\033[1;31mfalse\033[0m");
         }
     }
     printf("\n\t>>>  END OF MAP  <<<\n\n\n");
@@ -124,6 +127,7 @@ enum response match_maps_destroy(struct match_map *map, int num_query_sets)
         free(map[i].joinable);
         free(map[i].match_count);
         free(map[i].mismatch_count);
+        free(map[i].u);
     }
     free(map);
     return OK;

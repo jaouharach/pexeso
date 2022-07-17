@@ -873,7 +873,4 @@ bool is_empty(struct cell * cell)
         return 1;
 
     }
-    
-
-
 }

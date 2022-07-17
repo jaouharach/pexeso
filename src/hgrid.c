@@ -12,6 +12,7 @@
 #include "../include/gsl_matrix.h"
 #include "../include/select_pivots.h"
 #include "../include/stats.h"
+
 /* initialize grid */
 enum response init_grid(const char *work_dir,
                     unsigned int num_pivots,
@@ -262,7 +263,7 @@ void dump_grid_to_console(struct grid *grid)
                 printf("vectors list (total vectors = %u):\n", level->cells[j].cell_size);
                 for (int i = 0; i < level->cells[j].cell_size; i++)
                 {
-                    printf("(%u, %u, %u, %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_id, level->cells[j].vid[i].pos, level->cells[j].vid[i].set_size);
+                    printf("(t %u, c %u, pos %u, size %u) \t", level->cells[j].vid[i].table_id, level->cells[j].vid[i].set_id, level->cells[j].vid[i].pos, level->cells[j].vid[i].set_size);
                 }
             }
             else
@@ -456,6 +457,8 @@ enum response grid_destroy_level(struct grid *grid, struct level *level)
 
     return OK;
 }
+
+/* destroy grid */
 enum response grid_destroy(struct grid *grid)
 {
     if(grid->is_query_grid)
@@ -499,6 +502,7 @@ enum response query_grid_destroy(struct grid *grid)
 
     return OK;
 }
+
 /* destroy buffer manager */
 enum response destroy_buffer_manager(struct grid *grid)
 {
@@ -591,6 +595,25 @@ void print_grid_stats(struct grid * grid)
     printf("Total_query_time\t%lf\n", 
         grid->stats->total_query_time / 1000000);
 
-    printf("\n\n\n");
-    
+    printf("\n\n\n"); 
+}
+
+/* count empty leaf cells */
+int count_empty_leaf_cells(struct grid * grid)
+{
+    int num_empty_leafs = 0;
+
+    struct level * level = grid->root;
+    while(!level->is_leaf) // go to leaf level
+        level = level->next;
+
+    for(int c = 0; c < level->num_cells; c++)
+    {
+        if(level->cells[c].cell_size == 0)
+            num_empty_leafs += 1;
+
+        else if(level->cells[c].cell_size < 0)
+            exit_with_failure("Error in hgrid.c: counting empty leafs, found leaf with negative size!");
+    }
+    return num_empty_leafs;
 }
