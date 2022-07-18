@@ -38,17 +38,21 @@ enum response set_buffered_memory_size(struct grid *grid)
     */
 
     unsigned long num_mtr_bytes = grid->settings->mtr_buffered_memory_size * 1024 * 1024;
-    unsigned long num_ps_bytes = grid->settings->ps_buffered_memory_size * 1024 * 1024;
     
     unsigned long mtr_vector_size_in_bytes = sizeof(v_type) * grid->settings->mtr_vector_length;
     unsigned long ps_vector_size_in_bytes = sizeof(v_type) * grid->settings->num_pivots;
 
     long max_mtr_buffered_vectors = (long)(num_mtr_bytes / mtr_vector_size_in_bytes);
-    long max_ps_buffered_vectors = (long)(num_ps_bytes / ps_vector_size_in_bytes);
+    long max_ps_buffered_vectors = max_mtr_buffered_vectors;
 
-    printf("\n(!) Max_mtr_buffered_vectors  = %lu\n", max_mtr_buffered_vectors);
-    printf("\n(!) Max_ps_buffered_vectors  = %lu\n", max_ps_buffered_vectors);
+    // bytes required to store vectors in pivot space
+    unsigned long num_ps_bytes = ps_vector_size_in_bytes * max_mtr_buffered_vectors;
+    grid->settings->ps_buffered_memory_size = num_ps_bytes / (1024 * 1024); // in MB
 
+    printf("\n(!) ps buffer size = %.2f MB\n", grid->settings->ps_buffered_memory_size);
+    printf("\n(!) mtr buffer size = %.2f MB\n", grid->settings->mtr_buffered_memory_size);
+    printf("\n(!) Max_buffered_vectors  = %lu\n", max_mtr_buffered_vectors);
+    
 
     grid->buffer_manager->mtr_memory_array = calloc(max_mtr_buffered_vectors, mtr_vector_size_in_bytes);
     if (grid->buffer_manager->mtr_memory_array == NULL)
@@ -93,8 +97,12 @@ response get_file_buffer(struct grid *grid, struct cell *cell)
     }
 
     // if buffer limit has been reached flush buffer to disk
-    int mtr_buffer_limit = grid->buffer_manager->max_mtr_record_index - (2 * grid->settings->max_leaf_size) ;
-    int ps_buffer_limit = grid->buffer_manager->max_ps_record_index  - (2 * grid->settings->max_leaf_size);
+    // int mtr_buffer_limit = grid->buffer_manager->max_mtr_record_index - (2 * grid->settings->max_leaf_size) ;
+    // int ps_buffer_limit = grid->buffer_manager->max_ps_record_index  - (2 * grid->settings->max_leaf_size);
+
+    // temp change
+    int mtr_buffer_limit = grid->buffer_manager->max_mtr_record_index - 1000;
+    int ps_buffer_limit = grid->buffer_manager->max_ps_record_index  - 1000;
 
     if 
     (

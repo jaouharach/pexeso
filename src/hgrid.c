@@ -24,7 +24,6 @@ enum response init_grid(const char *work_dir,
                     unsigned int base,
                     unsigned int mtr_vector_length,
                     double mtr_buffered_memory_size,
-                    double ps_buffered_memory_size,
                     unsigned int max_leaf_size,
                     unsigned int track_vector,
                     bool is_query_grid,
@@ -65,7 +64,6 @@ enum response init_grid(const char *work_dir,
     grid->settings->vector_size = (base / 8) * mtr_vector_length;
 
     grid->settings->mtr_buffered_memory_size = mtr_buffered_memory_size; // amount of memory for file buffers (metric vectors) (in MB)
-    grid->settings->ps_buffered_memory_size = ps_buffered_memory_size; // amount of memory for file buffers (pivot space vector) (in MB)
 
     grid->settings->max_leaf_size = max_leaf_size;               // max number of vectors in one leaf cell
     grid->settings->track_vector = track_vector;

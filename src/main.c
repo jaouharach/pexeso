@@ -247,28 +247,10 @@ int main(int argc, char **argv)
                     exit(-1);
                 }
                 break;
-
-            case 's':
-                ps_buffered_memory_size = atoi(optarg);
-                if (ps_buffered_memory_size < 10)
-                {
-                    fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
-                    exit(-1);
-                }
-                break;
             
             case '&':
                 qgrid_mtr_buffered_memory_size = atoi(optarg);
                 if (qgrid_mtr_buffered_memory_size < 5)
-                {
-                    fprintf(stderr, "Please change the bufferd memory size (for the query grid) to be greater than 5 MB.\n");
-                    exit(-1);
-                }
-                break;
-
-            case '$':
-                qgrid_ps_buffered_memory_size = atoi(optarg);
-                if (qgrid_ps_buffered_memory_size < 5)
                 {
                     fprintf(stderr, "Please change the bufferd memory size (for the query grid) to be greater than 5 MB.\n");
                     exit(-1);
@@ -366,14 +348,14 @@ int main(int argc, char **argv)
     
     /* initialize grid */
     printf("\n\nInitialize grid... ");
-    struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size, qgrid_ps_buffered_memory_size);
+    struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size);
     struct grid * grid = (struct grid *) malloc(sizeof(struct grid));
     if (grid == NULL)
         exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
 
     if (!init_grid(work_dir, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, total_vectors, base, mtr_vector_length, 
-                    mtr_buffered_memory_size, ps_buffered_memory_size, max_leaf_size, track_vector, 
+                    mtr_buffered_memory_size, max_leaf_size, track_vector, 
                     false, query_settings, grid))
         exit_with_failure("Error in main.c: Couldn't initialize grid!");
     printf("(OK)\n");

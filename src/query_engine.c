@@ -396,7 +396,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
 
 /* initialize query settings */
 struct query_settings *init_query_settings(v_type dist_threshold, float join_threshold, int num_query_sets, int min_query_set_size, int max_query_set_size,
-                                            double mtr_buffered_memory_size, double ps_buffered_memory_size)
+                                            double mtr_buffered_memory_size)
 {
     struct query_settings *settings = malloc(sizeof(struct query_settings));
     settings->dist_threshold = dist_threshold;
@@ -405,7 +405,6 @@ struct query_settings *init_query_settings(v_type dist_threshold, float join_thr
     settings->min_query_set_size = min_query_set_size;
     settings->max_query_set_size = max_query_set_size;
     settings->mtr_buffered_memory_size = mtr_buffered_memory_size;
-    settings->ps_buffered_memory_size = ps_buffered_memory_size;
     return settings;
 }
 /* check if a vector is in the SQR of a query vector */

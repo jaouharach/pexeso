@@ -55,7 +55,7 @@ enum response verify(struct grid * grid, struct pairs * pairs,
             
 /* initialize query settings */
 struct query_settings * init_query_settings(v_type dist_threshold, float join_threshold, int num_query_sets, int min_query_set_size, int max_query_set_size, 
-                                            double mtr_buffered_memory_size, double ps_buffered_memory_size);
+                                            double mtr_buffered_memory_size);
 
 /* check if candidate pair already exists */
 int is_candidate_cell(struct pairs * pairs, struct vector * q, struct cell * cell, unsigned int num_pivots);
