@@ -9,12 +9,20 @@ struct match_map {
     unsigned int * mismatch_count;
     unsigned int * u; // num vectors in column Q that have no matches column in S
     unsigned int total_checked_vectors;
+    unsigned int num_dist_calc;
+    unsigned int * has_match_for_curr_qvec; // a flag that is used by query vectors to assess whether they have a match in a set or no, since set vectors can be stored in multiple cells and the algorithm performs quering cellwise.
     unsigned int num_sets;
     float query_time;
 };
 
 /* create a match/mismatch map for all query sets */
 struct match_map * init_match_maps(struct inv_index * index, struct sid * query_sets, int num_query_sets);
+
+/* reset flag query vector has match in curr vector*/
+enum response reset_has_match_flag(struct match_map * match_map);
+
+/* update |U|+= 1,  for every set that doesn't have a match for curr query vector*/
+enum response update_zero_match_counter(struct match_map * match_map);
 
 /* update match count for a given set */
 enum response update_match_count(struct match_map * map_list, int map_idx, struct sid * query_set, int set_idx, float join_threshold, unsigned int query_set_size);

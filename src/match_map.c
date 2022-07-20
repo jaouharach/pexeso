@@ -4,6 +4,31 @@
 #include "../include/match_map.h"
 #include "../include/inv_index.h"
 
+/* reset flag query vector has match in curr vector*/
+enum response reset_has_match_flag(struct match_map * match_map)
+{
+    for(int s = 0; s < match_map->num_sets; s++)
+    {
+        match_map->has_match_for_curr_qvec[s] = 0;
+    }
+    return OK;
+}
+/* update |U|+= 1,  for every set that doesn't have a match for curr query vector*/
+enum response update_zero_match_counter(struct match_map * match_map)
+{
+    for(int s = 0; s < match_map->num_sets; s++)
+    {
+        if(match_map->has_match_for_curr_qvec[s] == 0)
+        {
+            match_map->u[s] += 1;
+        }
+    }
+    // reset flag for future query vector
+    if(reset_has_match_flag(match_map))
+        return OK;
+    else 
+        return FAILED;
+}
 /* create a match/mismatch map for all query sets */
 struct match_map * init_match_maps(struct inv_index * index, struct sid * query_sets, int num_query_sets)
 {
@@ -25,8 +50,10 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
         match_map[i].match_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
         match_map[i].mismatch_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
         match_map[i].u = calloc(index->num_distinct_sets, sizeof(unsigned int));
+        match_map[i].has_match_for_curr_qvec = calloc(index->num_distinct_sets, sizeof(unsigned int));
         match_map[i].joinable = calloc(index->num_distinct_sets, sizeof(bool));
         match_map[i].total_checked_vectors = 0;
+        match_map[i].num_dist_calc = 0;
         match_map[i].query_time = 0;
 
         for(int s = 0; s < index->num_distinct_sets; s++)
@@ -41,6 +68,7 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
             match_map[i].match_count[s] = 0;
             match_map[i].mismatch_count[s] = 0;
             match_map[i].u[s] = 0;
+            match_map[i].has_match_for_curr_qvec[s] = 0;
             match_map[i].joinable[s] = false;
         }
     }
@@ -127,6 +155,7 @@ enum response match_maps_destroy(struct match_map *map, int num_query_sets)
         free(map[i].match_count);
         free(map[i].mismatch_count);
         free(map[i].u);
+        free(map[i].has_match_for_curr_qvec);
     }
     free(map);
     return OK;

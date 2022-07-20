@@ -732,7 +732,7 @@ enum response  save_to_query_result_file(char * csv_file, struct sid * query_set
 }
 
 /* make result file name and path */
-char * make_file_path(char * work_dir, struct sid * query_set, unsigned int l, unsigned int dlsize, unsigned int vector_length, float runtime, unsigned int total_checked_vec)
+char * make_file_path(char * work_dir, struct sid * query_set, unsigned int l, unsigned int dlsize, unsigned int vector_length, float runtime, unsigned int num_dist_calc, unsigned int total_checked_vec)
 {
     DIR* dir = opendir(work_dir);
 	if (!dir)
@@ -741,7 +741,7 @@ char * make_file_path(char * work_dir, struct sid * query_set, unsigned int l, u
 		exit(1);
 	}
     int string_size = get_ndigits(query_set->table_id) + get_ndigits(query_set->set_id) + get_ndigits(l)
-							 + get_ndigits(dlsize) + get_ndigits(vector_length) + get_ndigits((unsigned int) runtime) + get_ndigits(total_checked_vec)
+							 + get_ndigits(dlsize) + get_ndigits(vector_length) + get_ndigits((unsigned int) runtime) + get_ndigits(num_dist_calc) + get_ndigits(total_checked_vec)
 							 + get_ndigits(query_set->set_size) + strlen("TQ_Q_qsize_l_dlsize_len_runtime_ndistcalc_dataaccess.csv")
 							 + strlen(work_dir)
 							 + 4 // float decimal precision for dlsize and runtime (.00)
@@ -749,8 +749,8 @@ char * make_file_path(char * work_dir, struct sid * query_set, unsigned int l, u
 
     char * filepath = malloc(sizeof(char) * string_size + 1);
 
-	sprintf(filepath, "%s/TQ%u_Q%u_qsize%u_l%u_dlsize%u_len%u_runtime%.2f_ndistcalc_dataaccess%u.csv"
-			, work_dir, query_set->table_id, query_set->set_id, query_set->set_size, l, dlsize, vector_length, runtime, total_checked_vec);
+	sprintf(filepath, "%s/TQ%u_Q%u_qsize%u_l%u_dlsize%u_len%u_runtime%.2f_ndistcalc%u_dataaccess%u.csv"
+			, work_dir, query_set->table_id, query_set->set_id, query_set->set_size, l, dlsize, vector_length, runtime, num_dist_calc, total_checked_vec);
     
     filepath[string_size - 1] = 0;
     
@@ -803,6 +803,7 @@ enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, str
     struct sid *query_set = NULL;
     struct match_map *curr_map;
     unsigned int total_checked_vectors = 0;
+    unsigned int num_dist_calc = 0;
     float runtime = 0.0;
 
     for(int m = 0; m < num_query_sets; m++)
@@ -810,9 +811,10 @@ enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, str
         curr_map = &match_map[m];
         query_set = &(curr_map->query_set);
         total_checked_vectors = curr_map->total_checked_vectors;
+        num_dist_calc = curr_map->num_dist_calc;
         runtime = curr_map->query_time / 1000000;
 
-        char * file_path = make_file_path(result_dir, query_set, l, dlsize, mtr_vector_length, runtime, total_checked_vectors);
+        char * file_path = make_file_path(result_dir, query_set, l, dlsize, mtr_vector_length, runtime, num_dist_calc, total_checked_vectors);
         
         if(!save_to_query_result_file(file_path, query_set, curr_map))
             exit_with_failure("Error in file_loader.c: Couldn't save query results to csv file.");

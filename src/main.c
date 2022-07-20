@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     /* query settings (todo: change threshold to %) */
     float join_threshold = 1; // T 
     float dist_threshold = 0.0; // tau = 0%
-    float max_dist = 2; // max euclidean distance between two vectors
+    float max_dist = 2; // max euclidean distance between two normalized vectors
 
     /* num query sets to take from bin_query_file_directory, if equal to -1 the algorithm will take all sets in all files */
     int num_query_sets = -1;
