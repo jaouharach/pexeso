@@ -211,3 +211,17 @@ int get_ndigits(unsigned int n)
 	}
 	return total_digits;
 }
+
+/* print a progress bar */
+void print_progress(double percentage) 
+{
+    char * progress_str = "==================================================";
+    int width = 50;
+
+    int val = (int) (percentage * 100);
+    int lpad = (int) (percentage * width);
+    int rpad = width - lpad;
+
+    printf("\r%3d%% [%.*s>%*s]", val, lpad, progress_str, rpad, "");
+    fflush(stdout);
+}

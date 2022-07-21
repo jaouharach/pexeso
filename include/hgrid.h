@@ -68,6 +68,10 @@ struct stats_info {
 
   unsigned long total_queries_count;
 
+
+  unsigned int used_lemmas_count[7]; // count how many times each lemma has been used
+
+
   // timers 
   double idx_append_vec_to_leaf_total_time;	
 	double idx_append_vec_to_leaf_input_time;

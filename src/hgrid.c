@@ -141,6 +141,9 @@ enum response init_grid_stats(struct grid * grid)
 
     grid->stats->total_queries_count = 0;
 
+    for(int i = 0; i < 7; i++)
+        grid->stats->used_lemmas_count[i] = 0;
+
     // timers 
     grid->stats->idx_append_vec_to_leaf_total_time = 0;	
 	grid->stats->idx_append_vec_to_leaf_input_time = 0;
@@ -582,6 +585,11 @@ void print_grid_stats(struct grid * grid)
 
     printf("Out_of_ps_space_qvec_count\t%ld\n", 
         grid->stats->out_of_ps_space_qvec_count);
+
+    
+    printf("\n\n\n(!) Lemma usage:\t-------------------------------------\n\n\n");
+    for(int i = 0; i < 7; i++)
+        printf("Lemma %d:\t%u\n", i+1, grid->stats->used_lemmas_count[i]);
 
     printf("\n\n\n(t) Time measures in seconds:\t-------------------------------------\n\n\n");
 

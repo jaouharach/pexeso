@@ -150,9 +150,9 @@ struct sid * build_query_grid(struct grid * Qgrid, struct grid * Dgrid, inv_inde
     int min_query_set_size = Dgrid->settings->query_settings->min_query_set_size;
     int max_query_set_size = Dgrid->settings->query_settings->max_query_set_size;
 
-    printf("\n\n\n\t..................................\n");
-    printf("\t::      BUILD QUERY INDEX       ::\n");
-    printf("\t..................................\n\n\n");
+    // printf("\n\n\n\t..................................\n");
+    // printf("\t::      BUILD QUERY INDEX       ::\n");
+    // printf("\t..................................\n\n\n");
 
     /* read all vectors in the data set */
     printf("\n\n\n\nReading query info...");

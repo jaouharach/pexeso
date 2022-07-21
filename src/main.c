@@ -418,13 +418,17 @@ int main(int argc, char **argv)
 
     /* querying */
     pexeso(bin_query_file_directory, grid, index);
+
+
     grid->stats->total_query_time += total_query_time;
-    
     grid->stats->loaded_query_files_count += loaded_query_files_count;
     grid->stats->loaded_query_sets_count += loaded_query_sets_count;
     grid->stats->loaded_query_files_size += loaded_query_files_size;
     grid->stats->loaded_qvec_count += loaded_qvec_count;
-    
+    for(int i = 0; i < 7; i++)
+        grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
+
+
     /* print inverted index */
     // dump_inv_index_to_console(index);
 

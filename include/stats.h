@@ -29,6 +29,8 @@ unsigned long total_queries_count;
 unsigned long query_set_count;
 unsigned long query_vec_count;
 
+unsigned int used_lemmas_count [7];
+
 // timers 
 double start;
 double end;
@@ -82,8 +84,11 @@ double pivot_selection_time;
                     loaded_qvec_count = 0;\
                     checked_cells_count = 0;\
                     out_of_ps_space_vec_count = 0;\
-                    out_of_ps_space_qvec_count = 0;
+                    out_of_ps_space_qvec_count = 0;\
+                    for(int i = 0; i < 7; i++)\
+                        used_lemmas_count[i] = 0;
 
+#define COUNT_USED_LEMMA(lemma_idx) used_lemmas_count[lemma_idx-1]++;
 #define COUNT_NEW_LOADED_VEC loaded_vec_count++;
 #define COUNT_NEW_LOADED_QUERY_VEC loaded_qvec_count++;
 #define COUNT_NEW_LOADED_FILE loaded_files_count++;

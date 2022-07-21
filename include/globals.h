@@ -102,3 +102,6 @@ bool pointer_cmp(void * p1, void * p2);
 
 /* get number of digits in integer */
 int get_ndigits(unsigned int n);
+
+/* print a progress bar */
+void print_progress(double percentage);
