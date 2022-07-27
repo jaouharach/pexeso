@@ -36,7 +36,7 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     struct pairs * pairs = init_pairs();
 
 
-    // (todo) quick browsing
+    // quick browsing
     printf("\n\nQuick browsing... ");
     quick_browse(Dgrid, Qgrid, pairs, Dgrid->settings);
  
@@ -114,14 +114,13 @@ void quick_browse(struct grid * Dgrid, struct grid * Qgrid, struct pairs * pairs
                 // add <q', cr>
                 add_candidate_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, settings->num_pivots, settings->mtr_vector_length); 
                 
-                free(query_vectors[q].mtr_vector->values);
+                // free(query_vectors[q].mtr_vector->values);
                 free(query_vectors[q].mtr_vector);
-                free(query_vectors[q].ps_vector->values);
+                // free(query_vectors[q].ps_vector->values);
                 free(query_vectors[q].ps_vector);
             }
             // free memory
             free(query_vectors);
-    
         }
     }
 }

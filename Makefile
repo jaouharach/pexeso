@@ -2,7 +2,7 @@
 CC=gcc
 LDFLAGS := -lm -lgsl -lgslcblas -lmcheck
 CFLAGS_INC := 
-CFLAGS := -g
+CFLAGS := -g -O2
 #
 
 ## directories

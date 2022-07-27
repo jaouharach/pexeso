@@ -38,8 +38,8 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
         cell->file_buffer->mtr_buffered_list = NULL;
         cell->file_buffer->ps_buffered_list = NULL;
         
-        cell->file_buffer->mtr_buffered_list = malloc(sizeof(v_type *) * max_leaf_size * mtr_vector_length);
-        cell->file_buffer->ps_buffered_list = malloc(sizeof(v_type *) * max_leaf_size * ps_vector_length);
+        cell->file_buffer->mtr_buffered_list = malloc(sizeof(v_type *) * (size_t) max_leaf_size * (size_t) mtr_vector_length);
+        cell->file_buffer->ps_buffered_list = malloc(sizeof(v_type *) * (size_t) max_leaf_size * (size_t) ps_vector_length);
 
         if (cell->file_buffer->mtr_buffered_list == NULL || cell->file_buffer->ps_buffered_list == NULL)
             exit_with_failure("Error in cell.c: Could not allocate memory for the buffered list.");
@@ -120,6 +120,7 @@ response init_cell(cell *cell, float length, unsigned int num_child_cells)
     cell->edge_length = length;
     cell->num_child_cells = num_child_cells;
     cell->is_leaf = false;
+    cell->is_empty = -1;
     cell->cell_size = 0;
     
     // null pointers
@@ -533,24 +534,32 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
         exit_with_failure("Error in cell.c: Cannot get vectors from an empty leaf cell!");
     
     struct vector_tuple * cell_vectors = malloc(sizeof(struct vector_tuple) * cell->cell_size);
+    struct vector_tuple * temp_vector = NULL;
+
     for(int i = 0; i < cell->cell_size; i++)
     {
-        cell_vectors[i].mtr_vector = malloc(sizeof(struct vector));
-        if(cell_vectors[i].mtr_vector == NULL)
+        temp_vector = &cell_vectors[i];
+        temp_vector->mtr_vector = malloc(sizeof(struct vector) + (sizeof(v_type) * settings->mtr_vector_length));
+        if(temp_vector->mtr_vector == NULL)
             exit_with_failure("Error in cell.c: couldn't allocat memory for vector tuples (for metric space).");
         
-        cell_vectors[i].mtr_vector->values = malloc(sizeof(v_type) * settings->mtr_vector_length);
-        if(cell_vectors[i].mtr_vector->values == NULL)
-            exit_with_failure("Error in cell.c: couldn't allocat memory for vector tuples (for metric space).");
+        // note: if this line causes issues comment it and use malloc just underneath it
+        temp_vector->mtr_vector->values = (v_type *) ((char *)temp_vector->mtr_vector + sizeof(*temp_vector->mtr_vector)); 
+        
+        // cell_vectors[i].mtr_vector->values = malloc(sizeof(v_type) * settings->mtr_vector_length);
+        // if(cell_vectors[i].mtr_vector->values == NULL)
+        //     exit_with_failure("Error in cell.c: couldn't allocat memory for vector tuples (for metric space).");
         
 
-        cell_vectors[i].ps_vector = malloc(sizeof(struct vector));
+        temp_vector->ps_vector = malloc(sizeof(struct vector) + (sizeof(v_type) * settings->num_pivots));
         if(cell_vectors[i].ps_vector == NULL)
             exit_with_failure("Error in cell.c: couldn't allocat memory for vector tuples (for pivot space).");
         
-        cell_vectors[i].ps_vector->values = malloc(sizeof(v_type) * settings->num_pivots);
-        if(cell_vectors[i].ps_vector->values == NULL)
-            exit_with_failure("Error in cell.c: couldn't allocat memory for vector tuples (for pivot space).");
+        // note: if this line causes issues comment it and use malloc just underneath it
+        temp_vector->ps_vector->values = (v_type *) ((char *) temp_vector->ps_vector + sizeof(*temp_vector->ps_vector)); 
+        // cell_vectors[i].ps_vector->values = malloc(sizeof(v_type) * settings->num_pivots);
+        // if(cell_vectors[i].ps_vector->values == NULL)
+        //     exit_with_failure("Error in cell.c: couldn't allocat memory for vector tuples (for pivot space).");
         
 
     }
@@ -560,24 +569,29 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
         if(cell->cell_size != cell->file_buffer->buffered_list_size)
             exit_with_failure("Error in cell.c: Cell buffer not in disk yet cell_size != buffered list size!");
         
+        struct vector_tuple * temp_tuple = NULL; // (metric vector, vector mapping)
+        struct vid * temp_vid = NULL;
         // copy cell vectors into list of vector tuples
         for(int i = 0; i < cell->cell_size; i++)
         {
+            temp_tuple = &cell_vectors[i];
+            temp_vid = &cell->vid[i];
+
             for(int j = 0; j < settings->mtr_vector_length; j++)
-                cell_vectors[i].mtr_vector->values[j] = cell->file_buffer->mtr_buffered_list[i][j];
+                temp_tuple->mtr_vector->values[j] = cell->file_buffer->mtr_buffered_list[i][j];
             
             for(int j = 0; j < settings->num_pivots; j++)
-                cell_vectors[i].ps_vector->values[j] = cell->file_buffer->ps_buffered_list[i][j];
+                temp_tuple->ps_vector->values[j] = cell->file_buffer->ps_buffered_list[i][j];
             
-            cell_vectors[i].mtr_vector->set_id = cell->vid[i].set_id;
-            cell_vectors[i].mtr_vector->table_id = cell->vid[i].table_id;
-            cell_vectors[i].mtr_vector->pos = cell->vid[i].pos;
-            cell_vectors[i].mtr_vector->set_size = cell->vid[i].set_size;
+            temp_tuple->mtr_vector->set_id = temp_vid->set_id;
+            temp_tuple->mtr_vector->table_id = temp_vid->table_id;
+            temp_tuple->mtr_vector->pos = temp_vid->pos;
+            temp_tuple->mtr_vector->set_size = temp_vid->set_size;
 
-            cell_vectors[i].ps_vector->set_id = cell->vid[i].set_id;
-            cell_vectors[i].ps_vector->table_id = cell->vid[i].table_id;
-            cell_vectors[i].ps_vector->pos = cell->vid[i].pos;
-            cell_vectors[i].ps_vector->set_size = cell->vid[i].set_size;
+            temp_tuple->ps_vector->set_id = temp_vid->set_id;
+            temp_tuple->ps_vector->table_id = temp_vid->table_id;
+            temp_tuple->ps_vector->pos = temp_vid->pos;
+            temp_tuple->ps_vector->set_size = temp_vid->set_size;
         }
     }
     // if file buffer is in disk load vectors from disk
@@ -848,7 +862,7 @@ bool is_empty(struct cell * cell)
         else
             exit_with_failure("Error in cell.c: cell size cannot be negative!");
     }
-    else
+    else if (cell->is_empty == -1) // never checked if this empty before
     {
         unsigned int num_leaves  = 0, max_leaf_idx = 0;
         get_num_leaf_cells(cell, &num_leaves);
@@ -866,11 +880,15 @@ bool is_empty(struct cell * cell)
             if(leaves[l]->cell_size > 0)
             {
                 free(leaves);
+                cell->is_empty = 0;
                 return 0;
             }
         }
         free(leaves);
-        return 1;
 
+        cell->is_empty = 1;
+        return 1;
     }
+    else
+        return cell->is_empty;
 }

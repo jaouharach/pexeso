@@ -90,7 +90,7 @@ enum response pivot_match(struct vector * q, struct vector * x,
 
    function returns OK if cell c can be filtered (pruned).
 */
-enum response vector_cell_filter(struct vector * q, struct cell * cell, 
+enum response vector_cell_filter(struct vector * q, struct cell * cell, struct vector * cell_vectors,
                             struct grid_settings * settings, float dist_threshold);
                
 /* 
@@ -111,7 +111,7 @@ enum response cell_cell_filter(struct cell * cell, struct cell * query_cell,
 
    function returns OK if cell c is a match to q.
 */
-enum response vector_cell_match(struct vector * q, struct cell * cell, 
+enum response vector_cell_match(struct vector * q, struct cell * cell, struct vector * cell_vectors,
                             struct grid_settings * settings, float dist_threshold);
 
 /* 

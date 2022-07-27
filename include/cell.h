@@ -12,6 +12,7 @@ struct cell {
     char * filename; 
 
     bool is_leaf;
+    int is_empty;
     unsigned int cell_size; // number of vectors currently stored in cell
     
     vector * center;

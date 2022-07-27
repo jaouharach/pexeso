@@ -5,6 +5,37 @@
 #include <float.h>
 #include <time.h>
 
+/* alloc dataset for pivot selection */
+// vector * alloc_dataset_memory(struct grid_settings * settings, unsigned long long total_vectors)
+// {
+//     unsigned long num_bytes = settings->mtr_buffered_memory_size * 1024 * 1024;
+//     unsigned long vector_size_in_bytes = sizeof(v_type) * settings->mtr_vector_length;
+//     long max_buffered_vectors = (long)(num_bytes / vector_size_in_bytes);
+
+//     // allocate a big chunk of memory
+//     char * memory_array = calloc(max_buffered_vectors, vector_size_in_bytes);
+//     if (memory_array == NULL)
+//         exit_with_failure("Error in selcet_pivots.c:"
+//                           " Cannot allocate allocate dataset memory for pivot selection.\n");
+
+//     // split memory into vectors
+//     char * current_record = memory_array;
+//     unsigned int current_record_index  = 0;
+//     vector * dataset = memory_array;
+//     unsigned int next = 0;
+//     if(current_record_index > max_buffered_vectors)
+//         exit_with_failure("Error in select_pivots: Excceded max memory for storing dataset vectors!");
+
+//     for(int v = 0; v < total_vectors; v++)
+//     {
+//         current_record_index++;
+//         for(int i = 0; i < settings->mtr_vector_length; i++)
+//         {
+            
+//         }
+//         next = next + (settings->mtr_vector_length *  sizeof(v_type));
+//     }
+// }
 /* select pivots using best fft scale */
 struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *dataset_dim, int *dims, unsigned int min_fft, unsigned int max_fft, unsigned short num_iter)
 {
@@ -74,21 +105,11 @@ struct vector *select_pivots_with_best_fft_scale(struct vector *dataset, int *da
 /* pivot selection algorithm */
 vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_pivots, unsigned int fft_scale)
 {
-    // printf("dataset dim %d, num pivots %d, fft scale %d\n\n\n", dataset_dim[1], num_pivots, fft_scale);
     // run fft to get a candidate set of outliers
     int num_cp = num_pivots*fft_scale; // number of candidate pivots
 
     // get a set of candidate pivots (outliers)
     vector * candidate_pivots = fft(dataset, dataset_dim, num_cp);
-
-
-    // printf("candidate pivots:\n");
-    // for(int c = 0; c < num_cp; c++)
-    // {
-    //     printf("candidate %d:\n", c+1);
-    //     print_vector(&candidate_pivots[c], dataset_dim[1]);
-    // }
-    // printf("\n\n\n");
 
     // compute the distance matrix (num_vector x num_cp) to the current set of candidate pivots (outliers)
     vector * dataset_ps = map_to_pivot_space(dataset, dataset_dim, candidate_pivots, num_cp);
@@ -111,8 +132,6 @@ vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_piv
         }
     }
 
-    
-
     // free memory
     for (int i = num_cp - 1; i >= 0 ; i--)
         free(candidate_pivots[i].values);
@@ -129,7 +148,6 @@ vector * select_pivots(vector * dataset, int * dataset_dim, unsigned int num_piv
     return pivots;
 }
 
-
 /* FFT: Farthest First Traversal, k = number of outliers to be found */
 vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
 {
@@ -138,7 +156,7 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
 
     // allocate memory for outliers
     int * outliers_idx = malloc(sizeof(int) * k); // indexes of outiers in the dataset
-    vector *outliers = malloc(sizeof(struct vector) * k);
+    struct vector *outliers = malloc(sizeof(struct vector) * k);
     if(outliers == NULL || outliers_idx == NULL)
         exit_with_failure("Error in select_pivots.c: Couldn't allocate memory for outliers.");
 
@@ -204,6 +222,7 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
     free(outliers_idx);
     return outliers;
 }
+
 // check if a new outlier is already in the list of outliers
 unsigned int in_outliers(int * outliers_idx, int new_outlier, int num_outliers)
 {
@@ -214,6 +233,7 @@ unsigned int in_outliers(int * outliers_idx, int new_outlier, int num_outliers)
     }
     return 0;
 }
+
 // min distance to a set of outliers (for fft)
 float min_distance(vector *outliers, unsigned int num_outliers, vector *v, unsigned int v_len)
 {

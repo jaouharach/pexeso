@@ -64,7 +64,7 @@ void print_vector(vector * v, unsigned int v_len)
     printf(")\n");
 }
 
-/* copy v2 values in v1 */
+/* copy src values in dest */
 void vector_cpy(vector * dest, vector * src, unsigned int v_len)
 {
     for(int i = 0; i < v_len; i++)

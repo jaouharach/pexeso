@@ -54,8 +54,8 @@ struct vector{
 };
 
 struct vector_tuple{
-	vector * mtr_vector;
-  vector * ps_vector;
+  struct vector * mtr_vector;
+  struct vector * ps_vector;
 };
 
 // print error and exit program

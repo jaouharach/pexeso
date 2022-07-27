@@ -120,19 +120,22 @@ enum response verify(struct grid *grid, struct pairs *pairs,
             for (int c = 0; c < cpair->num_candidates; c++) // loop through candidate cells
             {
                 struct cell *candidate_cell = cpair->cells[c];
+
+                // get cell entry in the inverted index
                 int entry_idx = has_cell(index, candidate_cell, num_pivots);
                 if (entry_idx == -1)
                     {
                         print_vector(candidate_cell->center, num_pivots);
                         exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for candidate cell!");
                     }
-                    
-
+                
+                //  get vectors stored in candidate cell
+                struct vector_tuple *candidate_vectors = get_vector_tuples(candidate_cell, grid->settings, false);
+                
                 // printf("of entry index %d\n", entry_idx);
                 // find entry of candidate cell in inverted index
                 struct entry *entry = &index->entries[entry_idx];
                 // for every set in candidate cell
-                // printf("\nread sets in candidate cell...\n\n");
                 for (int s = 0; s < entry->num_sets; s++)
                 {
                     int curr_qvec_has_a_match = 0; // check if current query vector has  a match in current set or not
@@ -150,16 +153,12 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     if ((query_set->set_size - match_map[map_idx].u[set_idx]) < ceil(join_threshold * query_set->set_size ))
                     {    
                         COUNT_USED_LEMMA(7)
-                        // printf("query set size = %d\n", query_set->set_size);
-                        // printf("mismatch count of current set = %d\n", match_map[map_idx].u[set_idx]);
-                        // printf("skip by lemma 7: %u < %f \n", (query_set->set_size - match_map[map_idx].u[set_idx]), ceil(join_threshold * query_set->set_size ));
                         continue;
                     }
                     if(candidate_cell->cell_size > 0)
                     {
                         // printf("cell size = %d\n\n\n", candidate_cell->cell_size);
                         // get vector (in metric and pivot space) in candidate cell
-                        struct vector_tuple *candidate_vectors = get_vector_tuples(candidate_cell, grid->settings, false);
                         for (int v = 0; v < candidate_cell->cell_size; v++)
                         {
                             // if vector belongs to set (curr set)
@@ -212,17 +211,18 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                                 }
                                     match_map[map_idx].total_checked_vectors++;
                             }
-                            // free memory
-                            free(candidate_vectors[v].mtr_vector->values);
-                            free(candidate_vectors[v].mtr_vector);
-
-                            free(candidate_vectors[v].ps_vector->values);
-                            free(candidate_vectors[v].ps_vector);
+                           
                         }
-                        // free memory
-                        free(candidate_vectors);
                     }
                 }
+
+                // free memory
+                for (int v = 0; v < candidate_cell->cell_size; v++)
+                {
+                    free(candidate_vectors[v].mtr_vector);
+                    free(candidate_vectors[v].ps_vector);
+                }
+                free(candidate_vectors);
             }
             // update |U| counter of vector in Q (column) that are not in S  (column) 
             update_zero_match_counter(&match_map[map_idx]);
@@ -262,15 +262,14 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                 {
                     // get all q' and q in cq
                     struct vector_tuple * query_vectors = get_vector_tuples(cq, settings, true);
+                    // get vectors in cr cell
+                    vector *cr_vectors = get_vectors_ps(cr, settings, false);
+
                     for (int q = 0; q < cq->cell_size; q++)
                     {
                         // check if current cell is already a candidate cell (added by quick browsing)
                         if(is_candidate_cell(pairs, query_vectors[q].ps_vector, cr, settings->num_pivots) == 1)
                         {
-                            free(query_vectors[q].mtr_vector->values);
-                            free(query_vectors[q].mtr_vector);
-                            free(query_vectors[q].ps_vector->values);
-                            free(query_vectors[q].ps_vector);
                             continue;
                         }
                         query_set->table_id = query_vectors[q].ps_vector->table_id;
@@ -284,38 +283,25 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                         RESET_QUERY_TIME()
                         COUNT_QUERY_TIME_START
 
-                        // printf("(%u, %u, %u)\n", query_vector[q]->table_id, query_vector[q]->set_id, query_vector[q]->pos);
                         // cr is a match of q' by lemma 5
-                        if (vector_cell_match(query_vectors[q].ps_vector, cr, settings, dist_threshold))
+                        if (vector_cell_match(query_vectors[q].ps_vector, cr, cr_vectors, settings, dist_threshold))
                         {
                             COUNT_USED_LEMMA(5)
                             if (!add_matching_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, settings->num_pivots, settings->mtr_vector_length)) // add <q', cr>
                             {
-                                // printf("\n(+c) new candidate pair : (%.2f, %.2f)", cr->center->values[0], cr->center->values[1]);  
                                 exit_with_failure("Error in query_engine.c: couldn't add matching pair.");
                             }
-                            // free memory
-                            free(query_vectors[q].mtr_vector->values);
-                            free(query_vectors[q].mtr_vector);
-                            free(query_vectors[q].ps_vector->values);
-                            free(query_vectors[q].ps_vector);
                         }
                         else
                         {
                             // lemma 3
-                            if (!vector_cell_filter(query_vectors[q].ps_vector, cr, settings, dist_threshold))
+                            if (!vector_cell_filter(query_vectors[q].ps_vector, cr, cr_vectors, settings, dist_threshold))
                             { 
-                                // printf("\n(+c) new candidate pair : (%.2f, %.2f)", cr->center->values[0], cr->center->values[1]);
                                 add_candidate_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, settings->num_pivots, settings->mtr_vector_length); // add <q', cr>
                             }
                             else
                                 COUNT_USED_LEMMA(3)
 
-                            // free memory
-                            free(query_vectors[q].mtr_vector->values);
-                            free(query_vectors[q].mtr_vector);
-                            free(query_vectors[q].ps_vector->values);
-                            free(query_vectors[q].ps_vector);
                         }
                         // for current set stop time and add it to query time
                         COUNT_QUERY_TIME_END
@@ -323,7 +309,18 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                         match_map[map_idx].query_time += query_time;
                     }
                     // free memory
+                    for(int q = 0; q < cq->cell_size; q++)
+                    {
+                        free(query_vectors[q].mtr_vector);
+                        free(query_vectors[q].ps_vector);
+                    }
                     free(query_vectors);
+
+                    // free memory
+                    for(int i = 0; i < cr->cell_size; i++)
+                        free(cr_vectors[i].values);
+                    free(cr_vectors);
+
                 }
                 else if (cq->cell_size == 0)
                 {
@@ -335,6 +332,8 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
             {
                 if(!is_empty(cq))
                 {
+                    // get vectors in query cell cq and vectors in cr cell
+                    
                     // lemma 6
                     if (cell_cell_match(cr, cq, settings, dist_threshold))
                     {
@@ -388,9 +387,9 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                                         add_matching_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr_leaves[l], settings->num_pivots, settings->mtr_vector_length);
                                 }
                                 // free memory
-                                free(query_vectors[q].mtr_vector->values);
+                                // free(query_vectors[q].mtr_vector->values);
                                 free(query_vectors[q].mtr_vector);
-                                free(query_vectors[q].ps_vector->values);
+                                // free(query_vectors[q].ps_vector->values);
                                 free(query_vectors[q].ps_vector);
 
                                 // for current set stop time and add it to query time
@@ -521,12 +520,10 @@ enum response pivot_match(struct vector *q, struct vector *x,
 
     function returns OK if cell c can be filtered (pruned).
 */
-enum response vector_cell_filter(struct vector *q, struct cell *cell,
+enum response vector_cell_filter(struct vector *q, struct cell *cell, struct vector * cell_vectors,
                                  struct grid_settings * settings, float dist_threshold)
 {
-    // printf("\nvector cell filter, cell size = %u\n", cell->cell_size);
     // check if there is at least one vector in SQR of q
-    vector *cell_vectors = get_vectors_ps(cell, settings, false);
     for(int v = 0; v < cell->cell_size; v++)
     {
         if(vector_in_SQR(&cell_vectors[v], q, settings->num_pivots, dist_threshold))
@@ -537,12 +534,7 @@ enum response vector_cell_filter(struct vector *q, struct cell *cell,
             return FAILED;
         }
     }
-
-    for(int i = 0; i < cell->cell_size; i++)
-        free(cell_vectors[i].values);
-    free(cell_vectors);
     return OK;
-
 }
 
 /*
@@ -592,10 +584,9 @@ enum response cell_cell_filter(struct cell *cell, struct cell *query_cell,
 
    function returns OK if cell c is a match to q.
 */
-enum response vector_cell_match(struct vector *q, struct cell *cell,
+enum response vector_cell_match(struct vector *q, struct cell *cell, struct vector * cell_vectors,
                                 struct grid_settings * settings, v_type dist_threshold)
 {   
-    vector *cell_vectors = get_vectors_ps(cell, settings, false);
     float rqr;
     for (int p = 0; p < settings->num_pivots; p++)
     {
@@ -622,12 +613,6 @@ enum response vector_cell_match(struct vector *q, struct cell *cell,
             return OK;
         }
     }
-
-    // free memory
-    for(int i = 0; i < cell->cell_size; i++)
-        free(cell_vectors[i].values);
-    free(cell_vectors);
-
     return FAILED;
 }
 

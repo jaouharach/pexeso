@@ -43,16 +43,19 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
 
 
     // allocate memory for the whole set of vectors
+    int vector_size = sizeof(struct vector) + (sizeof(v_type) * mtr_vector_length);
+    // dataset = malloc(vector_size * total_vectors);
     dataset = malloc(sizeof(struct vector) * total_vectors);
     if (dataset == NULL)
         exit_with_failure("Error in file_loader.c: Could not allocate memory for dataset.");
 
+    // dataset[0].values = (v_type *) ((char *)dataset + (vector_size));
     for(int k = 0; k < total_vectors; k++)
     {
+        // dataset[k].values = (v_type *) ((char *)&dataset[k-1] + vector_size);
         dataset[k].values = malloc(sizeof(v_type) * mtr_vector_length);
         if (dataset[k].values == NULL)
             exit_with_failure("Error in file_loader.c: Could not allocate memory for dataset values.");
-
     }
 
     while ((dfile = readdir(dir)) != NULL && num_files > 0) // each file in directory
