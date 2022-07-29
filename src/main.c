@@ -241,18 +241,18 @@ int main(int argc, char **argv)
 
             case 'c':
                 mtr_buffered_memory_size = atoi(optarg);
-                if (mtr_buffered_memory_size < 10)
+                if (mtr_buffered_memory_size < 1)
                 {
-                    fprintf(stderr, "Please change the bufferd memory size to be greater than 10 MB.\n");
+                    fprintf(stderr, "Please change the bufferd memory size to be greater than 1 MB.\n");
                     exit(-1);
                 }
                 break;
             
             case '&':
                 qgrid_mtr_buffered_memory_size = atoi(optarg);
-                if (qgrid_mtr_buffered_memory_size < 5)
+                if (qgrid_mtr_buffered_memory_size < 1)
                 {
-                    fprintf(stderr, "Please change the bufferd memory size (for the query grid) to be greater than 5 MB.\n");
+                    fprintf(stderr, "Please change the bufferd memory size (for the query grid) to be greater than 1 MB.\n");
                     exit(-1);
                 }
                 break;

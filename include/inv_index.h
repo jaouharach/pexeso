@@ -10,7 +10,8 @@ struct inv_index {
 
 struct entry {
     struct cell * cell; // one cell
-    unsigned long long  * sets; // multiple sets, eatch set is the idx of set id in inverted index
+    unsigned long  * sets; // multiple sets, eatch set is the idx of set (column) in inverted index
+    unsigned long * vector_count; // number of vectors fro set s in cell c
     unsigned int num_sets;
 };
 
@@ -21,7 +22,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
 int has_cell(struct inv_index * index, struct cell * cell, unsigned int num_pivots);
 /* check if cell entry has set_id */
 
-bool entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned int table_id, unsigned int set_id);
+int entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned int table_id, unsigned int set_id);
 
 /* check if set id has already been inserted into a cell entry */
 int previously_indexed_set(struct inv_index * index, unsigned int table_id, unsigned int set_id);

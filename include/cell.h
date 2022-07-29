@@ -1,8 +1,7 @@
 #include <stdio.h>
-#include <stdbool.h>
-
 
 struct cell {
+    unsigned int id; // cell number from 0 to num cells in level
     struct level * level;
     struct cell * parent;
     struct cell * children;
@@ -22,6 +21,14 @@ struct cell {
     struct vid * vid;
 
     
+};
+
+// <leaf_cell, vector_tuples> 
+struct leaf_cell_vector_tuples
+{
+    char retrieved;
+    struct cell * cell;
+    struct vector_tuple * vector_tuples;
 };
 
 /* initialize center vectors: ndc = number of distinct coordinates, k = vector length,  dim = vector length */
@@ -62,3 +69,12 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * set
 
 /* check is cell is empty (has no vectors) */
 bool is_empty(struct cell * cell);
+
+/* make an array of leaf cells and their corresponding list of vector tuples (vector in mtr and ps space) */
+struct leaf_cell_vector_tuples * init_leaf_cells_vectors_array(struct grid_settings * settings);
+
+/* get vector tuples stored in leaf cell */
+struct vector_tuple * get_leaf_cell_vector_tuples(struct leaf_cell_vector_tuples * leaf_cells_tuples, struct cell * cell,  struct grid_settings * settings);
+
+/* destroy array of leaf cells and vector tuples */
+enum response destroy_leaf_cells_vectors_array(struct leaf_cell_vector_tuples * leaf_cells_tuples, struct grid_settings * settings);

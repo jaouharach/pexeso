@@ -27,14 +27,12 @@ enum response verify(struct grid *grid, struct pairs *pairs,
         exit_with_failure("Error in query_engine.c: Cannot verify 0 pairs! no matching pairs, no candidate pairs are found.");
 
     printf("\n\nProcess matching pairs...\n");
-    double progress = 0;
     if (pairs->matching_pairs != NULL)
     {
         // update match map for every set in a matching cell
         for (int i = 0; i < pairs->num_pairs; i++)
         {
-            progress = i/(pairs->num_pairs - 1);
-            print_progress(progress);
+            print_progress(i, pairs->num_pairs);
 
             struct matching_pair *mpair = &pairs->matching_pairs[i];
             struct vector *query_vector =  &pairs->query_vectors[i];
@@ -88,11 +86,12 @@ enum response verify(struct grid *grid, struct pairs *pairs,
     }
 
     printf("\n\nProcess candidate pairs...\n");
-    progress = 0;
+    // <leaf cell -> vector tuples> array
+    struct leaf_cell_vector_tuples * leaf_cells_tuples = init_leaf_cells_vectors_array(grid->settings);
+
     for (int i = 0; i < pairs->num_pairs; i++)
     {
-        progress = i/(pairs->num_pairs - 1);
-        print_progress(progress);
+        print_progress(i, pairs->num_pairs);
 
         struct candidate_pair *cpair = &pairs->candidate_pairs[i];
         struct vector *query_vector = &pairs->query_vectors[i]; // q'
@@ -130,8 +129,10 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     }
                 
                 //  get vectors stored in candidate cell
-                struct vector_tuple *candidate_vectors = get_vector_tuples(candidate_cell, grid->settings, false);
-                
+                struct vector_tuple *candidate_vectors = get_leaf_cell_vector_tuples(leaf_cells_tuples, candidate_cell,  grid->settings);
+                if(candidate_vectors == NULL)
+                    exit_with_failure("Error in query_engine.c: couldn't get leaf cell vector tuples.");
+
                 // printf("of entry index %d\n", entry_idx);
                 // find entry of candidate cell in inverted index
                 struct entry *entry = &index->entries[entry_idx];
@@ -140,6 +141,9 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                 {
                     int curr_qvec_has_a_match = 0; // check if current query vector has  a match in current set or not
                     struct sid *curr_set = &index->distinct_sets[entry->sets[s]];
+                    unsigned long curr_set_vector_count =  entry->vector_count[s];
+                    unsigned long counter = 0;
+
                     if (curr_set == NULL)
                         exit_with_failure("Error in query_engine.c: NULL set in candidate entry!");
 
@@ -155,15 +159,22 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                         COUNT_USED_LEMMA(7)
                         continue;
                     }
-                    if(candidate_cell->cell_size > 0)
+                    else
                     {
                         // printf("cell size = %d\n\n\n", candidate_cell->cell_size);
                         // get vector (in metric and pivot space) in candidate cell
                         for (int v = 0; v < candidate_cell->cell_size; v++)
                         {
+                            // check if all vectors in set s have been processed
+                            if(counter == curr_set_vector_count)
+                                break;
+                            else if(counter > curr_set_vector_count)
+                                exit_with_failure("Error in query_engine.c: Found more vectors of set s in candidate cell than nb of vectors counted in inverted index!");
+                            
                             // if vector belongs to set (curr set)
                             if (candidate_vectors[v].mtr_vector->set_id == curr_set->set_id && candidate_vectors[v].mtr_vector->table_id == curr_set->table_id)
                             {
+                                counter += 1;
                                 // printf("candidate vector: (%u, %u, %u)\n", candidate_vectors[v].mtr_vector->table_id, candidate_vectors[v].mtr_vector->set_id, candidate_vectors[v].mtr_vector->pos);
                                 // if candidate vector can be filtered by lemma 1
                                 if (pivot_filter(query_vector, candidate_vectors[v].ps_vector,
@@ -189,13 +200,15 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                                 {
                                     
                                     // compute euclidean distance between v and q in metric space
-                                    float d = euclidean_distance(candidate_vectors[v].mtr_vector,
+                                    float max_dist = 2.0, max_dist_no_sqrt = 4.0; // maximum distance between two normalized vectors
+                                    float dist_threshold_no_sqrt = (dist_threshold/max_dist) * max_dist_no_sqrt;
+                                    float d = euclidean_distance_cmp(candidate_vectors[v].mtr_vector,
                                                                 query_vector_mtr, grid->settings->mtr_vector_length);
                                     
                                     // increase number of distance calculation
                                     match_map[map_idx].num_dist_calc++;
                                     
-                                    if (d <= dist_threshold)
+                                    if (d <= dist_threshold_no_sqrt)
                                     {
                                         match_map[map_idx].has_match_for_curr_qvec[set_idx] = 1;
                                         // printf("matched by euclidean dist\n");
@@ -215,14 +228,6 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                         }
                     }
                 }
-
-                // free memory
-                for (int v = 0; v < candidate_cell->cell_size; v++)
-                {
-                    free(candidate_vectors[v].mtr_vector);
-                    free(candidate_vectors[v].ps_vector);
-                }
-                free(candidate_vectors);
             }
             // update |U| counter of vector in Q (column) that are not in S  (column) 
             update_zero_match_counter(&match_map[map_idx]);
@@ -233,7 +238,10 @@ enum response verify(struct grid *grid, struct pairs *pairs,
         match_map[map_idx].query_time += query_time;
 
     }
+    // free memory
     free(query_set);
+    if(!destroy_leaf_cells_vectors_array(leaf_cells_tuples, grid->settings))
+        exit_with_failure("Error in query_engine.c: couldn't destroy leaf_cells_vectors_array!");
     return OK;
 }
 

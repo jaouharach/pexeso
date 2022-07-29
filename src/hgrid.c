@@ -207,7 +207,7 @@ enum response grid_insert(struct grid *grid, struct inv_index * index, vector *v
     cell *cell = NULL;
     for (int c = 0; c < grid->first_level->num_cells; c++)
     {
-        float d = euclidean_distance(v_mapping, grid->first_level->cells[c].center, grid->settings->num_pivots);
+        float d = euclidean_distance_cmp(v_mapping, grid->first_level->cells[c].center, grid->settings->num_pivots);
         if (d <= bsf)
         {
             bsf = d;

@@ -25,6 +25,25 @@ float euclidean_distance(vector * v1, vector * v2, unsigned int v_len)
     return (float) sqrt(d);
 }
 
+
+float euclidean_distance_cmp(vector * v1, vector * v2, unsigned int v_len)
+{
+    if (v1 == NULL || v2 == NULL)
+        exit_with_failure("Error in globals.c: NULL pointer to vector.");
+
+    if(isnan(v1->values[0]) || isnan(v1->values[0]))
+        exit_with_failure("Error in globals.c: Cannot compute euclidean distance for nan vector.");
+
+    float d = 0.0;
+    for(int j = 0; j < v_len; j++)
+    {
+        d = d + (v1->values[j] - v2->values[j]) * (v1->values[j] - v2->values[j]);
+    }
+    // avoid using sqrt for better performance when using uclidean distance for comparaison only
+    // return (float) sqrt(d);
+    return d;
+}
+
 /* tranform vector to pivot space */
 void transform_vector(vector * v, unsigned int v_len, vector * v_transf, vector * pivots, unsigned int num_pivots)
 {
@@ -213,8 +232,9 @@ int get_ndigits(unsigned int n)
 }
 
 /* print a progress bar */
-void print_progress(double percentage) 
+void print_progress(int i, int j) 
 {
+    double percentage = (double) i / (j -1);
     char * progress_str = "==================================================";
     int width = 50;
 
@@ -222,6 +242,6 @@ void print_progress(double percentage)
     int lpad = (int) (percentage * width);
     int rpad = width - lpad;
 
-    printf("\r%3d%% [%.*s>%*s]", val, lpad, progress_str, rpad, "");
+    printf("\r%d/%d   %3d%% [%.*s>%*s]", i+1, j, val, lpad, progress_str, rpad, "");
     fflush(stdout);
 }

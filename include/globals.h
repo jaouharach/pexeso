@@ -67,6 +67,9 @@ int warning(char *message);
 // euclidean distance
 float euclidean_distance(vector * v1, vector * v2, unsigned int v_len);
 
+// euclidean distance for distance comparaison (without sqrt)
+float euclidean_distance_cmp(vector * v1, vector * v2, unsigned int v_len);
+
 /* copy vector */
 void vector_cpy(vector * dest, vector * src, unsigned int v_len);
 
@@ -104,4 +107,4 @@ bool pointer_cmp(void * p1, void * p2);
 int get_ndigits(unsigned int n);
 
 /* print a progress bar */
-void print_progress(double percentage);
+void print_progress(int i, int j);

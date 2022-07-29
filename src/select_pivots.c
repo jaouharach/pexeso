@@ -205,7 +205,7 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
                 exit_with_failure("Error int select_pivots.c: min distance cannot be equal to FLT_MAX!");
             }
 
-            if (d > bsf_d)
+            if (d > bsf_d) // bsf_d is the fartest distance to the current set of outliers
             {
                 bsf_d = d;
                 bsf_v = j;
@@ -238,19 +238,14 @@ unsigned int in_outliers(int * outliers_idx, int new_outlier, int num_outliers)
 float min_distance(vector *outliers, unsigned int num_outliers, vector *v, unsigned int v_len)
 {
     float min_d = FLT_MAX, d;
-    // printf("start ---\n");
     for (int i = 0; i < num_outliers; i++)
     {
-        d = euclidean_distance(v, &outliers[i], v_len);
-        // printf("d = %.2f\n", d);
+        d = euclidean_distance_cmp(v, &outliers[i], v_len);
         if (d < min_d)
         {
             min_d = d;
-        }
-            
+        }    
     }
-    // printf("min d = %.2f\n", min_d);
-    // printf("end ---\n");
     return min_d;
 }
 
@@ -276,7 +271,6 @@ enum response map_vector(struct vector *v, unsigned int v_len, struct vector *v_
             COUNT_NEW_OUT_OF_PIVOT_SPACE_QUERY_VECTOR
         else
             COUNT_NEW_OUT_OF_PIVOT_SPACE_VECTOR
-        // printf("\033[1;33m\n(!) Warning in select_pivots.c: Vector mapping is out of pivot space!\033[0m\n");
     }
 
     return OK;

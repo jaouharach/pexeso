@@ -41,35 +41,37 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
 
     for(int i = 0; i < num_query_sets; i++)
     {
-        match_map[i].query_set.table_id = query_sets[i].table_id;
-        match_map[i].query_set.set_id = query_sets[i].set_id;
-        match_map[i].query_set.set_size = query_sets[i].set_size;
+        struct match_map * curr_map = &match_map[i];
+        curr_map->query_set.table_id = query_sets[i].table_id;
+        curr_map->query_set.set_id = query_sets[i].set_id;
+        curr_map->query_set.set_size = query_sets[i].set_size;
 
-        match_map[i].num_sets = index->num_distinct_sets;
-        match_map[i].sets = (struct sid *)malloc(sizeof(struct sid) * index->num_distinct_sets); // points to set in inverted index
-        match_map[i].match_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
-        match_map[i].mismatch_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
-        match_map[i].u = calloc(index->num_distinct_sets, sizeof(unsigned int));
-        match_map[i].has_match_for_curr_qvec = calloc(index->num_distinct_sets, sizeof(unsigned int));
-        match_map[i].joinable = calloc(index->num_distinct_sets, sizeof(bool));
-        match_map[i].total_checked_vectors = 0;
-        match_map[i].num_dist_calc = 0;
-        match_map[i].query_time = 0;
+        curr_map->num_sets = index->num_distinct_sets;
+        curr_map->sets = (struct sid *)malloc(sizeof(struct sid) * index->num_distinct_sets); // points to set in inverted index
+        curr_map->match_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
+        curr_map->mismatch_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
+        curr_map->u = calloc(index->num_distinct_sets, sizeof(unsigned int));
+        curr_map->has_match_for_curr_qvec = calloc(index->num_distinct_sets, sizeof(unsigned int));
+        curr_map->joinable = calloc(index->num_distinct_sets, sizeof(bool));
+        curr_map->total_checked_vectors = 0;
+        curr_map->num_dist_calc = 0;
+        curr_map->query_time = 0;
 
         for(int s = 0; s < index->num_distinct_sets; s++)
         {
+            struct sid * curr_set = &curr_map->sets[s];
             // from inverted index copy set ids to map  
             if(index->distinct_sets == NULL)
                 exit_with_failure("Error in match_map.c: NULL pointer! couldn't link entry in matchmap to entry in inverted index!");
             
-            match_map[i].sets[s].table_id = index->distinct_sets[s].table_id;
-            match_map[i].sets[s].set_id = index->distinct_sets[s].set_id;
-            match_map[i].sets[s].set_size = index->distinct_sets[s].set_size;
-            match_map[i].match_count[s] = 0;
-            match_map[i].mismatch_count[s] = 0;
-            match_map[i].u[s] = 0;
-            match_map[i].has_match_for_curr_qvec[s] = 0;
-            match_map[i].joinable[s] = false;
+            curr_set->table_id = index->distinct_sets[s].table_id;
+            curr_set->set_id = index->distinct_sets[s].set_id;
+            curr_set->set_size = index->distinct_sets[s].set_size;
+            curr_map->match_count[s] = 0;
+            curr_map->mismatch_count[s] = 0;
+            curr_map->u[s] = 0;
+            curr_map->has_match_for_curr_qvec[s] = 0;
+            curr_map->joinable[s] = false;
         }
     }
     

@@ -26,10 +26,11 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         struct entry * new_entry = &index->entries[0];
         
         // first set
-        new_entry->sets = malloc(sizeof(unsigned long long)); // holds idx of set (tableid, setpos) in list of distinct sets
+        new_entry->sets = malloc(sizeof(unsigned long)); // holds idx of set (tableid, setpos) in list of distinct sets
+        new_entry->vector_count = malloc(sizeof(unsigned long)); // count vectors of set s in cell c
         index->distinct_sets = malloc(sizeof(struct sid));
 
-        if(new_entry->sets == NULL || index->distinct_sets == NULL)
+        if(new_entry->sets == NULL || index->distinct_sets == NULL || new_entry->vector_count == NULL)
             exit_with_failure("Error in inv_index.c: Couldn't allocate memory for first entry");
         
         // add set to list of distinct set ids
@@ -40,6 +41,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         // link set in cell entry to set in list of distinct sed ids
         new_entry->cell = cell;
         new_entry->sets[0] = 0; // first cell -> {first set}
+        new_entry->vector_count[0] = 1;
         new_entry->num_sets = 1;
 
         index->num_distinct_sets = 1;
@@ -50,7 +52,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
 
     // inverted index is not empty
     // check if set id has not been previously inserted (for another cell)
-    long long int set_idx = previously_indexed_set(index, table_id, set_id);
+    unsigned long set_idx = previously_indexed_set(index, table_id, set_id);
     if(set_idx == -1) // if set not in inverted index, add set
     {
         unsigned int num_distinct_sets = index->num_distinct_sets;
@@ -82,12 +84,14 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         struct entry * new_entry = &index->entries[entry_idx];
 
         new_entry->cell = cell;
-        new_entry->sets = malloc(sizeof(unsigned long long));
-        if(new_entry->sets == NULL)
+        new_entry->sets = malloc(sizeof(unsigned long));
+        new_entry->vector_count = malloc(sizeof(unsigned long));
+        if(new_entry->sets == NULL || new_entry->vector_count == NULL)
             exit_with_failure("Error in inv_index.c: could'nt allocate memory for new entry's sets!");
         
         // first set in entry
         new_entry->sets[0] = set_idx;
+        new_entry->vector_count[0] = 1;
         new_entry->num_sets = 1;
         index->num_entries++;        
 
@@ -95,19 +99,25 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
     }
     else // cell has entry in inverted index, append set to cell entry
     {
-        // if pair cell --> {set_id} exists don't add set_id to entry
-        if(entry_has_set(index, entry_idx, table_id, set_id))
+        // if pair cell --> {set_id} exists don't add set_id to entry and increase vector count 
+        int s = entry_has_set(index, entry_idx, table_id, set_id);
+        if(s != -1)
+        {
+            struct entry * curr_entry = &index->entries[entry_idx];
+            curr_entry->vector_count[s] += 1;
             return OK;
+        }
 
+        // if pair cell --> {set_id} exists add set_id to entry
         struct entry * curr_entry = &index->entries[entry_idx];
-
         unsigned int num_sets = curr_entry->num_sets;
-        curr_entry->sets = realloc(curr_entry->sets, 
-                                                    sizeof(unsigned long long) * (num_sets + 1));
-        if(curr_entry->sets == NULL)
+        curr_entry->sets = realloc(curr_entry->sets, sizeof(unsigned long) * (num_sets + 1));
+        curr_entry->vector_count = realloc(curr_entry->vector_count, sizeof(unsigned long) * (num_sets + 1));
+        if(curr_entry->sets == NULL || curr_entry->vector_count == NULL)
             exit_with_failure("Error in inv_index.c: Couldn't allocate memory for entry's new sets");
 
         curr_entry->sets[curr_entry->num_sets] = set_idx;
+        curr_entry->vector_count[curr_entry->num_sets] = 1;
         curr_entry->num_sets++;        
 
         return OK;  
@@ -145,7 +155,7 @@ int has_cell(struct inv_index * index, struct cell * cell, unsigned int num_pivo
 }
 
 /* check if cell entry has set_id */
-bool entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned int table_id, unsigned int set_id)
+int entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned int table_id, unsigned int set_id)
 {
     struct entry * cell_entry = &index->entries[entry_idx];
 
@@ -157,9 +167,9 @@ bool entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned in
     {
         set_idx = cell_entry->sets[s];
         if ((index->distinct_sets[set_idx].table_id == table_id) && (index->distinct_sets[set_idx].set_id == set_id))
-            return true;
+            return s;
     }
-    return false; 
+    return -1; 
 }
 
 /* check if set id has already been inserted into a cell entry */
@@ -216,6 +226,7 @@ enum response inv_index_destroy(struct inv_index *index)
     {
         // free entry sets
         free(index->entries[e].sets);
+        free(index->entries[e].vector_count);
     }
     free(index->entries);
     free(index->distinct_sets);

@@ -26,7 +26,7 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     struct sid * query_sets = build_query_grid(Qgrid, Dgrid, inv_index, query_file_dir, &num_query_vectors);
 
     num_query_sets = Dgrid->settings->query_settings->num_query_sets;
-
+        
     //initialize match maps for query sets
     // printf("\n\nInit match maps... ");
     struct match_map * match_map =  init_match_maps(inv_index, query_sets, num_query_sets);

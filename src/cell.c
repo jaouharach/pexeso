@@ -105,7 +105,7 @@ cell *cell_route_to_closest_child(cell *parent_cell, vector *vector, unsigned in
     cell *closest_child_cell = NULL;
     for (int i = 0; i < parent_cell->num_child_cells; i++)
     {
-        float d = euclidean_distance(vector, parent_cell->children[i].center, num_dim);
+        float d = euclidean_distance_cmp(vector, parent_cell->children[i].center, num_dim);
         if (d < bsf)
         {
             bsf = d;
@@ -891,4 +891,70 @@ bool is_empty(struct cell * cell)
     }
     else
         return cell->is_empty;
+}
+
+/* make an array of leaf cells and their corresponding list of vector tuples (vector in mtr and ps space) */
+struct leaf_cell_vector_tuples * init_leaf_cells_vectors_array(struct grid_settings * settings)
+{
+    struct leaf_cell_vector_tuples * leaf_cells_tuples = malloc(sizeof(*leaf_cells_tuples) * settings->num_leaf_cells);
+    if(leaf_cells_tuples == NULL)
+        exit_with_failure("Erro in cell.c: Couldn't allocate memory to leaf_cells_vectors.");
+    
+    for(int l = 0; l < settings->num_leaf_cells; l++)
+    {
+        leaf_cells_tuples[l].retrieved = 0;
+        leaf_cells_tuples[l].cell = NULL;
+        leaf_cells_tuples[l].vector_tuples = NULL;
+    }
+
+    return leaf_cells_tuples;
+}
+
+/* get vector tuples stored in leaf cell */
+struct vector_tuple * get_leaf_cell_vector_tuples(struct leaf_cell_vector_tuples * leaf_cells_tuples, struct cell * cell,  struct grid_settings * settings)
+{
+    int cell_idx = cell->id;
+    if(cell_idx > (settings->num_leaf_cells - 1))
+        exit_with_failure("Error in cell.c: Leaf cell id greater that total nb of leaf cells!");
+    
+    if(leaf_cells_tuples[cell_idx].retrieved == 1)
+    {
+        if(leaf_cells_tuples[cell_idx].cell == NULL || leaf_cells_tuples[cell_idx].vector_tuples == NULL)
+            exit_with_failure("Error in cell.c: Found null pointer to cell/vector tuples in array of leaf cells vectors!.");
+        return leaf_cells_tuples[cell_idx].vector_tuples;
+    }
+        
+
+
+    leaf_cells_tuples[cell_idx].cell = cell;
+    struct vector_tuple *cell_vectors = get_vector_tuples(cell, settings, false);
+    if(cell_vectors == NULL)
+        exit_with_failure("Error in cell.c: NULL pointer to cell vector tuple!");
+    leaf_cells_tuples[cell_idx].vector_tuples = cell_vectors;
+    leaf_cells_tuples[cell_idx].retrieved = 1;
+    
+    return cell_vectors;
+}
+
+enum response destroy_leaf_cells_vectors_array(struct leaf_cell_vector_tuples * leaf_cells_tuples, struct grid_settings * settings)
+{
+    for(int l = 0; l < settings->num_leaf_cells; l++)
+    {
+        struct leaf_cell_vector_tuples * curr_cell_vectors = &leaf_cells_tuples[l];
+        if(curr_cell_vectors->retrieved == 1)
+        {
+            if(curr_cell_vectors->vector_tuples == NULL || curr_cell_vectors->cell == NULL)
+                exit_with_failure("Error in cell.c: Retrieved vectors but found NULL pointer fointer to cell/ vector tuples!.");
+            
+            // free memory
+            for (int v = 0; v < curr_cell_vectors->cell->cell_size; v++)
+            {
+                free(curr_cell_vectors->vector_tuples[v].mtr_vector);
+                free(curr_cell_vectors->vector_tuples[v].ps_vector);
+            }
+            free(curr_cell_vectors->vector_tuples);
+        }
+    }
+    free(leaf_cells_tuples);
+    return OK;
 }
