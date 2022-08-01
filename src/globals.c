@@ -245,3 +245,19 @@ void print_progress(int i, int j)
     printf("\r%d/%d   %3d%% [%.*s>%*s]", i+1, j, val, lpad, progress_str, rpad, "");
     fflush(stdout);
 }
+
+// compare set id returns 1 if set_id2 is greater than set_id1, 0 if they are equal and 1 otherwise
+int set_id_cmp(struct sid * set_id1, struct sid * set_id2)
+{
+    if (set_id2->table_id > set_id1->table_id)
+        return 1;
+    else if (set_id2->table_id == set_id1->table_id)
+    {
+        if(set_id2->set_id > set_id1->set_id)
+            return 1;
+        else if (set_id2->set_id == set_id1->set_id) // identical
+            return 0;
+        else
+            return -1;
+    }
+}

@@ -49,8 +49,6 @@ enum response verify(struct grid *grid, struct pairs *pairs,
             COUNT_QUERY_TIME_START
             if (pairs->has_matches[i])
             {
-                // printf("\r(!) Current query vector (%u, %u, %u) has %u matches", query_vector->table_id, query_vector->set_id, query_vector->pos, mpair->num_match);
-                // fflush(stdout);
                 for (int m = 0; m < mpair->num_match; m++) // loop through match cells
                 {
                     struct cell *match_cell = mpair->cells[m];
@@ -71,9 +69,9 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     {
                         // update match count for all sets in matching cell
                         struct sid *curr_set = &index->distinct_sets[entry->sets[s]];
-                        int set_idx = has_set(match_map, curr_set);
-                        if(set_idx == -1)
-                            exit_with_failure("Error in query_rngine:c Couldn't find set position in match map.");
+                        int set_idx = entry->sets[s];
+                        if(match_map[map_idx].sets[set_idx].table_id != curr_set->table_id || match_map[map_idx].sets[set_idx].set_id != curr_set->set_id)
+                            exit_with_failure("Error in query_engine.c: set position in match_map is diffrent from set position in inverted index.");
                     
                         update_match_count(match_map, map_idx, query_set, set_idx, join_threshold, query_vector->set_size);
                     }
@@ -97,8 +95,6 @@ enum response verify(struct grid *grid, struct pairs *pairs,
         struct vector *query_vector = &pairs->query_vectors[i]; // q'
         struct vector *query_vector_mtr = &pairs->query_vectors_mtr[i]; // q
 
-        // printf("current query vector:\n");
-        // printf("\nq : (%u, %u, %u, size = %u)\n", query_vector_mtr->table_id, query_vector_mtr->set_id, query_vector_mtr->pos, query_vector_mtr->set_size);
         query_set->table_id = pairs->query_vectors[i].table_id;
         query_set->set_id = pairs->query_vectors[i].set_id;
         query_set->set_size = pairs->query_vectors[i].set_size;
@@ -112,10 +108,6 @@ enum response verify(struct grid *grid, struct pairs *pairs,
 
         if (pairs->has_candidates[i]) // if current vector has candidate pair
         {
-            // printf("\n\r(!) Current query vector (%u, %u, %u) has %u candidates", query_vector->table_id, query_vector->set_id, query_vector->pos, cpair->num_candidates);
-            // fflush(stdout);
-                
-            // printf("\nhas %u candidates\n", cpair->num_candidates);
             for (int c = 0; c < cpair->num_candidates; c++) // loop through candidate cells
             {
                 struct cell *candidate_cell = cpair->cells[c];
@@ -133,7 +125,6 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                 if(candidate_vectors == NULL)
                     exit_with_failure("Error in query_engine.c: couldn't get leaf cell vector tuples.");
 
-                // printf("of entry index %d\n", entry_idx);
                 // find entry of candidate cell in inverted index
                 struct entry *entry = &index->entries[entry_idx];
                 // for every set in candidate cell
@@ -147,12 +138,11 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     if (curr_set == NULL)
                         exit_with_failure("Error in query_engine.c: NULL set in candidate entry!");
 
-                    // set id position in match map
-                    int set_idx = has_set(match_map, curr_set);
-                    if(set_idx == -1)
-                        exit_with_failure("Error in query_rngine:c Couldn't find set position in match map.");
+                    // set id position in match map is the same as set position in inverted index (if not exit)
+                    int set_idx = entry->sets[s];
+                    if(match_map[map_idx].sets[set_idx].table_id != curr_set->table_id || match_map[map_idx].sets[set_idx].set_id != curr_set->set_id)
+                        exit_with_failure("Error in query_engine.c: set position in match_map is diffrent from set position in inverted index.");
                     
-                    // printf("\n(-CS-) candidate set : (%u, %u) |U| = %u\n", curr_set->table_id, curr_set->set_id, match_map[map_idx].u[set_idx]);
                     // lemma 7: skip set if it cannot be joinable on "join_threshold" vectors
                     if ((query_set->set_size - match_map[map_idx].u[set_idx]) < ceil(join_threshold * query_set->set_size ))
                     {    
@@ -161,7 +151,6 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     }
                     else
                     {
-                        // printf("cell size = %d\n\n\n", candidate_cell->cell_size);
                         // get vector (in metric and pivot space) in candidate cell
                         for (int v = 0; v < candidate_cell->cell_size; v++)
                         {

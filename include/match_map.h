@@ -31,13 +31,16 @@ enum response update_match_count(struct match_map * map_list, int map_idx, struc
 enum response update_mismatch_count(struct match_map * map_list, int map_idx, int set_idx);
 
 /* check if set id is in map */
-int has_set(struct match_map * map, struct sid * set_id);
+unsigned long get_set_idx(struct match_map * map, struct sid * set_id);
 
 /* get idx of match map for a specific query set */
 int get_match_map_idx(struct match_map *map, int num_query_sets, struct sid * query_set);
 
 /* print map */
 void dump_match_map_to_console(struct match_map * map, unsigned int map_idx);
+
+/* check if match map has a sorted list of set-ids */
+bool is_sorted(struct match_map * map);
 
 /* destroy match map */
 enum response match_maps_destroy(struct match_map *map, int num_query_sets);

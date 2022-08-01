@@ -100,18 +100,38 @@ enum response update_mismatch_count(struct match_map * map_list, int map_idx, in
 }
 
 /* check if set id is in map */
-int has_set(struct match_map * map, struct sid * sid)
+unsigned long get_set_idx(struct match_map * map, struct sid * sid)
 {
+    int bs_result = -2;
+    int seq_result = -3;
+
     if(map->num_sets == 0)
         return -1;
 
+    // first occurence of sid->table_id
+    bs_result =  binary_search(map->sets, sid, 0, map->num_sets - 1);
+
+    // perform sequential search
     for(int s = 0; s < map->num_sets; s++)
     {
         if(map->sets[s].table_id == sid->table_id && map->sets[s].set_id == sid->set_id)
-            return s;
+        {
+            seq_result =  s;
+        }
     }
-
-    return -1;
+    
+    if(bs_result != seq_result)
+    {
+        printf("\nbs result = %d, seq result = %d\n", bs_result, seq_result);
+        if(bs_result < 0)
+            printf("bs found nothing\n");
+        else
+            printf("bs set is (%u, %u)\n", map->sets[bs_result].table_id, map->sets[bs_result].set_id);
+        if(seq_result < 0)
+            printf("seq found nothing\n");
+        else
+            printf("seq set is (%u, %u)\n", map->sets[seq_result].table_id, map->sets[seq_result].set_id);  
+    } 
 }
 
 /* get idx of match map for a specific query set */
@@ -162,3 +182,4 @@ enum response match_maps_destroy(struct match_map *map, int num_query_sets)
     free(map);
     return OK;
 }
+

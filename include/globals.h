@@ -108,3 +108,6 @@ int get_ndigits(unsigned int n);
 
 /* print a progress bar */
 void print_progress(int i, int j);
+
+// compare set id returns 1 if set_id2 is greater than set_id1
+int set_id_cmp(struct sid * set_id1, struct sid * set_id2);
