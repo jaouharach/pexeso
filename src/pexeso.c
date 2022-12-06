@@ -10,6 +10,7 @@
 #include "../include/file_loader.h"
 #include "../include/pexeso.h"
 #include <string.h>
+#include <valgrind/callgrind.h>
 
 /* pexeso set similarity search algorithm (result in match map of Dgrid) */
 void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index * inv_index)
@@ -47,7 +48,14 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
 
     // verify (verify vectors in list of candidate pairs)
     printf("\n\nVerify...\n\n");
+
+    CALLGRIND_START_INSTRUMENTATION;
+    CALLGRIND_TOGGLE_COLLECT;
+    
     verify(Dgrid, pairs, inv_index, match_map);
+    
+    CALLGRIND_TOGGLE_COLLECT;
+    CALLGRIND_STOP_INSTRUMENTATION;
 
     // print Query grid
     // dump_grid_to_console(Qgrid);

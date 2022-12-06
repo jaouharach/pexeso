@@ -65,10 +65,10 @@ int main(int argc, char **argv)
     {
         static struct option long_options[] = {
             {"work-dir", required_argument, 0, 'r'},
-            {"datalake", required_argument, 0, 'd'},
-            {"datalake-size", required_argument, 0, '#'}, // number of files (tables)
+            {"dataset", required_argument, 0, 'd'},
+            {"dataset-size", required_argument, 0, '#'}, // number of files (tables)
             {"queries", required_argument, 0, 'q'},
-            {"bits", no_argument, 0, 'b'},
+            {"binary-base", no_argument, 0, 'b'},
 
             {"metric-space-dim", required_argument, 0, 'm'},
             {"pivot-space-dim", required_argument, 0, 'p'},
@@ -87,11 +87,8 @@ int main(int argc, char **argv)
             {"max-query-set-size", required_argument, 0, 'a'},
 
             {"metric-buffer-size", required_argument, 0, 'c'},
-            {"pivot-buffer-size", required_argument, 0, 's'},
-
             {"qgrid-metric-buffer-size", required_argument, 0, '&'},
-            {"qgrid-pivot-buffer-size", required_argument, 0, '$'},
-            
+
             {"track-vector", no_argument, 0, 'v'},
             {"mode", required_argument, 0, 'x'},
             {"help", no_argument, 0, '?'}
