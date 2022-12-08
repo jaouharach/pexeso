@@ -14,7 +14,7 @@ struct cell {
     int is_empty;
     unsigned int cell_size; // number of vectors currently stored in cell
     
-    vector * center;
+    struct vector * center;
     float edge_length;
 
     unsigned int vid_pos; // first position in vid.idx file

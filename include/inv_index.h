@@ -32,3 +32,11 @@ void dump_inv_index_to_console(struct inv_index *index);
 
 /* destroy inverted index */
 enum response inv_index_destroy(struct inv_index *index);
+
+/* write inv index to disk */
+enum response index_write(struct inv_index * index, const char * work_dir);
+
+/* read inv index from disk */
+struct inv_index * index_read(const char * work_dir, 
+                    struct grid_settings * settings,
+                    struct level * root);

@@ -51,9 +51,7 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
 
     CALLGRIND_START_INSTRUMENTATION;
     CALLGRIND_TOGGLE_COLLECT;
-    
     verify(Dgrid, pairs, inv_index, match_map);
-    
     CALLGRIND_TOGGLE_COLLECT;
     CALLGRIND_STOP_INSTRUMENTATION;
 
@@ -186,7 +184,7 @@ struct sid * build_query_grid(struct grid * Qgrid, struct grid * Dgrid, inv_inde
     if (!init_grid(Dgrid->settings->work_directory, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, *num_query_vectors, base, mtr_query_vector_length, 
                     mtr_buffered_memory_size, max_leaf_size, track_vector, 
-                    true, Dgrid->settings->query_settings, Qgrid))
+                    true, Dgrid->settings->query_settings, Qgrid, 0))
         exit_with_failure("Error in main.c: Couldn't initialize grid!");
 
     // to allow getting query vectors from disk  using Dgrid settings

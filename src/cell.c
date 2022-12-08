@@ -566,6 +566,7 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
     // buffer not in disk
     if(cell->file_buffer->disk_count == 0)
     {
+        // printf("(not in disk) cell %d, buffer not in disk!\n", cell->id);
         if(cell->cell_size != cell->file_buffer->buffered_list_size)
             exit_with_failure("Error in cell.c: Cell buffer not in disk yet cell_size != buffered list size!");
         
@@ -597,8 +598,6 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
     // if file buffer is in disk load vectors from disk
     else
     {
-        // exit_with_failure("Error in cell.c: can't get vectors, cell's file buffer is disk!");
-
         if(cell->cell_size != (cell->file_buffer->buffered_list_size + cell->file_buffer->disk_count))
             exit_with_failure("Error in cell.c: Cell buffer in disk and cell_size != (buffered list size + disk count)! in function get_vectors_tuples()");
         
@@ -609,7 +608,7 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
         if(from_query_grid == true)
             root_dir = settings->query_root_directory;
         else
-            root_dir = settings->root_directory;
+            root_dir = settings->work_directory;
 
         int full_size = strlen(root_dir) + strlen(cell->filename)+1;
      
@@ -784,7 +783,7 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * set
             if(from_query_grid == true)
                 root_dir = settings->query_root_directory;
             else
-                root_dir = settings->root_directory;
+                root_dir = settings->work_directory;
 
             int full_size = strlen(root_dir) + strlen(leaves[i]->filename)+1;
         

@@ -105,7 +105,8 @@ enum response init_grid(const char *work_dir,
                     unsigned int track_vector,
                     bool is_query_grid,
                     struct query_settings * query_settings,
-                    struct grid *grid);
+                    struct grid *grid,
+                    unsigned int read_from_disk);
 
 /* init statistics */
 enum response init_grid_stats(struct grid * grid);
@@ -122,6 +123,12 @@ void dump_grid_to_console(struct grid * grid);
 /* write grid to disk */
 enum response grid_write(struct grid *grid);
 
+/* read grid from disk */
+struct grid * grid_read(const char * grid_directory, struct query_settings * query_settings);
+
+/* read level from disk */
+enum response read_leaf_level(struct grid *grid, FILE *root_file, struct level * leaf_level);
+
 /* destroy grid */
 enum response grid_destroy(struct grid *grid);
 
@@ -132,7 +139,7 @@ enum response grid_destroy_level(struct grid *grid, struct level *level);
 enum response destroy_buffer_manager(struct grid *grid);
 
 /* write level to disk */
-enum response level_write(struct grid *grid, struct level *level, FILE *file);
+enum response write_leaf_level(struct grid *grid, struct level *level, FILE *file);
 
 /* destroy query grid */
 enum response query_grid_destroy(struct grid *grid);
@@ -140,5 +147,8 @@ enum response query_grid_destroy(struct grid *grid);
 /* print stats */
 void print_grid_stats(struct grid * grid);
 
+/* print settings */
+void print_grid_settings(struct grid * grid);
+
 /* count empty leaf cells */
-int count_empty_leaf_cells(struct grid * grid);
+enum response count_empty_leaf_cells(struct grid * grid);

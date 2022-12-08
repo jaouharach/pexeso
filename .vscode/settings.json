@@ -5,6 +5,8 @@
         "match_map.h": "c",
         "hgrid.h": "c",
         "gsl_matrix.h": "c",
-        "limits.h": "c"
+        "limits.h": "c",
+        "stats.h": "c",
+        "level.h": "c"
     }
 }

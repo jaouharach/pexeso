@@ -557,7 +557,9 @@ unsigned long long get_full_datalake_info(const char *bin_files_directory, unsig
         {
             // get binary file info
             sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &v_len);
-            *num_files = *num_files + 1;
+            
+            if(datasize > 0) // if file is not empty
+                *num_files = *num_files + 1;
             *num_vectors += datasize;
 
             // check if there exist files with different vector lengths
@@ -691,7 +693,9 @@ unsigned long long get_datalake_info(const char *bin_files_directory, unsigned l
         {
             // get binary file info
             sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &v_len);
-            num_files = num_files - 1;
+
+            if(datasize > 0)
+                num_files = num_files - 1;
             *num_vectors += datasize;
 
             // check if there exist files with different vector lengths

@@ -3,6 +3,8 @@
 #include "../include/hgrid.h"
 #include "../include/inv_index.h"
 #include "../include/cell.h"
+#include "../include/stats.h"
+#include "../include/level.h"
 
 /* add entry to inverted index (cell -> {(table_id, set_id)}) */
 enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size, unsigned int num_pivots)
@@ -190,7 +192,6 @@ int previously_indexed_set(struct inv_index * index, unsigned int table_id, unsi
     return -1;   
 }
 
-
 /* print inverted index */
 void dump_inv_index_to_console(struct inv_index *index)
 {
@@ -201,7 +202,7 @@ void dump_inv_index_to_console(struct inv_index *index)
     {
         struct entry * curr_entry = &index->entries[e];
         unsigned long long set_idx;
-        printf("\t%d: %p => {", e, curr_entry->cell);
+        printf("\t%d: cell %d at %p => {", e, curr_entry->cell->id, curr_entry->cell);
         for(int s = 0; s < curr_entry->num_sets; s++)
         {
             set_idx = curr_entry->sets[s];
@@ -233,4 +234,139 @@ enum response inv_index_destroy(struct inv_index *index)
     free(index);
 
     return OK;
+}
+
+/* write inv index to disk */
+enum response index_write(struct inv_index * index, const char * work_dir)
+{
+    /* write inverted index to disk */ 
+    // make inverted.idx file
+    char *inverted_idx_filename = malloc(sizeof(char) * (strlen(work_dir) + 13));
+    if (inverted_idx_filename == NULL)
+        exit_with_failure("Error in inv_index.c: Couldn't allocate memory for root file name.");
+    inverted_idx_filename = strcpy(inverted_idx_filename, work_dir);
+    inverted_idx_filename = strcat(inverted_idx_filename, "inverted.idx\0");
+
+    COUNT_PARTIAL_OUTPUT_TIME_START
+    FILE *idx_file = fopen(inverted_idx_filename, "wb");
+    COUNT_PARTIAL_OUTPUT_TIME_END
+    if (idx_file == NULL)
+        exit_with_failure("Error in inv_index.c: Couldn't open inverted index file 'inverted.idx'.");
+
+    unsigned long long num_entries = index->num_entries;
+    unsigned long long num_distinct_sets = index->num_distinct_sets;
+    struct entry * entries = index->entries;
+    struct sid * distinct_sets = index->distinct_sets;
+
+    COUNT_PARTIAL_OUTPUT_TIME_START
+    fwrite(&num_entries, sizeof(unsigned long long), 1, idx_file);
+    fwrite(&num_distinct_sets, sizeof(unsigned long long), 1, idx_file);
+    fwrite(distinct_sets, sizeof(struct sid), num_distinct_sets, idx_file);
+    for(int e = 0; e < num_entries; e++)
+    {
+        int filename_size = strlen(entries[e].cell->filename);
+        fwrite(&(entries[e].cell->id), sizeof(unsigned int), 1, idx_file);
+        fwrite(entries[e].cell->filename, sizeof(char), filename_size, idx_file);
+        fwrite(&(entries[e].cell->cell_size), sizeof(unsigned int), 1, idx_file);
+        fwrite(&(entries[e].num_sets), sizeof(unsigned int), 1, idx_file);
+        fwrite(entries[e].sets, sizeof(unsigned long), entries[e].num_sets, idx_file);
+        fwrite(entries[e].vector_count, sizeof(unsigned long), entries[e].num_sets, idx_file);
+    }
+    COUNT_PARTIAL_OUTPUT_TIME_END
+
+    free(inverted_idx_filename);
+    COUNT_PARTIAL_OUTPUT_TIME_START
+    fclose(idx_file);
+    COUNT_PARTIAL_OUTPUT_TIME_END
+
+    return OK;
+}
+
+/* write inv index to disk */
+struct inv_index * index_read(const char * work_dir, 
+                    struct grid_settings * settings,
+                    struct level * root)
+{
+    struct level * leaf_level = root;
+    while(!leaf_level->is_leaf)
+        leaf_level = leaf_level->next;
+    
+    printf("\n\nReading inverted index... ");
+    struct inv_index * index = malloc(sizeof(struct inv_index));
+    /* write inverted index to disk */ 
+    // make inverted.idx file
+    char *inverted_idx_filename = malloc(sizeof(char) * (strlen(work_dir) + 13));
+    if (inverted_idx_filename == NULL)
+        exit_with_failure("Error in inv_index.c: Couldn't allocate memory for root file name.");
+    inverted_idx_filename = strcpy(inverted_idx_filename, work_dir);
+    inverted_idx_filename = strcat(inverted_idx_filename, "inverted.idx\0");
+
+    COUNT_PARTIAL_INPUT_TIME_START
+    FILE *idx_file = fopen(inverted_idx_filename, "rb");
+    COUNT_PARTIAL_INPUT_TIME_END
+    if (idx_file == NULL)
+        exit_with_failure("Error in inv_index.c: Couldn't open inverted index file 'inverted.idx'.");
+
+    COUNT_PARTIAL_INPUT_TIME_START
+    fread(&(index->num_entries), sizeof(unsigned long long), 1, idx_file);
+    fread(&(index->num_distinct_sets), sizeof(unsigned long long), 1, idx_file);
+    COUNT_PARTIAL_INPUT_TIME_END
+    index->distinct_sets = malloc(sizeof(struct sid) * index->num_distinct_sets);
+    index->entries = malloc(sizeof(struct entry) * index->num_entries);
+
+    if (index->entries == NULL  || index->distinct_sets == NULL)
+        exit_with_failure("Error in inv_index.c: Couldn't allocate memory for inverted index (entries/sets).");
+    
+    COUNT_PARTIAL_INPUT_TIME_START
+    fread(index->distinct_sets, sizeof(struct sid), index->num_distinct_sets, idx_file);
+    COUNT_PARTIAL_INPUT_TIME_END
+    
+    struct entry * entries = index->entries;
+    unsigned int cell_id, cell_size;
+    char cell_filename[255] = "";
+
+    
+    for(int e = 0; e < index->num_entries; e++)
+    {
+        COUNT_PARTIAL_INPUT_TIME_START
+        fread(&cell_id, sizeof(unsigned int), 1, idx_file);
+        COUNT_PARTIAL_INPUT_TIME_END
+        for(int c = 0; c < leaf_level->num_cells; c++)
+            if(leaf_level->cells[c].id == cell_id)
+                entries[e].cell = &(leaf_level->cells[c]); // link cell in inv index with cell in grid
+
+        int filename_size = strlen(entries[e].cell->filename);
+        COUNT_PARTIAL_INPUT_TIME_START
+        fread(cell_filename, sizeof(char), filename_size, idx_file);
+        cell_filename[filename_size] = '\0';
+        fread(&cell_size, sizeof(unsigned int), 1, idx_file);
+        
+        if(strcmp(cell_filename, entries[e].cell->filename) != 0 || cell_size != entries[e].cell->cell_size)
+        {
+            printf("Error in inv_index.c: Expected cell %s but read cell %s.", entries[e].cell->filename, cell_filename);
+            exit(1); 
+        }
+
+        fread(&(entries[e].num_sets), sizeof(unsigned int), 1, idx_file);
+        COUNT_PARTIAL_INPUT_TIME_END
+
+        entries[e].sets = malloc(sizeof(unsigned long) * entries[e].num_sets);
+        entries[e].vector_count = malloc(sizeof(unsigned long) * entries[e].num_sets);
+        if (entries[e].sets == NULL)
+            exit_with_failure("Error in inv_index.c: Couldn't allocate memory for entry sets.");
+        
+        COUNT_PARTIAL_INPUT_TIME_START
+        fread(entries[e].sets, sizeof(unsigned long), entries[e].num_sets, idx_file);
+        fread(entries[e].vector_count, sizeof(unsigned long), entries[e].num_sets, idx_file);
+        COUNT_PARTIAL_INPUT_TIME_END
+    }
+    
+
+    free(inverted_idx_filename);
+    COUNT_PARTIAL_INPUT_TIME_START
+    fclose(idx_file);
+    COUNT_PARTIAL_INPUT_TIME_END
+
+    printf("(OK)\n");
+    return index;
 }

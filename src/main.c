@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     const char * work_dir = "/home/jaouhara/Projects/pexeso-debbug/pexeso/";
     const char * bin_files_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/"; //target directory
     const char * bin_query_file_directory = "/home/jaouhara/Projects/Dissertation/dssdl/encode/binfiles/query/"; //target directory
-
+    const char * grid_dir = ""; // where grid is tored
     unsigned long total_dl_files = 0ul;
 
     unsigned int base = 32; // 32 bits to store numbers in binary files
@@ -65,6 +65,7 @@ int main(int argc, char **argv)
     {
         static struct option long_options[] = {
             {"work-dir", required_argument, 0, 'r'},
+            {"index-path", required_argument, 0, '^'},
             {"dataset", required_argument, 0, 'd'},
             {"dataset-size", required_argument, 0, '#'}, // number of files (tables)
             {"queries", required_argument, 0, 'q'},
@@ -104,6 +105,10 @@ int main(int argc, char **argv)
         {
             case 'r':
                 work_dir = optarg;
+                break;
+
+            case '^':
+                grid_dir = optarg;
                 break;
 
             case 'd':
@@ -293,165 +298,385 @@ int main(int argc, char **argv)
 
     printf("\tNumber of tables = %lu\n\tNumber of vectors = %llu\n\tVector length in mtric spaces = %u\n\n", total_dl_files, total_vectors, mtr_vector_length);
 
-    printf("Loading dataset files...");
-    vector * dataset = load_binary_files(bin_files_directory, 
-                                        total_dl_files, total_vectors, base, mtr_vector_length);
-    
-    if(dataset == NULL)
-        exit_with_failure("Error in main.c: Something went wrong, couldn't read dataset vectors!");
-    printf("(OK)\n");
-
-    printf("\n\nLooking for pivot vectors...");
-    /* search for pivot vectors using pca based algorithm (waiting for response from authors) */
-    int dataset_dim [] = {total_vectors, num_dim_metric_space};
-    int pivots_mtr_dim [] = {num_pivots, num_dim_metric_space};
-
-    // get pivot vector in from metric dataset
-    clock_t start_pivot_selection_time; // start time to select pivots
-    clock_t end_pivot_selection_time; // end time after selecting pivots
-
-    vector * pivots_mtr = NULL;
-    if(!best_fft) // search for pivots using user defined fft_scale
+    // create grid index and store it in disk
+    if(mode == 0)
     {
-        COUNT_PIVOT_SELECTION_TIME_START
-        pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
-        COUNT_PIVOT_SELECTION_TIME_END
+        printf("MODE 0: Create index.\n\n\n");
+        printf("Loading dataset files...");
+        vector * dataset = load_binary_files(bin_files_directory, 
+                                            total_dl_files, total_vectors, base, mtr_vector_length);
+        
+        if(dataset == NULL)
+            exit_with_failure("Error in main.c: Something went wrong, couldn't read dataset vectors!");
+        printf("(OK)\n");
+
+        printf("\n\nLooking for pivot vectors...");
+        /* search for pivot vectors using pca based algorithm (waiting for response from authors) */
+        int dataset_dim [] = {total_vectors, num_dim_metric_space};
+        int pivots_mtr_dim [] = {num_pivots, num_dim_metric_space};
+
+        // get pivot vector in from metric dataset
+        vector * pivots_mtr = NULL;
+        if(!best_fft) // search for pivots using user defined fft_scale
+        {
+            COUNT_PIVOT_SELECTION_TIME_START
+            pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
+            COUNT_PIVOT_SELECTION_TIME_END
+        }
+        else
+        {
+            COUNT_PIVOT_SELECTION_TIME_START
+            pivots_mtr = select_pivots_with_best_fft_scale(dataset, dataset_dim, pivots_mtr_dim, fft_scale, max_fft, num_best_fft_iter);
+            COUNT_PIVOT_SELECTION_TIME_END
+        }
+
+        // free dataset (dataset was loaded into memory to get pivots)
+        for(int dv = total_vectors - 1; dv >=0; dv--)
+            free(dataset[dv].values);
+        free(dataset);  
+
+        printf("(OK)\n");
+
+
+        /* map pivot vectors to pivot space pi --> pi' */
+        printf("\n\nTransforming pivots to pivot space... ");
+        vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
+        printf("(OK)\n");
+        
+
+        /* pivot space extremity */
+        // printf("\nExtremity vector (in pivot space):\n");
+        vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
+        
+        
+        /* initialize grid */
+        printf("\n\nInitialize grid... ");
+        struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size);
+        struct grid * grid = (struct grid *) malloc(sizeof(struct grid));
+        if (grid == NULL)
+            exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
+
+        if (!init_grid(work_dir, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
+                        num_levels, total_vectors, base, mtr_vector_length, 
+                        mtr_buffered_memory_size, max_leaf_size, track_vector, 
+                        false, query_settings, grid, 0))
+            exit_with_failure("Error in main.c: Couldn't initialize grid!");
+        printf("(OK)\n");
+
+
+        /* initialize grid stats */
+        printf("\n\nInitialize grid stats... ");
+        if(!init_grid_stats(grid))
+            exit_with_failure("Error in main.c: Couldn't initialize grid stats!");
+            grid->stats->total_pivot_selection_time += pivot_selection_time;
+        printf("(OK)\n");
+
+        /* Build levels */
+        printf("\n\nBuilding levels... ");
+        if(!init_root(grid))
+            exit_with_failure("Error in main.c: Couldn't initialize root level!");
+
+        if (!init_first_level(grid))
+            exit_with_failure("Error in main.c: Couldn't initialize first level!");
+
+        if (!init_levels(grid))
+            exit_with_failure("Error in main.c: Couldn't initialize grid levels!");
+        printf("(OK)\n");
+
+        
+        /* insert dataset in grid (read and index all vectors in the data set) */
+        printf("Index dataset vectors and build inverted index...");
+        struct inv_index * index = malloc(sizeof(struct inv_index));
+        index->num_entries = 0; index->num_distinct_sets = 0;
+        
+        if(index == NULL)
+            exit_with_failure("Error in main.c: Couldn't allocate memory for inverted index.");
+
+        if (!index_binary_files(grid, index, bin_files_directory, total_dl_files, base))
+            exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
+        printf("(OK)\n");
+
+        /* count empty leafs in grid */
+        if(!count_empty_leaf_cells(grid))
+            exit_with_failure("Error in main.c: Couldn't count NB of empty leaf cells.");
+
+        // print grid settings
+        print_grid_settings(grid);
+
+        /* print grid */
+        // dump_grid_to_console(grid);
+
+        COUNT_PARTIAL_TIME_END
+
+        grid->stats->grid_building_total_time += partial_time;
+        grid->stats->grid_building_input_time += partial_input_time;
+        grid->stats->grid_building_output_time += partial_output_time;
+
+        grid->stats->out_of_ps_space_vec_count += out_of_ps_space_vec_count;
+        grid->stats->out_of_ps_space_qvec_count += out_of_ps_space_qvec_count;
+
+        grid->stats->loaded_files_count += loaded_files_count;
+        grid->stats->loaded_sets_count += loaded_sets_count;
+        grid->stats->loaded_files_size += loaded_files_size;
+        grid->stats->loaded_vec_count += loaded_vec_count;
+        
+        /* querying */
+        // pexeso(bin_query_file_directory, grid, index);
+
+        grid->stats->total_query_time += total_query_time;
+        grid->stats->loaded_query_files_count += loaded_query_files_count;
+        grid->stats->loaded_query_sets_count += loaded_query_sets_count;
+        grid->stats->loaded_query_files_size += loaded_query_files_size;
+        grid->stats->loaded_qvec_count += loaded_qvec_count;
+        for(int i = 0; i < 7; i++)
+            grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
+
+        /* print inverted index */
+        dump_inv_index_to_console(index);
+
+        /* write grid to disk */
+        if (!grid_write(grid))
+            exit_with_failure("Error main.c:  Could not save the grid to disk.\n");
+
+        if (!index_write(index, grid->settings->root_directory))
+            exit_with_failure("Error main.c:  Could not save the inverted index to disk.\n");
+
+        grid->stats->grid_building_output_time += partial_output_time;
+
+        /* end of endexing and quering */
+        COUNT_TOTAL_TIME_END
+        grid->stats->total_time = total_time;
+
+        /* print grid statistics */
+        print_grid_stats(grid);
+
+        printf("End of progam: combined indexing and querying time : %.2f secs \n", total_time / 1000000);
+        
+
+        /* destroy grid */
+        if (!grid_destroy(grid))
+            exit_with_failure("Error main.c: Could not destroy grid.\n");
+        
+        /* destroy inverted index */
+        if(!inv_index_destroy(index))
+            exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
+
+    }
+    // read grid index from disk and run queries
+    else if (mode == 1)
+    {
+        printf("MODE 1: Read index from disk and run queries.\n");
+        struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size);        
+        
+        // read grid from disk
+        struct grid *grid = grid_read(grid_dir, query_settings);
+        
+        // read inverted index from disk
+        struct inv_index* index = index_read(grid->settings->work_directory, 
+                    grid->settings,
+                    grid->first_level);
+
+        /* print inverted index */
+        // dump_inv_index_to_console(index);
+
+        /* querying */
+        pexeso(bin_query_file_directory, grid, index);
+
+        grid->stats->total_query_time += total_query_time;
+        grid->stats->loaded_query_files_count += loaded_query_files_count;
+        grid->stats->loaded_query_sets_count += loaded_query_sets_count;
+        grid->stats->loaded_query_files_size += loaded_query_files_size;
+        grid->stats->loaded_qvec_count += loaded_qvec_count;
+        for(int i = 0; i < 7; i++)
+            grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
+
+        grid->stats->grid_building_input_time += partial_input_time;
+
+        /* end of endexing and quering */
+        COUNT_TOTAL_TIME_END
+        grid->stats->total_time = total_time;
+
+        /* print grid statistics */
+        print_grid_stats(grid);
+
+        printf("End of progam: combined indexing and querying time : %.2f secs \n", total_time / 1000000);
+        
+
+        /* destroy grid */
+        if (!grid_destroy(grid))
+            exit_with_failure("Error main.c: Could not destroy grid.\n");
+        
+        /* destroy inverted index */
+        if(!inv_index_destroy(index))
+            exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
+    }
+    // read grid index from disk and run queries
+    else if (mode == 2)
+    {
+        printf("MODE 0: Create index.\n\n\n");
+        printf("Loading dataset files...");
+        vector * dataset = load_binary_files(bin_files_directory, 
+                                            total_dl_files, total_vectors, base, mtr_vector_length);
+        
+        if(dataset == NULL)
+            exit_with_failure("Error in main.c: Something went wrong, couldn't read dataset vectors!");
+        printf("(OK)\n");
+
+        printf("\n\nLooking for pivot vectors...");
+        /* search for pivot vectors using pca based algorithm (waiting for response from authors) */
+        int dataset_dim [] = {total_vectors, num_dim_metric_space};
+        int pivots_mtr_dim [] = {num_pivots, num_dim_metric_space};
+
+        // get pivot vector in from metric dataset
+        vector * pivots_mtr = NULL;
+        if(!best_fft) // search for pivots using user defined fft_scale
+        {
+            COUNT_PIVOT_SELECTION_TIME_START
+            pivots_mtr = select_pivots(dataset, dataset_dim, num_pivots, fft_scale);
+            COUNT_PIVOT_SELECTION_TIME_END
+        }
+        else
+        {
+            COUNT_PIVOT_SELECTION_TIME_START
+            pivots_mtr = select_pivots_with_best_fft_scale(dataset, dataset_dim, pivots_mtr_dim, fft_scale, max_fft, num_best_fft_iter);
+            COUNT_PIVOT_SELECTION_TIME_END
+        }
+
+        // free dataset (dataset was loaded into memory to get pivots)
+        for(int dv = total_vectors - 1; dv >=0; dv--)
+            free(dataset[dv].values);
+        free(dataset);  
+
+        printf("(OK)\n");
+
+
+        /* map pivot vectors to pivot space pi --> pi' */
+        printf("\n\nTransforming pivots to pivot space... ");
+        vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
+        printf("(OK)\n");
+        
+
+        /* pivot space extremity */
+        // printf("\nExtremity vector (in pivot space):\n");
+        vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
+        
+        
+        /* initialize grid */
+        printf("\n\nInitialize grid... ");
+        struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size);
+        struct grid * grid = (struct grid *) malloc(sizeof(struct grid));
+        if (grid == NULL)
+            exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
+
+        if (!init_grid(work_dir, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
+                        num_levels, total_vectors, base, mtr_vector_length, 
+                        mtr_buffered_memory_size, max_leaf_size, track_vector, 
+                        false, query_settings, grid, 0))
+            exit_with_failure("Error in main.c: Couldn't initialize grid!");
+        printf("(OK)\n");
+
+
+        /* initialize grid stats */
+        printf("\n\nInitialize grid stats... ");
+        if(!init_grid_stats(grid))
+            exit_with_failure("Error in main.c: Couldn't initialize grid stats!");
+            grid->stats->total_pivot_selection_time += pivot_selection_time;
+        printf("(OK)\n");
+
+        /* Build levels */
+        printf("\n\nBuilding levels... ");
+        if(!init_root(grid))
+            exit_with_failure("Error in main.c: Couldn't initialize root level!");
+
+        if (!init_first_level(grid))
+            exit_with_failure("Error in main.c: Couldn't initialize first level!");
+
+        if (!init_levels(grid))
+            exit_with_failure("Error in main.c: Couldn't initialize grid levels!");
+        printf("(OK)\n");
+
+        
+        /* insert dataset in grid (read and index all vectors in the data set) */
+        printf("Index dataset vectors and build inverted index...");
+        struct inv_index * index = malloc(sizeof(struct inv_index));
+        index->num_entries = 0; index->num_distinct_sets = 0;
+        
+        if(index == NULL)
+            exit_with_failure("Error in main.c: Couldn't allocate memory for inverted index.");
+
+        if (!index_binary_files(grid, index, bin_files_directory, total_dl_files, base))
+            exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
+        printf("(OK)\n");
+
+        /* count empty leafs in grid */
+        if(!count_empty_leaf_cells(grid))
+            exit_with_failure("Error in main.c: Couldn't count NB of empty leaf cells.");
+
+        // print grid settings
+        print_grid_settings(grid);
+
+        /* print grid */
+        // dump_grid_to_console(grid);
+
+        COUNT_PARTIAL_TIME_END
+
+        grid->stats->grid_building_total_time += partial_time;
+        grid->stats->grid_building_input_time += partial_input_time;
+        grid->stats->grid_building_output_time += partial_output_time;
+
+        grid->stats->out_of_ps_space_vec_count += out_of_ps_space_vec_count;
+        grid->stats->out_of_ps_space_qvec_count += out_of_ps_space_qvec_count;
+
+        grid->stats->loaded_files_count += loaded_files_count;
+        grid->stats->loaded_sets_count += loaded_sets_count;
+        grid->stats->loaded_files_size += loaded_files_size;
+        grid->stats->loaded_vec_count += loaded_vec_count;
+        
+        /* querying */
+        pexeso(bin_query_file_directory, grid, index);
+
+        grid->stats->total_query_time += total_query_time;
+        grid->stats->loaded_query_files_count += loaded_query_files_count;
+        grid->stats->loaded_query_sets_count += loaded_query_sets_count;
+        grid->stats->loaded_query_files_size += loaded_query_files_size;
+        grid->stats->loaded_qvec_count += loaded_qvec_count;
+        for(int i = 0; i < 7; i++)
+            grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
+
+        /* print inverted index */
+        dump_inv_index_to_console(index);
+
+        /* write grid to disk */
+        if (!grid_write(grid))
+            exit_with_failure("Error main.c:  Could not save the grid to disk.\n");
+
+        if (!index_write(index, grid->settings->root_directory))
+            exit_with_failure("Error main.c:  Could not save the inverted index to disk.\n");
+
+        grid->stats->grid_building_output_time += partial_output_time;
+
+        /* end of endexing and quering */
+        COUNT_TOTAL_TIME_END
+        grid->stats->total_time = total_time;
+
+        /* print grid statistics */
+        print_grid_stats(grid);
+
+        printf("End of progam: combined indexing and querying time : %.2f secs \n", total_time / 1000000);
+        
+
+        /* destroy grid */
+        if (!grid_destroy(grid))
+            exit_with_failure("Error main.c: Could not destroy grid.\n");
+        
+        /* destroy inverted index */
+        if(!inv_index_destroy(index))
+            exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
     }
     else
     {
-        COUNT_PIVOT_SELECTION_TIME_START
-        pivots_mtr = select_pivots_with_best_fft_scale(dataset, dataset_dim, pivots_mtr_dim, fft_scale, max_fft, num_best_fft_iter);
-        COUNT_PIVOT_SELECTION_TIME_END
+        printf("UNKOWN MODE: please specify execution mode (--mode 0: to create index, --mode 1: to run queries).\n");
     }
-
-    // free dataset (dataset was loaded into memory to get pivots)
-    for(int dv = total_vectors - 1; dv >=0; dv--)
-        free(dataset[dv].values);
-    free(dataset);  
-
-    printf("(OK)\n");
-
-
-    /* map pivot vectors to pivot space pi --> pi' */
-    printf("\n\nTransforming pivots to pivot space... ");
-    vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
-    printf("(OK)\n");
     
-
-    /* pivot space extremity */
-    // printf("\nextremity vector (in pivot space):\n");
-    vector * pivot_space_extremity = get_extremity(pivots_ps, num_pivots);
-    // print_vector(pivot_space_extremity, num_pivots);
-    
-    /* initialize grid */
-    printf("\n\nInitialize grid... ");
-    struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size);
-    struct grid * grid = (struct grid *) malloc(sizeof(struct grid));
-    if (grid == NULL)
-        exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
-
-    if (!init_grid(work_dir, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
-                    num_levels, total_vectors, base, mtr_vector_length, 
-                    mtr_buffered_memory_size, max_leaf_size, track_vector, 
-                    false, query_settings, grid))
-        exit_with_failure("Error in main.c: Couldn't initialize grid!");
-    printf("(OK)\n");
-
-
-    /* initialize grid stats */
-    printf("\n\nInitialize grid stats... ");
-    if(!init_grid_stats(grid))
-        exit_with_failure("Error in main.c: Couldn't initialize grid stats!");
-        grid->stats->total_pivot_selection_time += pivot_selection_time;
-    printf("(OK)\n");
-
-    /* Build levels */
-    printf("\n\nBuilding levels... ");
-    if(!init_root(grid))
-        exit_with_failure("Error in main.c: Couldn't initialize root level!");
-
-    if (!init_first_level(grid))
-        exit_with_failure("Error in main.c: Couldn't initialize first level!");
-
-    if (!init_levels(grid))
-        exit_with_failure("Error in main.c: Couldn't initialize grid levels!");
-    printf("(OK)\n");
-
-    
-    /* insert dataset in grid (read and index all vectors in the data set) */
-    printf("Index dataset vectors and build inverted index...");
-    struct inv_index * index = malloc(sizeof(struct inv_index));
-    index->num_entries = 0; index->num_distinct_sets = 0;
-    
-    if(index == NULL)
-        exit_with_failure("Error in main.c: Couldn't allocate memory for inverted index.");
-
-    if (!index_binary_files(grid, index, bin_files_directory, total_dl_files, base))
-        exit_with_failure("Error in main.c: Something went wrong, couldn't index binary files.");
-    printf("(OK)\n");
-
-    /* count empty leafs in grid */
-    int num_empty_leaves = count_empty_leaf_cells(grid);
-    grid->stats->empty_leaf_cells_count = num_empty_leaves;
-
-    /* print Rv grid */
-    // dump_grid_to_console(grid);
-
-    COUNT_PARTIAL_TIME_END
-
-    grid->stats->grid_building_total_time += partial_time;
-    grid->stats->grid_building_input_time += partial_input_time;
-    grid->stats->grid_building_output_time += partial_output_time;
-
-    grid->stats->out_of_ps_space_vec_count += out_of_ps_space_vec_count;
-    grid->stats->out_of_ps_space_qvec_count += out_of_ps_space_qvec_count;
-
-    grid->stats->loaded_files_count += loaded_files_count;
-    grid->stats->loaded_sets_count += loaded_sets_count;
-    grid->stats->loaded_files_size += loaded_files_size;
-    grid->stats->loaded_vec_count += loaded_vec_count;
-    
-
-
-    /* querying */
-    pexeso(bin_query_file_directory, grid, index);
-
-
-    grid->stats->total_query_time += total_query_time;
-    grid->stats->loaded_query_files_count += loaded_query_files_count;
-    grid->stats->loaded_query_sets_count += loaded_query_sets_count;
-    grid->stats->loaded_query_files_size += loaded_query_files_size;
-    grid->stats->loaded_qvec_count += loaded_qvec_count;
-    for(int i = 0; i < 7; i++)
-        grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
-
-
-    /* print inverted index */
-    // dump_inv_index_to_console(index);
-
-    /* write grid to disk */
-    if (!grid_write(grid))
-        exit_with_failure("Error main.c:  Could not save the grid to disk.\n");
-    grid->stats->grid_building_output_time += partial_output_time;
-
-    /* end of endexing and quering */
-    COUNT_TOTAL_TIME_END
-    grid->stats->total_time = total_time;
-
-    /* print grid statistics */
-    print_grid_stats(grid);
-
-
-    printf("End of progam: combined indexing and querying time : %.2f secs \n", total_time / 1000000);
-    
-
-    /* destroy grid */
-    if (!grid_destroy(grid))
-        exit_with_failure("Error main.c: Could not destroy grid.\n");
-    
-    /* destroy inverted index */
-    if(!inv_index_destroy(index))
-        exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
-
     exit(0);
 }
