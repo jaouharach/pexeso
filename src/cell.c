@@ -83,6 +83,8 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
     // track vector
     if (grid->settings->track_vector)
     {
+        if(cell->vid == NULL)
+            cell->vid = (struct vid *) calloc(grid->settings->max_leaf_size, sizeof(struct vid));
         cell->vid[cell->cell_size].table_id = vector->table_id;
         cell->vid[cell->cell_size].set_id = vector->set_id;
         cell->vid[cell->cell_size].pos = vector->pos;
@@ -152,20 +154,13 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * c
         child_cells[c].file_buffer = NULL;
         child_cells[c].filename = NULL;
         child_cells[c].children = NULL;
+        child_cells[c].vid = NULL; // only allocate vids when we need to insert a vector in cell
 
         // printf("are leaf children = %s.\n", children_level->is_leaf ? "true" : "false");
         if(children_level->is_leaf)
-        {
             child_cells[c].is_leaf = true;
-            child_cells[c].vid = (struct vid *) calloc(settings->max_leaf_size, sizeof(struct vid));
-        }
         else
-        {
             child_cells[c].is_leaf = false;
-            child_cells[c].vid = NULL;
-        }
-        
-
     }
     // the values of center vectors for child cells will vary (from parent center vector) in earch direction d(., pi) by (+/-) parent_cell->edge_length /4
     unsigned int ndc = settings->num_pivots * 2;
