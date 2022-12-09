@@ -58,18 +58,20 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                         continue;
                     }
                     // get sets in matching cell, look for cell entry in inverted index
-                    int entry_idx = has_cell(index, match_cell, num_pivots);
+                    // int entry_idx = has_cell(index, match_cell, num_pivots);
+                    // printf("\ncell, found index entry = %d, stored index entry = %d\n", entry_idx, match_cell->index_entry_pos);
+                    int entry_idx = match_cell->index_entry_pos;
                     if (entry_idx == -1)
                     {
                         exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for matching cell!");
                     }
 
                     struct entry *entry = &index->entries[entry_idx];
-                    for (int s = 0; s < entry->num_sets; s++)
+                    for (unsigned long s = 0; s < entry->num_sets; s++)
                     {
                         // update match count for all sets in matching cell
                         struct sid *curr_set = &index->distinct_sets[entry->sets[s]];
-                        int set_idx = entry->sets[s];
+                        unsigned long set_idx = entry->sets[s];
                         if(match_map[map_idx].sets[set_idx].table_id != curr_set->table_id || match_map[map_idx].sets[set_idx].set_id != curr_set->set_id)
                             exit_with_failure("Error in query_engine.c: set position in match_map is diffrent from set position in inverted index.");
                     
@@ -113,7 +115,9 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                 struct cell *candidate_cell = cpair->cells[c];
 
                 // get cell entry in the inverted index
-                int entry_idx = has_cell(index, candidate_cell, num_pivots);
+                // int entry_idx = has_cell(index, candidate_cell, num_pivots);
+                // printf("\ncell, found index entry = %d, stored index entry = %d\n", entry_idx, candidate_cell->index_entry_pos);
+                int entry_idx = candidate_cell->index_entry_pos;
                 if (entry_idx == -1)
                     {
                         print_vector(candidate_cell->center, num_pivots);
@@ -128,7 +132,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                 // find entry of candidate cell in inverted index
                 struct entry *entry = &index->entries[entry_idx];
                 // for every set in candidate cell
-                for (int s = 0; s < entry->num_sets; s++)
+                for (unsigned long s = 0; s < entry->num_sets; s++)
                 {
                     int curr_qvec_has_a_match = 0; // check if current query vector has  a match in current set or not
                     struct sid *curr_set = &index->distinct_sets[entry->sets[s]];
@@ -139,7 +143,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                         exit_with_failure("Error in query_engine.c: NULL set in candidate entry!");
 
                     // set id position in match map is the same as set position in inverted index (if not exit)
-                    int set_idx = entry->sets[s];
+                    unsigned long set_idx = entry->sets[s];
                     if(match_map[map_idx].sets[set_idx].table_id != curr_set->table_id || match_map[map_idx].sets[set_idx].set_id != curr_set->set_id)
                         exit_with_failure("Error in query_engine.c: set position in match_map is diffrent from set position in inverted index.");
                     

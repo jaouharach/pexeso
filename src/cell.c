@@ -132,6 +132,7 @@ response init_cell(cell *cell, float length, unsigned int num_child_cells)
     cell->file_buffer = NULL;
     cell->filename = NULL;
     cell->vid = NULL;
+    cell->index_entry_pos = -1;
 
     return OK;
 }
@@ -154,8 +155,9 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * c
         child_cells[c].file_buffer = NULL;
         child_cells[c].filename = NULL;
         child_cells[c].children = NULL;
+        child_cells[c].index_entry_pos = -1;
         child_cells[c].vid = NULL; // only allocate vids when we need to insert a vector in cell
-
+        
         // printf("are leaf children = %s.\n", children_level->is_leaf ? "true" : "false");
         if(children_level->is_leaf)
             child_cells[c].is_leaf = true;
@@ -253,7 +255,7 @@ void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
     dest->edge_length = src->edge_length;
     for (int i = 0; i < num_dim; i++)
         dest->center->values[i] = src->center->values[i];
-
+    dest->is_empty = src->is_empty;
     dest->is_leaf = src->is_leaf;
     dest->children = src->children;
     dest->num_child_cells = src->num_child_cells;
@@ -261,7 +263,7 @@ void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
     dest->cell_size = 0;
     dest->file_buffer = src->file_buffer;
     dest->vid = src->vid;
-
+    // dest->index_entry_pos = src->index_entry_pos;
 }
 /* create cell filename */
 
@@ -456,7 +458,7 @@ vector * get_vectors_ps(struct cell * cell, struct grid_settings * settings, boo
         if(from_query_grid == true)
             root_dir = settings->query_root_directory;
         else
-            root_dir = settings->root_directory;
+            root_dir = settings->work_directory;
 
         int full_size = strlen(root_dir) + strlen(cell->filename)+1;
      

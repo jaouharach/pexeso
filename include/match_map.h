@@ -11,7 +11,7 @@ struct match_map {
     unsigned int total_checked_vectors;
     unsigned int num_dist_calc;
     unsigned int * has_match_for_curr_qvec; // a flag that is used by query vectors to assess whether they have a match in a set or no, since set vectors can be stored in multiple cells and the algorithm performs quering cellwise.
-    unsigned int num_sets;
+    unsigned long num_sets;
     float query_time;
 };
 

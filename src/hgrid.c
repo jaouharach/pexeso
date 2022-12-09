@@ -103,7 +103,7 @@ enum response init_grid(const char *work_dir,
     grid->settings->max_filename_size = 2 + edge_length_size + center_vector_size + 4 + grid->settings->num_pivots - 1;
 
     // make grid directory
-    if(read_from_disk == 0)
+    if(read_from_disk == 0 && !is_query_grid)
         if (!create_grid_dir(grid->settings->root_directory))
             exit_with_failure("Error in hgrid.c: Couldn't create grid directory!");
 

@@ -7,7 +7,7 @@
 /* reset flag query vector has match in curr vector*/
 enum response reset_has_match_flag(struct match_map * match_map)
 {
-    for(int s = 0; s < match_map->num_sets; s++)
+    for(unsigned long s = 0; s < match_map->num_sets; s++)
     {
         match_map->has_match_for_curr_qvec[s] = 0;
     }
@@ -16,7 +16,7 @@ enum response reset_has_match_flag(struct match_map * match_map)
 /* update |U|+= 1,  for every set that doesn't have a match for curr query vector*/
 enum response update_zero_match_counter(struct match_map * match_map)
 {
-    for(int s = 0; s < match_map->num_sets; s++)
+    for(unsigned long s = 0; s < match_map->num_sets; s++)
     {
         if(match_map->has_match_for_curr_qvec[s] == 0)
         {
@@ -154,12 +154,12 @@ void dump_match_map_to_console(struct match_map * map, unsigned int map_idx)
 
     printf("\t............................................................\n\n\n");
     struct sid curr_set;
-    for(int s = 0; s < map[map_idx].num_sets; s++)
+    for(unsigned long s = 0; s < map[map_idx].num_sets; s++)
     {
         if(map[map_idx].joinable[s]) // only print joinable sets
         {
             curr_set = map[map_idx].sets[s];
-            printf("\t%d: \033[1;33m S: (%u, %u) |S| = %u\033[0m => {", s, curr_set.table_id, curr_set.set_id, curr_set.set_size);
+            printf("\t%ld: \033[1;33m S: (%u, %u) |S| = %u\033[0m => {", s, curr_set.table_id, curr_set.set_id, curr_set.set_size);
             printf("match = %u, mismatch = %u, |U| = %u, joinable: %s}\n", map[map_idx].match_count[s], map[map_idx].mismatch_count[s], map[map_idx].u[s], map[map_idx].joinable[s] ? "\033[0;32mtrue\033[0m" : "\033[1;31mfalse\033[0m");
         }
     }

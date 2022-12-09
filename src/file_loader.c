@@ -725,7 +725,7 @@ enum response  save_to_query_result_file(char * csv_file, struct sid * query_set
 	fprintf(fp, "TQ:Q, TS:S, qindex, sindex, q, s, d");
 	
     // write results
-    for(int i = 0; i < map->num_sets; i++){
+    for(unsigned long i = 0; i < map->num_sets; i++){
 
         if(map->joinable[i] == true)
         {

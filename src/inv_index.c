@@ -9,11 +9,13 @@
 /* add entry to inverted index (cell -> {(table_id, set_id)}) */
 enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size, unsigned int num_pivots)
 {
+    // printf("New vector in set (%u, %u)\n", table_id, set_id);
     if(index == NULL)
         exit_with_failure("Error in in inv_index.c: Cannot add entry to NULL index.");
-
-    int entry_idx = has_cell(index, cell, num_pivots);
     
+    // int entry_idx = has_cell(index, cell, num_pivots);
+    int entry_idx = cell->index_entry_pos;
+
     // empty inverted index
     if(index->num_entries == 0)
     {
@@ -42,6 +44,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
 
         // link set in cell entry to set in list of distinct sed ids
         new_entry->cell = cell;
+        cell->index_entry_pos = 0;
         new_entry->sets[0] = 0; // first cell -> {first set}
         new_entry->vector_count[0] = 1;
         new_entry->num_sets = 1;
@@ -54,38 +57,39 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
 
     // inverted index is not empty
     // check if set id has not been previously inserted (for another cell)
-    unsigned long set_idx = previously_indexed_set(index, table_id, set_id);
-    if(set_idx == -1) // if set not in inverted index, add set
+    long set_in_idx = previously_indexed_set(index, table_id, set_id);
+    // printf("Set (%u, %u) in index ? answer = %ld\n", table_id, set_id, set_in_idx);
+    unsigned long set_idx = (unsigned long) set_in_idx;
+    bool new_set = false;
+    if(set_in_idx == -1) // if set not in inverted index, add set
     {
-        unsigned int num_distinct_sets = index->num_distinct_sets;
+        new_set = true;
+        unsigned long num_distinct_sets = index->num_distinct_sets;
         // create set in list of distinct sets 
-
         index->distinct_sets = realloc(index->distinct_sets, sizeof(struct sid) * (num_distinct_sets + 1));
         if(index->distinct_sets == NULL)
             exit_with_failure("Error in inv_index.c: Couldn't allocate memory for entry's new sets");
         index->distinct_sets[num_distinct_sets].table_id = table_id;
         index->distinct_sets[num_distinct_sets].set_id = set_id;
         index->distinct_sets[num_distinct_sets].set_size = set_size;
-
-        
         set_idx = index->num_distinct_sets; 
         index->num_distinct_sets++;
     }
-
+    
     if (entry_idx == -1) // a new entry (new leaf cell)
     {
-        int num_entries = index->num_entries;
-        entry_idx = num_entries;
+        unsigned int num_entries = index->num_entries;
+        entry_idx = (int) num_entries;
         // allocate memory fe new entry
         struct entry * entries = realloc(index->entries, sizeof(struct entry) * (index->num_entries + 1));
         if(entries == NULL)
             exit_with_failure("Error in inv_index.c: Couldn't allocate memory for new cell entry");
-        
         index->entries = entries;
-        
-        struct entry * new_entry = &index->entries[entry_idx];
+        index->num_entries++;  
 
+        struct entry * new_entry = &index->entries[entry_idx];
         new_entry->cell = cell;
+        
         new_entry->sets = malloc(sizeof(unsigned long));
         new_entry->vector_count = malloc(sizeof(unsigned long));
         if(new_entry->sets == NULL || new_entry->vector_count == NULL)
@@ -95,24 +99,27 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         new_entry->sets[0] = set_idx;
         new_entry->vector_count[0] = 1;
         new_entry->num_sets = 1;
-        index->num_entries++;        
+        cell->index_entry_pos = entry_idx;
 
         return OK;
     }
     else // cell has entry in inverted index, append set to cell entry
     {
         // if pair cell --> {set_id} exists don't add set_id to entry and increase vector count 
-        int s = entry_has_set(index, entry_idx, table_id, set_id);
-        if(s != -1)
+        if(!new_set)
         {
-            struct entry * curr_entry = &index->entries[entry_idx];
-            curr_entry->vector_count[s] += 1;
-            return OK;
+            unsigned long s = entry_has_set(index, entry_idx, set_idx);
+            if(s != -1)
+            {
+                struct entry * curr_entry = &index->entries[entry_idx];
+                curr_entry->vector_count[s] += 1;
+                return OK;
+            }
         }
-
+        
         // if pair cell --> {set_id} exists add set_id to entry
         struct entry * curr_entry = &index->entries[entry_idx];
-        unsigned int num_sets = curr_entry->num_sets;
+        unsigned long num_sets = curr_entry->num_sets;
         curr_entry->sets = realloc(curr_entry->sets, sizeof(unsigned long) * (num_sets + 1));
         curr_entry->vector_count = realloc(curr_entry->vector_count, sizeof(unsigned long) * (num_sets + 1));
         if(curr_entry->sets == NULL || curr_entry->vector_count == NULL)
@@ -135,7 +142,7 @@ int has_cell(struct inv_index * index, struct cell * cell, unsigned int num_pivo
     if(num_entries == 0)
         return -1;
 
-    for(int e = num_entries - 1; e >= 0; e--)
+    for(unsigned int e = (num_entries - 1); e >= 0; e--)
     {
         struct entry * curr_entry = &index->entries[e];
         int match = 1;
@@ -157,36 +164,39 @@ int has_cell(struct inv_index * index, struct cell * cell, unsigned int num_pivo
 }
 
 /* check if cell entry has set_id */
-int entry_has_set(struct inv_index * index, unsigned int entry_idx, unsigned int table_id, unsigned int set_id)
+unsigned long entry_has_set(struct inv_index * index, int entry_idx, unsigned long set_idx)
 {
+    if(entry_idx == -1)
+        exit_with_failure("Error in inv_index.c: Entry index cannot be -1!");
+
     struct entry * cell_entry = &index->entries[entry_idx];
 
     if(cell_entry->num_sets == 0)
         return false;
 
-    unsigned long long set_idx;
-    for(int s = cell_entry->num_sets - 1; s >= 0; s--)
+    for(unsigned long s = cell_entry->num_sets - 1; s >= 0; s--)
     {
-        set_idx = cell_entry->sets[s];
-        if ((index->distinct_sets[set_idx].table_id == table_id) && (index->distinct_sets[set_idx].set_id == set_id))
-            return s;
+        if (cell_entry->sets[s] == set_idx)
+            return s;    
+        if(s == 0) break;
     }
     return -1; 
 }
 
 /* check if set id has already been inserted into a cell entry */
-int previously_indexed_set(struct inv_index * index, unsigned int table_id, unsigned int set_id)
+long previously_indexed_set(struct inv_index * index, unsigned int table_id, unsigned int set_id)
 {
-    unsigned int num_distinct_sets = index->num_distinct_sets;
+    unsigned long num_distinct_sets = index->num_distinct_sets;
     if(num_distinct_sets == 0)
         return -1;
-
-    for(int s = num_distinct_sets - 1; s >= 0; s--)
+    // start from end of array for efficiency
+    for(unsigned long s = num_distinct_sets - 1; s >= 0; s--)
     {
         struct sid * curr_set = &index->distinct_sets[s];
         // both cell and curr_entry->cell point to the same object
         if(curr_set->table_id == table_id && curr_set->set_id == set_id)
-            return s;
+            return  (long) s;
+        if(s == 0) break;
     }
 
     return -1;   
@@ -198,12 +208,12 @@ void dump_inv_index_to_console(struct inv_index *index)
     printf("\n\n\n\t...............................\n");
     printf("\t::      INVERTED INDEX       ::\n");
     printf("\t...............................\n\n\n");
-    for(int e = 0; e < index->num_entries; e++)
+    for(unsigned int e = 0; e < index->num_entries; e++)
     {
         struct entry * curr_entry = &index->entries[e];
-        unsigned long long set_idx;
-        printf("\t%d: cell %d at %p => {", e, curr_entry->cell->id, curr_entry->cell);
-        for(int s = 0; s < curr_entry->num_sets; s++)
+        unsigned long set_idx;
+        printf("\t%u: cell %d at %p => {", e, curr_entry->cell->id, curr_entry->cell);
+        for(unsigned long s = 0; s < curr_entry->num_sets; s++)
         {
             set_idx = curr_entry->sets[s];
             if(s == curr_entry->num_sets - 1)
@@ -223,7 +233,7 @@ void dump_inv_index_to_console(struct inv_index *index)
 enum response inv_index_destroy(struct inv_index *index)
 {   
     // destroy entries
-    for (int e = index->num_entries - 1; e >= 0; e--)
+    for (int e = (int)(index->num_entries - 1); e >= 0; e--)
     {
         // free entry sets
         free(index->entries[e].sets);
@@ -253,22 +263,30 @@ enum response index_write(struct inv_index * index, const char * work_dir)
     if (idx_file == NULL)
         exit_with_failure("Error in inv_index.c: Couldn't open inverted index file 'inverted.idx'.");
 
-    unsigned long long num_entries = index->num_entries;
-    unsigned long long num_distinct_sets = index->num_distinct_sets;
+    unsigned int num_entries = index->num_entries;
+    unsigned long num_distinct_sets = index->num_distinct_sets;
     struct entry * entries = index->entries;
     struct sid * distinct_sets = index->distinct_sets;
 
     COUNT_PARTIAL_OUTPUT_TIME_START
-    fwrite(&num_entries, sizeof(unsigned long long), 1, idx_file);
-    fwrite(&num_distinct_sets, sizeof(unsigned long long), 1, idx_file);
+    fwrite(&num_entries, sizeof(unsigned int), 1, idx_file);
+    fwrite(&num_distinct_sets, sizeof(unsigned long), 1, idx_file);
     fwrite(distinct_sets, sizeof(struct sid), num_distinct_sets, idx_file);
-    for(int e = 0; e < num_entries; e++)
+
+    
+    for(unsigned int e = 0; e < num_entries; e++)
     {
+        if(entries[e].num_sets > num_distinct_sets)
+        {
+            printf("Error in inv_index.c: Number of sets in entry %u = %ld cannot exceed #distinct_sets = %ld in inverted index."
+            , e, entries[e].num_sets, num_distinct_sets);
+            exit(1);
+        }
         int filename_size = strlen(entries[e].cell->filename);
         fwrite(&(entries[e].cell->id), sizeof(unsigned int), 1, idx_file);
         fwrite(entries[e].cell->filename, sizeof(char), filename_size, idx_file);
         fwrite(&(entries[e].cell->cell_size), sizeof(unsigned int), 1, idx_file);
-        fwrite(&(entries[e].num_sets), sizeof(unsigned int), 1, idx_file);
+        fwrite(&(entries[e].num_sets), sizeof(unsigned long), 1, idx_file);
         fwrite(entries[e].sets, sizeof(unsigned long), entries[e].num_sets, idx_file);
         fwrite(entries[e].vector_count, sizeof(unsigned long), entries[e].num_sets, idx_file);
     }
@@ -308,8 +326,8 @@ struct inv_index * index_read(const char * work_dir,
         exit_with_failure("Error in inv_index.c: Couldn't open inverted index file 'inverted.idx'.");
 
     COUNT_PARTIAL_INPUT_TIME_START
-    fread(&(index->num_entries), sizeof(unsigned long long), 1, idx_file);
-    fread(&(index->num_distinct_sets), sizeof(unsigned long long), 1, idx_file);
+    fread(&(index->num_entries), sizeof(unsigned int), 1, idx_file);    
+    fread(&(index->num_distinct_sets), sizeof(unsigned long), 1, idx_file);
     COUNT_PARTIAL_INPUT_TIME_END
     index->distinct_sets = malloc(sizeof(struct sid) * index->num_distinct_sets);
     index->entries = malloc(sizeof(struct entry) * index->num_entries);
@@ -319,6 +337,7 @@ struct inv_index * index_read(const char * work_dir,
     
     COUNT_PARTIAL_INPUT_TIME_START
     fread(index->distinct_sets, sizeof(struct sid), index->num_distinct_sets, idx_file);
+    printf("num distinct sets = %ld\n", index->num_distinct_sets);
     COUNT_PARTIAL_INPUT_TIME_END
     
     struct entry * entries = index->entries;
@@ -326,15 +345,20 @@ struct inv_index * index_read(const char * work_dir,
     char cell_filename[255] = "";
 
     
-    for(int e = 0; e < index->num_entries; e++)
+    for(unsigned int e = 0; e < index->num_entries; e++)
     {
         COUNT_PARTIAL_INPUT_TIME_START
         fread(&cell_id, sizeof(unsigned int), 1, idx_file);
         COUNT_PARTIAL_INPUT_TIME_END
         for(int c = 0; c < leaf_level->num_cells; c++)
+        {
             if(leaf_level->cells[c].id == cell_id)
+            {
                 entries[e].cell = &(leaf_level->cells[c]); // link cell in inv index with cell in grid
-
+                leaf_level->cells[c].index_entry_pos = e;
+            }
+        }
+            
         int filename_size = strlen(entries[e].cell->filename);
         COUNT_PARTIAL_INPUT_TIME_START
         fread(cell_filename, sizeof(char), filename_size, idx_file);
@@ -346,8 +370,14 @@ struct inv_index * index_read(const char * work_dir,
             printf("Error in inv_index.c: Expected cell %s but read cell %s.", entries[e].cell->filename, cell_filename);
             exit(1); 
         }
+        
+        fread(&(entries[e].num_sets), sizeof(unsigned long), 1, idx_file);
+        if(entries[e].num_sets > index->num_distinct_sets)
+            exit_with_failure("Error in inv_index.c: Number of sets in entry cannot exceed #distinct sets in inverted index.");
 
-        fread(&(entries[e].num_sets), sizeof(unsigned int), 1, idx_file);
+        // printf("cell %d, entry pos = %d, num sets = %ld\n", 
+        // entries[e].cell->id, entries[e].cell->index_entry_pos, entries[e].num_sets);
+
         COUNT_PARTIAL_INPUT_TIME_END
 
         entries[e].sets = malloc(sizeof(unsigned long) * entries[e].num_sets);
@@ -358,6 +388,12 @@ struct inv_index * index_read(const char * work_dir,
         COUNT_PARTIAL_INPUT_TIME_START
         fread(entries[e].sets, sizeof(unsigned long), entries[e].num_sets, idx_file);
         fread(entries[e].vector_count, sizeof(unsigned long), entries[e].num_sets, idx_file);
+        
+        // for(int s = 0; s <  entries[e].num_sets; s++)
+        //     printf("set %ld (%ld) - ", entries[e].sets[s], entries[e].vector_count[s]);
+
+        printf("\n\n");
+
         COUNT_PARTIAL_INPUT_TIME_END
     }
     

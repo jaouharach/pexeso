@@ -48,7 +48,7 @@
                 "--qgrid-metric-buffer-size",
                 "5",
                 "--index-path",
-                "/home/jaouhara.chanchaf/Projects/pexeso/test/Hgrid/",
+                "/home/jaouhara.chanchaf/Projects/pexeso/test/Hgrid_3/",
                 "--mode",
                 "0"
             ],

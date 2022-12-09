@@ -20,7 +20,7 @@ struct cell {
     unsigned int vid_pos; // first position in vid.idx file
     struct vid * vid;
 
-    
+    int index_entry_pos; // cell entry position in inverted index
 };
 
 // <leaf_cell, vector_tuples> 
