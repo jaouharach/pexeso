@@ -167,6 +167,25 @@ void dump_match_map_to_console(struct match_map * map, unsigned int map_idx)
 
 }
 
+void dump_csv_results_to_console(struct match_map * map, unsigned int map_idx)
+{
+    printf("\t \t\tQ = (%u, %u), -Q- = %u (Query time = %.2f seconds)\t\t\n", 
+    map[map_idx].query_set.table_id, map[map_idx].query_set.set_id, map[map_idx].query_set.set_size, map[map_idx].query_time / 1000000);
+    printf("\t............................................................\n\n\n");
+    struct sid curr_set;
+    printf("tqq,tss,nooverlap\n");
+    for(unsigned long s = 0; s < map[map_idx].num_sets; s++)
+    {
+        if(map[map_idx].joinable[s]) // only print joinable sets
+        {
+            curr_set = map[map_idx].sets[s];
+            printf("t%uc%u,t%uc%u,%u\n", map[map_idx].query_set.table_id, map[map_idx].query_set.set_id, curr_set.table_id, curr_set.set_id, map[map_idx].u[s]);
+        }
+    }
+    printf("\t............................................................\n\n\n");
+}
+
+
 /* destroy match map */
 enum response match_maps_destroy(struct match_map *map, int num_query_sets)
 {   

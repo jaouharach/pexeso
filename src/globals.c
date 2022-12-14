@@ -6,7 +6,9 @@
 #include <math.h>
 #include <ftw.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <unistd.h>
+#include <string.h>
 #include "../include/globals.h"
 
 float euclidean_distance(vector * v1, vector * v2, unsigned int v_len)
@@ -192,12 +194,64 @@ enum response create_grid_dir(const char * dir_path)
     struct stat sb;
     if (stat(dir_path, &sb) == 0 && S_ISDIR(sb.st_mode)) // if directory exists ask user for action
     {
-        fprintf(stderr, "Grid root directory '%s' already exists!\n", dir_path);
-        return FAILED;
+        char resp = 'n';
+        printf("Warning in globals.c: Grid root directory '%s' already exists!would you like to delete it? (y/n): ", dir_path);
+        scanf("%c", &resp);
+        if (resp == 'y' || resp == 'Y')
+        {
+            remove_directory(dir_path);
+        }
+        else
+            return FAILED;
     }
 
     mkdir(dir_path, 0777);
     return OK;
+}
+
+int remove_directory(const char *path) 
+{
+   DIR *d = opendir(path);
+   size_t path_len = strlen(path);
+   int r = -1;
+
+   if (d) {
+      struct dirent *p;
+
+      r = 0;
+      while (!r && (p=readdir(d))) {
+          int r2 = -1;
+          char *buf;
+          size_t len;
+
+          /* Skip the names "." and ".." as we don't want to recurse on them. */
+          if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, ".."))
+             continue;
+
+          len = path_len + strlen(p->d_name) + 2; 
+          buf = malloc(len);
+
+          if (buf) {
+             struct stat statbuf;
+
+             snprintf(buf, len, "%s/%s", path, p->d_name);
+             if (!stat(buf, &statbuf)) {
+                if (S_ISDIR(statbuf.st_mode))
+                   r2 = remove_directory(buf);
+                else
+                   r2 = unlink(buf);
+             }
+             free(buf);
+          }
+          r = r2;
+      }
+      closedir(d);
+   }
+
+   if (!r)
+      r = rmdir(path);
+
+   return r;
 }
 
 /* compare two pointers, returns true if both pointers point to the same object */

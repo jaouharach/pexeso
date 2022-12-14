@@ -80,6 +80,10 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
         exit_with_failure("Error int cell.c: cell size cannot exceed max leaf size!");
     }
 
+    long set_pos_in_inv_index = inv_index_append_entry(index, cell, vector->table_id, vector->set_id, vector->set_size, grid->settings->num_pivots);
+    if(set_pos_in_inv_index == -1)
+        exit_with_failure("Error in cell.c: Couldn't add set to inverted index.");
+        
     // track vector
     if (grid->settings->track_vector)
     {
@@ -89,14 +93,14 @@ response append_vector_to_cell(struct grid *grid, struct inv_index * index, stru
         cell->vid[cell->cell_size].set_id = vector->set_id;
         cell->vid[cell->cell_size].pos = vector->pos;
         cell->vid[cell->cell_size].set_size = vector->set_size;
+        cell->vid[cell->cell_size].set_pos_in_inv_index = (unsigned long) set_pos_in_inv_index;
     }
     cell->cell_size++;
     cell->file_buffer->buffered_list_size++;
     grid->total_records++;
 
     // add entry: cell -> {set_id} to inverted index
-    if(!inv_index_append_entry(index, cell, vector->table_id, vector->set_id, vector->set_size, grid->settings->num_pivots))
-        exit_with_failure("Error in cell.c: Couldn't append cell entry to inverted index.");
+    
 
     return OK;
 }
@@ -336,6 +340,7 @@ vector * get_vectors_mtr(struct cell * cell, struct grid_settings * settings, bo
                 cell_vectors[i].table_id = cell->vid[i].table_id;
                 cell_vectors[i].pos = cell->vid[i].pos;
                 cell_vectors[i].set_size = cell->vid[i].set_size;
+                cell_vectors[i].set_pos_in_inv_index = cell->vid[i].set_pos_in_inv_index;
         }
     }
     else
@@ -383,6 +388,7 @@ vector * get_vectors_mtr(struct cell * cell, struct grid_settings * settings, bo
             cell_vectors[i].table_id = cell->vid[i].table_id;
             cell_vectors[i].pos = cell->vid[i].pos;
             cell_vectors[i].set_size = cell->vid[i].set_size; 
+            cell_vectors[i].set_pos_in_inv_index = cell->vid[i].set_pos_in_inv_index;
         }
         COUNT_PARTIAL_INPUT_TIME_START
         fclose(vectors_file);
@@ -404,6 +410,7 @@ vector * get_vectors_mtr(struct cell * cell, struct grid_settings * settings, bo
             cell_vectors[i +(cell->file_buffer->disk_count)].table_id = cell->vid[i +(cell->file_buffer->disk_count)].table_id;
             cell_vectors[i +(cell->file_buffer->disk_count)].pos = cell->vid[i +(cell->file_buffer->disk_count)].pos;
             cell_vectors[i +(cell->file_buffer->disk_count)].set_size = cell->vid[i +(cell->file_buffer->disk_count)].set_size;
+            cell_vectors[i +(cell->file_buffer->disk_count)].set_pos_in_inv_index = cell->vid[i +(cell->file_buffer->disk_count)].set_pos_in_inv_index;
             // printf("cell v(%u, %u, %u)\n", cell_vectors[i]->table_id, cell_vectors[i]->set_id, cell_vectors[i]->pos);
         }
     }
@@ -443,6 +450,7 @@ vector * get_vectors_ps(struct cell * cell, struct grid_settings * settings, boo
             cell_vectors[i].table_id = cell->vid[i].table_id;
             cell_vectors[i].pos = cell->vid[i].pos;
             cell_vectors[i].set_size = cell->vid[i].set_size;
+            cell_vectors[i].set_pos_in_inv_index = cell->vid[i].set_pos_in_inv_index;
             // printf("cell v(%u, %u, %u)\n", cell_vectors[i]->table_id, cell_vectors[i]->set_id, cell_vectors[i]->pos);
         }
     }
@@ -491,6 +499,7 @@ vector * get_vectors_ps(struct cell * cell, struct grid_settings * settings, boo
             cell_vectors[i].table_id = cell->vid[i].table_id;
             cell_vectors[i].pos = cell->vid[i].pos;
             cell_vectors[i].set_size = cell->vid[i].set_size; 
+            cell_vectors[i].set_pos_in_inv_index = cell->vid[i].set_pos_in_inv_index; 
         }
         COUNT_PARTIAL_INPUT_TIME_START
         fclose(vectors_file);
@@ -512,6 +521,7 @@ vector * get_vectors_ps(struct cell * cell, struct grid_settings * settings, boo
             cell_vectors[i +(cell->file_buffer->disk_count)].table_id = cell->vid[i +(cell->file_buffer->disk_count)].table_id;
             cell_vectors[i +(cell->file_buffer->disk_count)].pos = cell->vid[i +(cell->file_buffer->disk_count)].pos;
             cell_vectors[i +(cell->file_buffer->disk_count)].set_size = cell->vid[i +(cell->file_buffer->disk_count)].set_size;
+            cell_vectors[i +(cell->file_buffer->disk_count)].set_pos_in_inv_index = cell->vid[i +(cell->file_buffer->disk_count)].set_pos_in_inv_index;
             // printf("cell v(%u, %u, %u)\n", cell_vectors[i]->table_id, cell_vectors[i]->set_id, cell_vectors[i]->pos);
         }
     }
@@ -585,11 +595,13 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
             temp_tuple->mtr_vector->table_id = temp_vid->table_id;
             temp_tuple->mtr_vector->pos = temp_vid->pos;
             temp_tuple->mtr_vector->set_size = temp_vid->set_size;
+            temp_tuple->mtr_vector->set_pos_in_inv_index = temp_vid->set_pos_in_inv_index;
 
             temp_tuple->ps_vector->set_id = temp_vid->set_id;
             temp_tuple->ps_vector->table_id = temp_vid->table_id;
             temp_tuple->ps_vector->pos = temp_vid->pos;
             temp_tuple->ps_vector->set_size = temp_vid->set_size;
+            temp_tuple->ps_vector->set_pos_in_inv_index = temp_vid->set_pos_in_inv_index;
         }
     }
     // if file buffer is in disk load vectors from disk
@@ -632,14 +644,17 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
             cell_vectors[i].mtr_vector->table_id = cell->vid[i].table_id;
             cell_vectors[i].mtr_vector->pos = cell->vid[i].pos;
             cell_vectors[i].mtr_vector->set_size = cell->vid[i].set_size;
+            cell_vectors[i].mtr_vector->set_pos_in_inv_index = cell->vid[i].set_pos_in_inv_index;
 
             cell_vectors[i].ps_vector->set_id = cell->vid[i].set_id;
             cell_vectors[i].ps_vector->table_id = cell->vid[i].table_id;
             cell_vectors[i].ps_vector->pos = cell->vid[i].pos;
             cell_vectors[i].ps_vector->set_size = cell->vid[i].set_size;
+            cell_vectors[i].ps_vector->set_pos_in_inv_index = cell->vid[i].set_pos_in_inv_index;
         }
+        COUNT_PARTIAL_INPUT_TIME_START
         fclose(vectors_file);
-
+        COUNT_PARTIAL_INPUT_TIME_END
         // read vectors in memory
         int last_idx = cell->file_buffer->buffered_list_size;
         int disk_count = cell->file_buffer->disk_count;
@@ -655,11 +670,13 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
             cell_vectors[i + disk_count].mtr_vector->table_id = cell->vid[i + disk_count].table_id;
             cell_vectors[i + disk_count].mtr_vector->pos = cell->vid[i + disk_count].pos;
             cell_vectors[i + disk_count].mtr_vector->set_size = cell->vid[i + disk_count].set_size;
+            cell_vectors[i + disk_count].mtr_vector->set_pos_in_inv_index = cell->vid[i + disk_count].set_pos_in_inv_index;
 
             cell_vectors[i + disk_count].ps_vector->set_id = cell->vid[i + disk_count].set_id;
             cell_vectors[i + disk_count].ps_vector->table_id = cell->vid[i + disk_count].table_id;
             cell_vectors[i + disk_count].ps_vector->pos = cell->vid[i + disk_count].pos;
             cell_vectors[i + disk_count].ps_vector->set_size = cell->vid[i + disk_count].set_size;
+            cell_vectors[i + disk_count].ps_vector->set_pos_in_inv_index = cell->vid[i + disk_count].set_pos_in_inv_index;
             // printf("cell v(%u, %u, %u)\n", cell_vectors[i]->table_id, cell_vectors[i]->set_id, cell_vectors[i]->pos);
         }
     }  
@@ -766,6 +783,7 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * set
                 cell_vectors[v].table_id = leaves[i]->vid[k].table_id;
                 cell_vectors[v].pos = leaves[i]->vid[k].pos;
                 cell_vectors[v].set_size = leaves[i]->vid[k].set_size;
+                cell_vectors[v].set_pos_in_inv_index = leaves[i]->vid[k].set_pos_in_inv_index;
             }
         }
         else
@@ -814,6 +832,7 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * set
                 cell_vectors[v].table_id = leaves[i]->vid[k].table_id;
                 cell_vectors[v].pos = leaves[i]->vid[k].pos;
                 cell_vectors[v].set_size = leaves[i]->vid[k].set_size; 
+                cell_vectors[v].set_pos_in_inv_index = leaves[i]->vid[k].set_pos_in_inv_index;
             }
             fclose(vectors_file);
 
@@ -833,6 +852,7 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * set
                 cell_vectors[v +(leaves[i]->file_buffer->disk_count + v_idx)].table_id = leaves[i]->vid[v +(leaves[i]->file_buffer->disk_count)].table_id;
                 cell_vectors[v +(leaves[i]->file_buffer->disk_count + v_idx)].pos = leaves[i]->vid[v +(leaves[i]->file_buffer->disk_count)].pos;
                 cell_vectors[v +(leaves[i]->file_buffer->disk_count + v_idx)].set_size = leaves[i]->vid[v +(leaves[i]->file_buffer->disk_count)].set_size;
+                cell_vectors[v +(leaves[i]->file_buffer->disk_count + v_idx)].set_pos_in_inv_index = leaves[i]->vid[v +(leaves[i]->file_buffer->disk_count)].set_pos_in_inv_index;
                 // printf("cell v(%u, %u, %u)\n", cell_vectors[i]->table_id, cell_vectors[i]->set_id, cell_vectors[i]->pos);
             }
         }

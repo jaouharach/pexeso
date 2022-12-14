@@ -7,7 +7,7 @@
 #include "../include/level.h"
 
 /* add entry to inverted index (cell -> {(table_id, set_id)}) */
-enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size, unsigned int num_pivots)
+long inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size, unsigned int num_pivots)
 {
     // printf("New vector in set (%u, %u)\n", table_id, set_id);
     if(index == NULL)
@@ -52,7 +52,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         index->num_distinct_sets = 1;
         index->num_entries = 1;
 
-        return OK;
+        return 0;
     }
 
     // inverted index is not empty
@@ -72,6 +72,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         index->distinct_sets[num_distinct_sets].table_id = table_id;
         index->distinct_sets[num_distinct_sets].set_id = set_id;
         index->distinct_sets[num_distinct_sets].set_size = set_size;
+
         set_idx = index->num_distinct_sets; 
         index->num_distinct_sets++;
     }
@@ -101,7 +102,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         new_entry->num_sets = 1;
         cell->index_entry_pos = entry_idx;
 
-        return OK;
+        return (long) set_idx;
     }
     else // cell has entry in inverted index, append set to cell entry
     {
@@ -113,7 +114,7 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
             {
                 struct entry * curr_entry = &index->entries[entry_idx];
                 curr_entry->vector_count[s] += 1;
-                return OK;
+                return (long) set_idx;
             }
         }
         
@@ -129,10 +130,10 @@ enum response inv_index_append_entry(struct inv_index * index, struct cell * cel
         curr_entry->vector_count[curr_entry->num_sets] = 1;
         curr_entry->num_sets++;        
 
-        return OK;  
+        return (long) set_idx;  
     }
     
-    return FAILED;
+    return -1;
 }
 
 /* check if index has entry for cell  */
@@ -391,8 +392,7 @@ struct inv_index * index_read(const char * work_dir,
         
         // for(int s = 0; s <  entries[e].num_sets; s++)
         //     printf("set %ld (%ld) - ", entries[e].sets[s], entries[e].vector_count[s]);
-
-        printf("\n\n");
+        // printf("\n\n");
 
         COUNT_PARTIAL_INPUT_TIME_END
     }

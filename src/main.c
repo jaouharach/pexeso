@@ -350,7 +350,7 @@ int main(int argc, char **argv)
         
         
         /* initialize grid */
-        printf("\n\nInitialize grid... ");
+        printf("\n\nInitialize grid...\n");
         struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size);
         struct grid * grid = (struct grid *) malloc(sizeof(struct grid));
         if (grid == NULL)
@@ -432,7 +432,7 @@ int main(int argc, char **argv)
             grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
 
         /* print inverted index */
-        dump_inv_index_to_console(index);
+        // dump_inv_index_to_console(index);
 
         /* write grid to disk */
         if (!grid_write(grid))
@@ -562,7 +562,7 @@ int main(int argc, char **argv)
         
         
         /* initialize grid */
-        printf("\n\nInitialize grid... ");
+        printf("\n\nInitialize grid...\n");
         struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size);
         struct grid * grid = (struct grid *) malloc(sizeof(struct grid));
         if (grid == NULL)
@@ -644,7 +644,7 @@ int main(int argc, char **argv)
             grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
 
         /* print inverted index */
-        dump_inv_index_to_console(index);
+        // dump_inv_index_to_console(index);
 
         /* write grid to disk */
         if (!grid_write(grid))
@@ -662,7 +662,7 @@ int main(int argc, char **argv)
         /* print grid statistics */
         print_grid_stats(grid);
 
-        printf("End of progam: combined indexing and querying time : %.2f secs \n", total_time / 1000000);
+        printf("End of progam: total time : %.2f secs \n", total_time / 1000000);
         
 
         /* destroy grid */

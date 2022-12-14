@@ -39,6 +39,7 @@ int get_match_map_idx(struct match_map *map, int num_query_sets, struct sid * qu
 /* print map */
 void dump_match_map_to_console(struct match_map * map, unsigned int map_idx);
 
+void dump_csv_results_to_console(struct match_map * map, unsigned int map_idx);
 /* check if match map has a sorted list of set-ids */
 bool is_sorted(struct match_map * map);
 

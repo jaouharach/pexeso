@@ -101,15 +101,16 @@ enum response verify(struct grid *grid, struct pairs *pairs,
         query_set->set_id = pairs->query_vectors[i].set_id;
         query_set->set_size = pairs->query_vectors[i].set_size;
         
-        map_idx = get_match_map_idx(match_map, num_query_sets, query_set);
-        if(map_idx == -1)
-            exit_with_failure("Error in match_map.c Couldn't find match map of query set.");
-            
-        RESET_QUERY_TIME()
-        COUNT_QUERY_TIME_START
 
         if (pairs->has_candidates[i]) // if current vector has candidate pair
         {
+            map_idx = get_match_map_idx(match_map, num_query_sets, query_set);
+            if(map_idx == -1)
+                exit_with_failure("Error in match_map.c Couldn't find match map for query set.");
+                
+            RESET_QUERY_TIME()
+            COUNT_QUERY_TIME_START
+
             for (int c = 0; c < cpair->num_candidates; c++) // loop through candidate cells
             {
                 struct cell *candidate_cell = cpair->cells[c];
@@ -119,10 +120,10 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                 // printf("\ncell, found index entry = %d, stored index entry = %d\n", entry_idx, candidate_cell->index_entry_pos);
                 int entry_idx = candidate_cell->index_entry_pos;
                 if (entry_idx == -1)
-                    {
-                        print_vector(candidate_cell->center, num_pivots);
-                        exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for candidate cell!");
-                    }
+                {
+                    print_vector(candidate_cell->center, num_pivots);
+                    exit_with_failure("Error in query_engine.c: inverted index doesn't have entry for candidate cell!");
+                }
                 
                 //  get vectors stored in candidate cell
                 struct vector_tuple *candidate_vectors = get_leaf_cell_vector_tuples(leaf_cells_tuples, candidate_cell,  grid->settings);
@@ -131,105 +132,76 @@ enum response verify(struct grid *grid, struct pairs *pairs,
 
                 // find entry of candidate cell in inverted index
                 struct entry *entry = &index->entries[entry_idx];
-                // for every set in candidate cell
-                for (unsigned long s = 0; s < entry->num_sets; s++)
+                int curr_qvec_has_a_match = 0; // check if current query vector has  a match in current set or not
+                unsigned long set_idx;
+
+                // get vector (in metric and pivot space) in candidate cell
+                for (int v = 0; v < candidate_cell->cell_size; v++)
                 {
-                    int curr_qvec_has_a_match = 0; // check if current query vector has  a match in current set or not
-                    struct sid *curr_set = &index->distinct_sets[entry->sets[s]];
-                    unsigned long curr_set_vector_count =  entry->vector_count[s];
-                    unsigned long counter = 0;
-
-                    if (curr_set == NULL)
-                        exit_with_failure("Error in query_engine.c: NULL set in candidate entry!");
-
-                    // set id position in match map is the same as set position in inverted index (if not exit)
-                    unsigned long set_idx = entry->sets[s];
-                    if(match_map[map_idx].sets[set_idx].table_id != curr_set->table_id || match_map[map_idx].sets[set_idx].set_id != curr_set->set_id)
-                        exit_with_failure("Error in query_engine.c: set position in match_map is diffrent from set position in inverted index.");
-                    
+                    set_idx = candidate_vectors[v].mtr_vector->set_pos_in_inv_index;
                     // lemma 7: skip set if it cannot be joinable on "join_threshold" vectors
                     if ((query_set->set_size - match_map[map_idx].u[set_idx]) < ceil(join_threshold * query_set->set_size ))
                     {    
                         COUNT_USED_LEMMA(7)
                         continue;
                     }
+
+                    // printf("candidate vector: (%u, %u, %u)\n", candidate_vectors[v].mtr_vector->table_id, candidate_vectors[v].mtr_vector->set_id, candidate_vectors[v].mtr_vector->pos);
+                    // if candidate vector can be filtered by lemma 1
+                    if (pivot_filter(query_vector, candidate_vectors[v].ps_vector,
+                                    grid->settings->num_pivots, dist_threshold))
+                    {
+                        COUNT_USED_LEMMA(1)
+                        // printf("filterd by lemma 1\n");
+                        // update mismatch count of curr set
+                        update_mismatch_count(match_map, map_idx, set_idx);
+                    }
+
+                    // vector can be matched with q by lemma 2
+                    else if (pivot_match(query_vector, candidate_vectors[v].ps_vector,
+                                        grid->settings->num_pivots, dist_threshold))
+                    {
+                        COUNT_USED_LEMMA(2)
+                        match_map[map_idx].has_match_for_curr_qvec[set_idx] = 1;
+                        // printf("matched by lemma 2\n");
+                        // update match count of curr set
+                        update_match_count(match_map, map_idx, query_set, set_idx, join_threshold, query_vector->set_size);
+                    }
                     else
                     {
-                        // get vector (in metric and pivot space) in candidate cell
-                        for (int v = 0; v < candidate_cell->cell_size; v++)
+                        
+                        // compute euclidean distance between v and q in metric space
+                        float max_dist = 2.0, max_dist_no_sqrt = 4.0; // maximum distance between two normalized vectors
+                        float dist_threshold_no_sqrt = (dist_threshold/max_dist) * max_dist_no_sqrt;
+                        float d = euclidean_distance_cmp(candidate_vectors[v].mtr_vector,
+                                                    query_vector_mtr, grid->settings->mtr_vector_length);
+                        
+                        // increase number of distance calculation
+                        match_map[map_idx].num_dist_calc++;
+                        
+                        if (d <= dist_threshold_no_sqrt)
                         {
-                            // check if all vectors in set s have been processed
-                            if(counter == curr_set_vector_count)
-                                break;
-                            else if(counter > curr_set_vector_count)
-                                exit_with_failure("Error in query_engine.c: Found more vectors of set s in candidate cell than nb of vectors counted in inverted index!");
-                            
-                            // if vector belongs to set (curr set)
-                            if (candidate_vectors[v].mtr_vector->set_id == curr_set->set_id && candidate_vectors[v].mtr_vector->table_id == curr_set->table_id)
-                            {
-                                counter += 1;
-                                // printf("candidate vector: (%u, %u, %u)\n", candidate_vectors[v].mtr_vector->table_id, candidate_vectors[v].mtr_vector->set_id, candidate_vectors[v].mtr_vector->pos);
-                                // if candidate vector can be filtered by lemma 1
-                                if (pivot_filter(query_vector, candidate_vectors[v].ps_vector,
-                                                grid->settings->num_pivots, dist_threshold))
-                                {
-                                    COUNT_USED_LEMMA(1)
-                                    // printf("filterd by lemma 1\n");
-                                    // update mismatch count of curr set
-                                    update_mismatch_count(match_map, map_idx, set_idx);
-                                }
+                            match_map[map_idx].has_match_for_curr_qvec[set_idx] = 1;
+                            // printf("matched by euclidean dist\n");
+                            update_match_count(match_map, map_idx, query_set, set_idx, join_threshold, query_vector->set_size);
 
-                                // vector can be matched with q by lemma 2
-                                else if (pivot_match(query_vector, candidate_vectors[v].ps_vector,
-                                                    grid->settings->num_pivots, dist_threshold))
-                                {
-                                    COUNT_USED_LEMMA(2)
-                                    match_map[map_idx].has_match_for_curr_qvec[set_idx] = 1;
-                                    // printf("matched by lemma 2\n");
-                                    // update match count of curr set
-                                    update_match_count(match_map, map_idx, query_set, set_idx, join_threshold, query_vector->set_size);
-                                }
-                                else
-                                {
-                                    
-                                    // compute euclidean distance between v and q in metric space
-                                    float max_dist = 2.0, max_dist_no_sqrt = 4.0; // maximum distance between two normalized vectors
-                                    float dist_threshold_no_sqrt = (dist_threshold/max_dist) * max_dist_no_sqrt;
-                                    float d = euclidean_distance_cmp(candidate_vectors[v].mtr_vector,
-                                                                query_vector_mtr, grid->settings->mtr_vector_length);
-                                    
-                                    // increase number of distance calculation
-                                    match_map[map_idx].num_dist_calc++;
-                                    
-                                    if (d <= dist_threshold_no_sqrt)
-                                    {
-                                        match_map[map_idx].has_match_for_curr_qvec[set_idx] = 1;
-                                        // printf("matched by euclidean dist\n");
-                                        update_match_count(match_map, map_idx, query_set, set_idx, join_threshold, query_vector->set_size);
-
-                                    }
-                                    else
-                                    {
-                                        // printf("filterd by euclidean dist\n");
-                                        update_mismatch_count(match_map, map_idx, set_idx);
-                                    }
-                                    
-                                }
-                                    match_map[map_idx].total_checked_vectors++;
-                            }
-                           
+                        }
+                        else
+                        {
+                            // printf("filterd by euclidean dist\n");
+                            update_mismatch_count(match_map, map_idx, set_idx);
                         }
                     }
-                }
+                        match_map[map_idx].total_checked_vectors++; 
+                }   
             }
             // update |U| counter of vector in Q (column) that are not in S  (column) 
             update_zero_match_counter(&match_map[map_idx]);
+            // for current set stop time and add it to query time
+            COUNT_QUERY_TIME_END
+            COUNT_NEW_QUERY_TIME(query_time) // add curr query time to total query time (for all columns)
+            match_map[map_idx].query_time += query_time;
         }
-        // for current set stop time and add it to query time
-        COUNT_QUERY_TIME_END
-        COUNT_NEW_QUERY_TIME(query_time) // add curr query time to total query time (for all columns)
-        match_map[map_idx].query_time += query_time;
-
     }
     // free memory
     free(query_set);

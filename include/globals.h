@@ -35,6 +35,7 @@ struct vid {
   unsigned int set_id;
   unsigned int pos; // vector pos in set
   unsigned int set_size; // total vectors in set
+  unsigned long set_pos_in_inv_index;
 };
 
 // set id 
@@ -50,6 +51,7 @@ struct vector{
 	unsigned int set_id;
   unsigned int pos; // vector position in set
   unsigned int set_size;
+  unsigned long set_pos_in_inv_index;
 	v_type * values;
 };
 
@@ -111,3 +113,6 @@ void print_progress(int i, int j);
 
 // compare set id returns 1 if set_id2 is greater than set_id1
 int set_id_cmp(struct sid * set_id1, struct sid * set_id2);
+
+// delete non empty directory
+int remove_directory(const char *path);

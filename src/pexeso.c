@@ -49,18 +49,18 @@ void pexeso(const char * query_file_dir, struct grid * Dgrid, struct inv_index *
     // verify (verify vectors in list of candidate pairs)
     printf("\n\nVerify...\n\n");
 
-    CALLGRIND_START_INSTRUMENTATION;
-    CALLGRIND_TOGGLE_COLLECT;
+    // CALLGRIND_START_INSTRUMENTATION;
+    // CALLGRIND_TOGGLE_COLLECT;
     verify(Dgrid, pairs, inv_index, match_map);
-    CALLGRIND_TOGGLE_COLLECT;
-    CALLGRIND_STOP_INSTRUMENTATION;
+    // CALLGRIND_TOGGLE_COLLECT;
+    // CALLGRIND_STOP_INSTRUMENTATION;
 
     // print Query grid
     // dump_grid_to_console(Qgrid);
 
     // print match map after quering
     for(int m = 0; m < num_query_sets; m++)
-        dump_match_map_to_console(match_map, m);
+        dump_csv_results_to_console(match_map, m);
     
     if(!save_results_to_disk(Dgrid, Qgrid, match_map))
         exit_with_failure("Error in pexeso.c: Couldn't save query results to disk.");

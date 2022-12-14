@@ -6,6 +6,7 @@ struct inv_index {
     unsigned long num_distinct_sets; // number of unique set ids in inverted index
     struct entry * entries; // cell entries cell --> {set1, set2, ...}
     struct sid * distinct_sets; // unique sets indexed in inverted index
+    
 };
 
 struct entry {
@@ -16,7 +17,7 @@ struct entry {
 };
 
 /* add entry to inverted index */
-enum response inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size, unsigned int num_pivots);
+long inv_index_append_entry(struct inv_index * index, struct cell * cell, unsigned int table_id, unsigned int set_id, unsigned int set_size, unsigned int num_pivots);
 
 /* check if index has entry for cell  */
 int has_cell(struct inv_index * index, struct cell * cell, unsigned int num_pivots);
