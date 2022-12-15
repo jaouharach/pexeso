@@ -236,96 +236,80 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
     for (int i = 0; i < query_cell->num_child_cells; i++)
     {
         struct cell *cq = &query_cell->children[i];
-        if(is_empty(cq) == 1)
-        {
-            printf("\t-cq- cell %u (empty) ------------------------------------------------ \n", cq->id);
-            continue;
-        }
-        else
-            printf("\t-cq- cell %u (not empty) ------------------------------------------------ \n", cq->id);
+        if(is_empty(cq) == 1)   continue; // skip empty query cell
+        printf("\t-cq- cell %u (not empty) ------------------------------------------------ \n", cq->id);
         
         for (int j = 0; j < root_cell->num_child_cells; j++)
         {
             struct cell *cr = &root_cell->children[j];
-            if(is_empty(cr) == 1)
-                continue;
-            printf("\t\t-cr- candidate cell %u\n", cr->id);
+            if(is_empty(cr) == 1)   continue; // skip empty target cell
             // if cq and cr are leafs
             if (cq->is_leaf && cr->is_leaf)
             {
-                if (cr->cell_size != 0) // cell are not empty
+                // get all q' and q in cq
+                struct vector_tuple * query_vectors = get_vector_tuples(cq, settings, true);
+                // get vectors in cr cell
+                vector *cr_vectors = get_vectors_ps(cr, settings, false);
+
+                //for q, q' in cq
+                for (int q = 0; q < cq->cell_size; q++)
                 {
-                    // get all q' and q in cq
-                    struct vector_tuple * query_vectors = get_vector_tuples(cq, settings, true);
-                    // get vectors in cr cell
-                    vector *cr_vectors = get_vectors_ps(cr, settings, false);
-
-                    //for q, q' in cq
-                    for (int q = 0; q < cq->cell_size; q++)
+                    // check if current cell is already a candidate cell (added by quick browsing)
+                    if(is_candidate_cell(pairs, query_vectors[q].ps_vector, cr, settings->num_pivots) == 1)
                     {
-                        // check if current cell is already a candidate cell (added by quick browsing)
-                        if(is_candidate_cell(pairs, query_vectors[q].ps_vector, cr, settings->num_pivots) == 1)
-                        {
-                            continue;
-                        }
-                        query_set->table_id = query_vectors[q].ps_vector->table_id;
-                        query_set->set_id = query_vectors[q].ps_vector->set_id;
-                        query_set->set_size = query_vectors[q].ps_vector->set_size;
-                        
-                        map_idx = get_match_map_idx(match_map, settings->query_settings->num_query_sets, query_set);
-                        if(map_idx == -1)
-                            exit_with_failure("Error in match_map.c Couldn't find match map of query set.");
+                        continue;
+                    }
+                    query_set->table_id = query_vectors[q].ps_vector->table_id;
+                    query_set->set_id = query_vectors[q].ps_vector->set_id;
+                    query_set->set_size = query_vectors[q].ps_vector->set_size;
+                    
+                    map_idx = get_match_map_idx(match_map, settings->query_settings->num_query_sets, query_set);
+                    if(map_idx == -1)
+                        exit_with_failure("Error in match_map.c Couldn't find match map of query set.");
 
-                        RESET_QUERY_TIME()
-                        COUNT_QUERY_TIME_START
+                    RESET_QUERY_TIME()
+                    COUNT_QUERY_TIME_START
 
-                        // cr is a match of q' by lemma 5
-                        if (vector_cell_match(query_vectors[q].ps_vector, cr, cr_vectors, settings, dist_threshold))
+                    // cr is a match of q' by lemma 5
+                    if (vector_cell_match(query_vectors[q].ps_vector, cr, cr_vectors, settings, dist_threshold))
+                    {
+                        COUNT_USED_LEMMA(5)
+                        if (!add_matching_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, settings->num_pivots, settings->mtr_vector_length)) // add <q', cr>
                         {
-                            COUNT_USED_LEMMA(5)
-                            if (!add_matching_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, settings->num_pivots, settings->mtr_vector_length)) // add <q', cr>
-                            {
-                                exit_with_failure("Error in query_engine.c: couldn't add matching pair.");
-                            }
+                            exit_with_failure("Error in query_engine.c: couldn't add matching pair.");
                         }
+                    }
+                    else
+                    {
+                        // lemma 3
+                        if (!vector_cell_filter(query_vectors[q].ps_vector, cr, cr_vectors, settings, dist_threshold))
+                            add_candidate_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, 
+                                                settings->num_pivots, settings->mtr_vector_length); // add <q', cr>
                         else
                         {
-                            // lemma 3
-                            if (!vector_cell_filter(query_vectors[q].ps_vector, cr, cr_vectors, settings, dist_threshold))
-                                add_candidate_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, 
-                                                    settings->num_pivots, settings->mtr_vector_length); // add <q', cr>
-                            else
-                            {
-                                printf("-- fitered cell for vector %d -\n", q);
-                                COUNT_NEW_FILTERED_CELL
-                                COUNT_NEW_FILTERED_VECTORS(cr->cell_size)
-                                COUNT_USED_LEMMA(3)
-                            }
+                            printf("-- fitered cell for vector %d -\n", q);
+                            COUNT_NEW_FILTERED_CELL
+                            COUNT_NEW_FILTERED_VECTORS(cr->cell_size)
+                            COUNT_USED_LEMMA(3)
                         }
-                        // for current set stop time and add it to query time
-                        COUNT_QUERY_TIME_END
-                        COUNT_NEW_QUERY_TIME(query_time) // add curr query time to total query time (for all columns)
-                        match_map[map_idx].query_time += query_time;
                     }
-                    // free memory
-                    for(int q = 0; q < cq->cell_size; q++)
-                    {
-                        free(query_vectors[q].mtr_vector);
-                        free(query_vectors[q].ps_vector);
-                    }
-                    free(query_vectors);
-
-                    // free memory
-                    for(int i = 0; i < cr->cell_size; i++)
-                        free(cr_vectors[i].values);
-                    free(cr_vectors);
-
+                    // for current set stop time and add it to query time
+                    COUNT_QUERY_TIME_END
+                    COUNT_NEW_QUERY_TIME(query_time) // add curr query time to total query time (for all columns)
+                    match_map[map_idx].query_time += query_time;
                 }
-                else if (cq->cell_size == 0)
+                // free memory
+                for(int q = 0; q < cq->cell_size; q++)
                 {
-                    // printf("Empty leaf query cell.\n\n");
-                    break;
+                    free(query_vectors[q].mtr_vector);
+                    free(query_vectors[q].ps_vector);
                 }
+                free(query_vectors);
+
+                // free memory
+                for(int i = 0; i < cr->cell_size; i++)
+                    free(cr_vectors[i].values);
+                free(cr_vectors);
             }
             else
             {
@@ -333,6 +317,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                 // lemma 6
                 if (cell_cell_match(cr, cq, settings, dist_threshold))
                 {
+                    printf("-m- matched cell %u, size = %ld\n", cr->id, cr->total_children_size);
                     COUNT_USED_LEMMA(6)
                     unsigned int num_cr_leaves = 0, max_leaf_idx = 0;
                     get_num_leaf_cells(cr, &num_cr_leaves);
@@ -407,7 +392,8 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                 {
                     if (cell_cell_filter(cr, cq, settings, dist_threshold))
                     {
-                        printf("-f- fitered cell %u, size = %ld\n", cr->id, cr->total_children_size);
+                        printf("-f- fitered cell %u, size = %ld (leaf = %d) (empty = %d) \n", cr->id, cr->total_children_size, 
+                            cr->is_leaf, cr->is_empty);
                         COUNT_NEW_FILTERED_CELL
                         COUNT_NEW_FILTERED_VECTORS(cr->total_children_size)
                         COUNT_USED_LEMMA(4)

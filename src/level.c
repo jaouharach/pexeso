@@ -39,6 +39,7 @@ enum response init_levels(struct grid *grid)
         for (int i = 0; i < new_level->num_cells; i++)
         {
             new_level->cells[i].id = i;
+            new_level->cells[i].is_empty = -1;
             new_level->cells[i].index_entry_pos = -1;
             new_level->cells[i].center = malloc(sizeof(struct vector));
             new_level->cells[i].center->values = malloc(sizeof(v_type) * grid->settings->num_pivots);
@@ -140,6 +141,7 @@ enum response init_first_level(struct grid *grid)
         
         // link center vector to cell in first_level
         grid->first_level->cells[i].id = i;
+        grid->first_level->cells[i].is_empty = -1;
         grid->first_level->cells[i].center = &center_vectors[i];
         grid->first_level->cells[i].level = grid->first_level;
         grid->first_level->cells[i].index_entry_pos = -1;
@@ -228,6 +230,7 @@ enum response init_root(struct grid *grid)
     /* create cells in root level */
     init_cell(&root->cells[0], root->cell_edge_length, num_child_cells);
     root->cells[0].id = 0;
+    root->cells[0].is_empty = -1;
     root->cells[0].level = grid->root;
     root->cells[0].center = malloc(sizeof(struct vector));
     root->cells[0].center->values = malloc(sizeof(v_type) * grid->settings->num_pivots);

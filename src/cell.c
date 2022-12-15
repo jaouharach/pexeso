@@ -152,6 +152,8 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * c
     {
         // init child cell
         child_cells[c].id = c;
+        child_cells[c].is_leaf = c;
+        child_cells[c].is_empty = -1;
         child_cells[c].parent = parent_cell;
         child_cells[c].num_child_cells = parent_cell->num_child_cells;
         child_cells[c].edge_length = parent_cell->edge_length / 2;
