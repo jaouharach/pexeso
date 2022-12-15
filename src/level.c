@@ -139,6 +139,7 @@ enum response init_first_level(struct grid *grid)
             exit_with_failure("Error in level.c: Could not allocate memory for list of center vectors.\n");
         
         // link center vector to cell in first_level
+        grid->first_level->cells[i].id = i;
         grid->first_level->cells[i].center = &center_vectors[i];
         grid->first_level->cells[i].level = grid->first_level;
         grid->first_level->cells[i].index_entry_pos = -1;
@@ -157,7 +158,8 @@ enum response init_first_level(struct grid *grid)
     
     if(distinct_coordinates == NULL)
     {
-        printf("Error in level.c: Couldn't allocate memory for distinct coordinates, ndc = %d.", ndc);
+        printf("Error in level.c: Couldn't allocate memory for distinct coordinates, extrimity = %.5f, "
+        "ndc = %d, cell edge length = %.5f.", grid->settings->pivot_space_extremity->values[0], ndc,  grid->first_level->cell_edge_length);
         exit(-1);
     }
     
@@ -225,6 +227,7 @@ enum response init_root(struct grid *grid)
 
     /* create cells in root level */
     init_cell(&root->cells[0], root->cell_edge_length, num_child_cells);
+    root->cells[0].id = 0;
     root->cells[0].level = grid->root;
     root->cells[0].center = malloc(sizeof(struct vector));
     root->cells[0].center->values = malloc(sizeof(v_type) * grid->settings->num_pivots);

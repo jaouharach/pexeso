@@ -195,7 +195,7 @@ enum response create_grid_dir(const char * dir_path)
     if (stat(dir_path, &sb) == 0 && S_ISDIR(sb.st_mode)) // if directory exists ask user for action
     {
         char resp = 'n';
-        printf("Warning in globals.c: Grid root directory '%s' already exists!would you like to delete it? (y/n): ", dir_path);
+        printf("Warning in globals.c: Grid root directory '%s' already exists! would you like to delete it? (y/n): ", dir_path);
         scanf("%c", &resp);
         if (resp == 'y' || resp == 'Y')
         {
@@ -288,7 +288,8 @@ int get_ndigits(unsigned int n)
 /* print a progress bar */
 void print_progress(int i, int j) 
 {
-    double percentage = (double) i / (j -1);
+    // if(j == 1) j = 2;
+    double percentage = (double) i / (j);
     char * progress_str = "==================================================";
     int width = 50;
 

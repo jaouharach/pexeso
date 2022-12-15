@@ -13,7 +13,8 @@ struct cell {
     bool is_leaf;
     int is_empty;
     unsigned int cell_size; // number of vectors currently stored in cell
-    
+    long total_children_size; // total number of vectors stored in child cells 
+
     struct vector * center;
     float edge_length;
 
@@ -68,7 +69,7 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
 vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * settings, long unsigned int * num_vectors, bool from_query_grid);
 
 /* check is cell is empty (has no vectors) */
-bool is_empty(struct cell * cell);
+int is_empty(struct cell * cell);
 
 /* make an array of leaf cells and their corresponding list of vector tuples (vector in mtr and ps space) */
 struct leaf_cell_vector_tuples * init_leaf_cells_vectors_array(struct grid_settings * settings);

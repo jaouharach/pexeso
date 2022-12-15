@@ -301,7 +301,7 @@ int main(int argc, char **argv)
     // create grid index and store it in disk
     if(mode == 0)
     {
-        printf("MODE 0: Create index.\n\n\n");
+        printf("MODE 0: Create grid.\n\n\n");
         printf("Loading dataset files...");
         vector * dataset = load_binary_files(bin_files_directory, 
                                             total_dl_files, total_vectors, base, mtr_vector_length);
@@ -431,6 +431,18 @@ int main(int argc, char **argv)
         for(int i = 0; i < 7; i++)
             grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
 
+        grid->stats->filtered_cells_count = filtered_cells_count;
+        grid->stats->visited_cells_count = visited_cells_count;
+        grid->stats->visited_matching_cells_count = visited_matching_cells_count;
+        grid->stats->visited_candidate_cells_count = visited_candidate_cells_count;
+
+        grid->stats->filterd_vectors_count = filterd_vectors_count;
+        grid->stats->checked_vectors_in_ps_count = checked_vectors_in_ps_count;
+        grid->stats->checked_vectors_in_mtr_count = checked_vectors_in_mtr_count;
+        
+        grid->stats->count_add_cpair = count_add_cpair;
+        grid->stats->count_add_mpair = count_add_mpair;
+
         /* print inverted index */
         // dump_inv_index_to_console(index);
 
@@ -462,10 +474,10 @@ int main(int argc, char **argv)
             exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
 
     }
-    // read grid index from disk and run queries
+    // read grid and inv index from disk and run queries
     else if (mode == 1)
     {
-        printf("MODE 1: Read index from disk and run queries.\n");
+        printf("MODE 1: Read grid from disk and run queries.\n");
         struct query_settings * query_settings = init_query_settings(dist_threshold, join_threshold, num_query_sets, min_query_set_size, max_query_set_size, qgrid_mtr_buffered_memory_size);        
         
         // read grid from disk
@@ -475,6 +487,9 @@ int main(int argc, char **argv)
         struct inv_index* index = index_read(grid->settings->work_directory, 
                     grid->settings,
                     grid->first_level);
+
+        grid->stats->grid_building_input_time += partial_input_time;
+
 
         /* print inverted index */
         // dump_inv_index_to_console(index);
@@ -490,7 +505,17 @@ int main(int argc, char **argv)
         for(int i = 0; i < 7; i++)
             grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
 
-        grid->stats->grid_building_input_time += partial_input_time;
+        grid->stats->filtered_cells_count = filtered_cells_count;
+        grid->stats->visited_cells_count = visited_cells_count;
+        grid->stats->visited_matching_cells_count = visited_matching_cells_count;
+        grid->stats->visited_candidate_cells_count = visited_candidate_cells_count;
+
+        grid->stats->filterd_vectors_count = filterd_vectors_count;
+        grid->stats->checked_vectors_in_ps_count = checked_vectors_in_ps_count;
+        grid->stats->checked_vectors_in_mtr_count = checked_vectors_in_mtr_count;
+
+        grid->stats->count_add_cpair = count_add_cpair;
+        grid->stats->count_add_mpair = count_add_mpair;
 
         /* end of endexing and quering */
         COUNT_TOTAL_TIME_END
@@ -510,10 +535,10 @@ int main(int argc, char **argv)
         if(!inv_index_destroy(index))
             exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
     }
-    // read grid index from disk and run queries
+    // creat grid and run queries
     else if (mode == 2)
     {
-        printf("MODE 0: Create index.\n\n\n");
+        printf("MODE 2: Create grid and run queries.\n\n\n");
         printf("Loading dataset files...");
         vector * dataset = load_binary_files(bin_files_directory, 
                                             total_dl_files, total_vectors, base, mtr_vector_length);
@@ -643,6 +668,18 @@ int main(int argc, char **argv)
         for(int i = 0; i < 7; i++)
             grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
 
+        grid->stats->filtered_cells_count = filtered_cells_count;
+        grid->stats->visited_cells_count = visited_cells_count;
+        grid->stats->visited_matching_cells_count = visited_matching_cells_count;
+        grid->stats->visited_candidate_cells_count = visited_candidate_cells_count;
+
+        grid->stats->filterd_vectors_count = filterd_vectors_count;
+        grid->stats->checked_vectors_in_ps_count = checked_vectors_in_ps_count;
+        grid->stats->checked_vectors_in_mtr_count = checked_vectors_in_mtr_count;
+        
+        grid->stats->count_add_cpair = count_add_cpair;
+        grid->stats->count_add_mpair = count_add_mpair;
+        
         /* print inverted index */
         // dump_inv_index_to_console(index);
 

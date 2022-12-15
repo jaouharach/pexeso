@@ -464,6 +464,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                         if (!grid_insert(grid, index, vector))
                             exit_with_failure("Error in file_loaders.c:  Could not add vector to the grid.\n");
                         
+                        break;
                         COUNT_NEW_LOADED_QUERY_VEC
 
                         vector->pos = vector->pos + 1;
@@ -772,21 +773,29 @@ char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, u
 									+ get_ndigits(min_query_set_size) + get_ndigits(max_query_set_size)
 									+ strlen("/_l_q_min_max") + strlen(work_dir)+ strlen(algorithm) + 5;
 
-	char * result_dir_name = malloc(sizeof(char) * string_size + 1);
-	sprintf(result_dir_name, "%s/%s_l%u_%uq_min%d_max%d", work_dir, algorithm, l, num_query_sets, min_query_set_size, max_query_set_size);
-    result_dir_name[string_size - 1] = '\0';
+	char * result_dir_path = malloc(sizeof(char) * string_size + 1);
+	sprintf(result_dir_path, "%s/%s_l%u_%uq_min%d_max%d", work_dir, algorithm, l, num_query_sets, min_query_set_size, max_query_set_size);
+    result_dir_path[string_size - 1] = '\0';
 
     // printf("max set size = %d\n", max_query_set_size);
 	// printf("Result directory name: %s\n", result_dir_name);
-	DIR* dir = opendir(result_dir_name);
+	DIR* dir = opendir(result_dir_path);
 	if (dir)
     {
-        printf("(!) Warning in file_loader.c: Results directory already exists. Please delete directory : %s.\n", result_dir_name);
-        exit(-1);
+        
+        printf("(!) Warning in file_loader.c: Results directory already exists. Would you like to delete it? (y/n): ");
+        char resp = 'n';
+        scanf("%c", &resp);
+        if (resp == 'y' || resp == 'Y')
+        {
+            remove_directory(result_dir_path);
+        }
+        else
+            exit(-1);
     }
-  mkdir(result_dir_name, 0777);
+  mkdir(result_dir_path, 0777);
   
-  return result_dir_name;
+  return result_dir_path;
 }
 
 /* save query results to disk */

@@ -126,7 +126,7 @@ enum response cell_cell_match(struct cell * cell, struct cell * query_cell,
                             struct grid_settings * settings, float dist_threshold);
 
 /* min rectagle query region RQR of a query vector  */
-float min_RQR(struct vector *q, unsigned int num_pivots, float dist_threshold);
+int min_RQR(struct vector *q, unsigned int num_pivots, float dist_threshold);
 
 /* add candidate pair */
 enum response add_candidate_pair(struct pairs * pairs, struct vector * query_vector, struct vector * query_vector_mtr, struct cell *candidate, unsigned int num_pivots, unsigned int mtr_vector_length);

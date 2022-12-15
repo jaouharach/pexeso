@@ -93,40 +93,31 @@ void quick_browse(struct grid * Dgrid, struct grid * Qgrid, struct pairs * pairs
     for(int i = 0; i < level->num_cells; i++)
     {
         cr = &level->cells[i];
-        if(cr->cell_size == 0)
-            continue;
+        if(cr->cell_size == 0) continue; // skip if cr cell is empty
         for(int j = 0; j < qlevel->num_cells; j++)
         {
             cq = &qlevel->cells[j];
+            if(cq->cell_size == 0) continue; // skip if query cell is empty
 
-            // skip if query cell is empty
-            if(cq->cell_size == 0)
-                continue;
-
-            for(int p = 0; p < num_pivots; p++)
-                if(cr->center->values[p] != cq->center->values[p])
-                    continue;
-
-            // cq and cr refer to the same region
-            // printf("\n(QB) same region!\n");
-            // print_vector(cr->center, num_pivots);
-            // print_vector(cq->center, num_pivots);
-            
-            // create candiate pair <q', cr> for every query vector in cq
-            // get all q' and q in cq
-            struct vector_tuple * query_vectors = get_vector_tuples(cq, settings, true);
-            for (int q = 0; q < cq->cell_size; q++)
+            if(cr->id == cq->id) // cq and cr refer to the same region
             {
-                // add <q', cr>
-                add_candidate_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, settings->num_pivots, settings->mtr_vector_length); 
-                
-                // free(query_vectors[q].mtr_vector->values);
-                free(query_vectors[q].mtr_vector);
-                // free(query_vectors[q].ps_vector->values);
-                free(query_vectors[q].ps_vector);
+                // create candiate pair <q', cr> for every query vector in cq
+                // get all q' and q in cq
+                struct vector_tuple * query_vectors = get_vector_tuples(cq, settings, true);
+                for (int q = 0; q < cq->cell_size; q++)
+                {
+                    // add <q', cr>
+                    add_candidate_pair(pairs, query_vectors[q].ps_vector, query_vectors[q].mtr_vector, cr, settings->num_pivots, settings->mtr_vector_length); 
+                    
+                    // free(query_vectors[q].mtr_vector->values);
+                    free(query_vectors[q].mtr_vector);
+                    // free(query_vectors[q].ps_vector->values);
+                    free(query_vectors[q].ps_vector);
+                }
+                // free memory
+                free(query_vectors);
             }
-            // free memory
-            free(query_vectors);
+            
         }
     }
 }

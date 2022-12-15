@@ -169,7 +169,7 @@ void dump_match_map_to_console(struct match_map * map, unsigned int map_idx)
 
 void dump_csv_results_to_console(struct match_map * map, unsigned int map_idx)
 {
-    printf("\t \t\tQ = (%u, %u), -Q- = %u (Query time = %.2f seconds)\t\t\n", 
+    printf("\nQ = (%u, %u), |Q| = %u (Query time = %.2f seconds)\t\t\n", 
     map[map_idx].query_set.table_id, map[map_idx].query_set.set_id, map[map_idx].query_set.set_size, map[map_idx].query_time / 1000000);
     printf("\t............................................................\n\n\n");
     struct sid curr_set;

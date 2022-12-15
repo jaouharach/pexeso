@@ -128,7 +128,8 @@ response init_cell(cell *cell, float length, unsigned int num_child_cells)
     cell->is_leaf = false;
     cell->is_empty = -1;
     cell->cell_size = 0;
-    
+    cell->total_children_size = -1;
+
     // null pointers
     cell->parent = NULL;
     cell->children = NULL;
@@ -150,12 +151,14 @@ cell *get_child_cells(cell *parent_cell, unsigned int num_child_cells, level * c
     for (int c = 0; c < num_child_cells; c++)
     {
         // init child cell
+        child_cells[c].id = c;
         child_cells[c].parent = parent_cell;
         child_cells[c].num_child_cells = parent_cell->num_child_cells;
         child_cells[c].edge_length = parent_cell->edge_length / 2;
         child_cells[c].level = children_level;
         child_cells[c].center = NULL;
         child_cells[c].cell_size = 0;
+        child_cells[c].total_children_size = -1;
         child_cells[c].file_buffer = NULL;
         child_cells[c].filename = NULL;
         child_cells[c].children = NULL;
@@ -253,6 +256,7 @@ void create_center_vectors(float distinct_coordinates[], int ndc, int k, int dim
 
 void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
 {
+    // dest->id = src->id;
     dest->parent = src->parent;
     dest->level = src->level;
     // printf("cell parent address = %p\n", dest->parent);
@@ -265,6 +269,7 @@ void cell_cpy(cell *dest, cell *src, unsigned int num_dim)
     dest->num_child_cells = src->num_child_cells;
     dest->filename = src->filename;
     dest->cell_size = 0;
+    dest->total_children_size = -1;
     dest->file_buffer = src->file_buffer;
     dest->vid = src->vid;
     // dest->index_entry_pos = src->index_entry_pos;
@@ -867,14 +872,20 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * set
 }
 
 /* check is cell is empty (has no vectors) */
-bool is_empty(struct cell * cell)
+int is_empty(struct cell * cell)
 {
     if(cell->is_leaf)
     {
         if(cell->cell_size > 0)
+        {
+            cell->is_empty = 0;
             return 0;
+        }
         else if(cell->cell_size == 0)
+        {
+            cell->is_empty = 1;
             return 1;
+        }
         else
             exit_with_failure("Error in cell.c: cell size cannot be negative!");
     }
@@ -891,22 +902,17 @@ bool is_empty(struct cell * cell)
         
         get_leaf_cells(cell, leaves, &max_leaf_idx);
 
+        cell->total_children_size = 0;
         for(int l = 0; l < num_leaves; l++)
-        {
-            if(leaves[l]->cell_size > 0)
-            {
-                free(leaves);
-                cell->is_empty = 0;
-                return 0;
-            }
-        }
-        free(leaves);
+            cell->total_children_size += leaves[l]->cell_size;
 
-        cell->is_empty = 1;
-        return 1;
+        if(cell->total_children_size == 0)
+            cell->is_empty = 1;
+        else        
+            cell->is_empty = 0;
     }
-    else
-        return cell->is_empty;
+
+    return cell->is_empty;
 }
 
 /* make an array of leaf cells and their corresponding list of vector tuples (vector in mtr and ps space) */

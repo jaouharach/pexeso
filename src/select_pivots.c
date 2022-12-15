@@ -188,7 +188,7 @@ vector *fft(vector *data_set, int * dataset_dim, unsigned int k)
     // find the other  (k-1) outliers, skip first
     for (int i = 1; i < k; i++)
     {
-        bsf_d = FLT_MIN; // max distance to the current set of outliers
+        bsf_d = -FLT_MAX; // max distance to the current set of outliers
         bsf_v = -1;      // position of the farthest vector in the data set.
         // find the farthest vector to the vectors in outliers list
         for (int j = 0; j < num_vectors; j++)

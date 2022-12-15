@@ -139,12 +139,20 @@ enum response init_grid_stats(struct grid * grid)
 
     grid->stats->out_of_ps_space_vec_count = 0;
     grid->stats->out_of_ps_space_qvec_count = 0;
-    grid->stats->checked_cells_count = 0;
 
     grid->stats->total_queries_count = 0;
 
     for(int i = 0; i < 7; i++)
         grid->stats->used_lemmas_count[i] = 0;
+
+    grid->stats->filtered_cells_count = 0;
+    grid->stats->visited_cells_count = 0;
+    grid->stats->visited_matching_cells_count = 0;
+    grid->stats->visited_candidate_cells_count = 0;
+
+    grid->stats->filterd_vectors_count = 0;
+    grid->stats->checked_vectors_in_ps_count = 0;
+    grid->stats->checked_vectors_in_mtr_count = 0;
 
     // timers 
     grid->stats->idx_append_vec_to_leaf_total_time = 0;	
@@ -547,7 +555,6 @@ enum response read_leaf_level(struct grid *grid, FILE *root_file, struct level *
     for (int c = 0; c < level->num_cells; c++)
     {
         struct cell * cell = &(level->cells[c]);
-        cell->cell_size = 
         COUNT_PARTIAL_INPUT_TIME_START
         fread(&filename_size, sizeof(int), 1, root_file);
         fread(filename, sizeof(char), filename_size, root_file);
@@ -837,11 +844,6 @@ void print_grid_stats(struct grid * grid)
     printf("Out_of_ps_space_qvec_count\t%ld\n", 
         grid->stats->out_of_ps_space_qvec_count);
 
-    
-    printf("\n\n\n(!) Lemma usage:\t-------------------------------------\n\n\n");
-    for(int i = 0; i < 7; i++)
-        printf("Lemma %d:\t%u\n", i+1, grid->stats->used_lemmas_count[i]);
-
     printf("\n\n\n(t) Time measures in seconds:\t-------------------------------------\n\n\n");
 
     printf("Total_time\t%lf\n",
@@ -861,6 +863,23 @@ void print_grid_stats(struct grid * grid)
 
     printf("Total_query_time\t%lf\n", 
         grid->stats->total_query_time / 1000000);
+
+        printf("\n\n\n(!) Lemma usage:\t-------------------------------------\n\n\n");
+    for(int i = 0; i < 7; i++)
+        printf("Lemma %d:\t%u\n", i+1, grid->stats->used_lemmas_count[i]);
+
+    printf("\n\n\n(!) Data access:\t-------------------------------------\n\n\n");
+    printf("Filtered_cells_count\t%d\n", grid->stats->filtered_cells_count);
+    printf("Visited_cells_count\t%d\n", grid->stats->visited_cells_count);
+    printf("Visited_matching_cells_count\t%d\n", grid->stats->visited_matching_cells_count);
+    printf("Visited_candidate_cells_count\t%d\n\n", grid->stats->visited_candidate_cells_count);
+
+    printf("Filterd_vectors_count\t%ld\n", grid->stats->filterd_vectors_count);
+    printf("Checked_vectors_in_ps_count\t%ld\n", grid->stats->checked_vectors_in_ps_count);
+    printf("Checked_vectors_in_mtr_count\t%ld\n\n", grid->stats->checked_vectors_in_mtr_count);
+
+    printf("Count_add_mpair\t%d\n", grid->stats->count_add_mpair);
+    printf("Count_add_cpair\t%d\n", grid->stats->count_add_cpair);
 
     printf("\n\n\n"); 
 }

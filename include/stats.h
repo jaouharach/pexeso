@@ -23,13 +23,23 @@ unsigned long loaded_qvec_count; // total loaded query vectors
 unsigned long out_of_ps_space_vec_count;
 unsigned long out_of_ps_space_qvec_count;
 
-unsigned long checked_cells_count;
-
 unsigned long total_queries_count;
 unsigned long query_set_count;
 unsigned long query_vec_count;
 
 unsigned int used_lemmas_count [7];
+
+unsigned int filtered_cells_count;
+unsigned int visited_cells_count;
+unsigned int visited_matching_cells_count;
+unsigned int visited_candidate_cells_count;
+
+unsigned long filterd_vectors_count;
+unsigned long checked_vectors_in_ps_count;
+unsigned long checked_vectors_in_mtr_count;
+
+unsigned int count_add_mpair;
+unsigned int count_add_cpair;
 
 // timers 
 double start;
@@ -82,13 +92,33 @@ double pivot_selection_time;
                     loaded_query_files_size = 0;\
                     loaded_vec_count = 0;\
                     loaded_qvec_count = 0;\
-                    checked_cells_count = 0;\
                     out_of_ps_space_vec_count = 0;\
                     out_of_ps_space_qvec_count = 0;\
+                    filtered_cells_count = 0;\
+                    visited_cells_count = 0;\
+                    visited_matching_cells_count = 0;\
+                    visited_candidate_cells_count = 0;\
+                    filterd_vectors_count = 0;\
+                    checked_vectors_in_ps_count = 0;\
+                    checked_vectors_in_mtr_count = 0;\
+                    count_add_mpair = 0;\
+                    count_add_cpair = 0;\
                     for(int i = 0; i < 7; i++)\
                         used_lemmas_count[i] = 0;
 
+#define COUNT_ADD_MPAIR count_add_mpair++;
+#define COUNT_ADD_CPAIR count_add_cpair++;
+
 #define COUNT_USED_LEMMA(lemma_idx) used_lemmas_count[lemma_idx-1]++;
+#define COUNT_NEW_FILTERED_CELL filtered_cells_count++;
+#define COUNT_NEW_VISITED_CELL visited_cells_count++;
+#define COUNT_NEW_MATCH_CELL visited_matching_cells_count++;
+#define COUNT_NEW_CANDIDATE_CELL visited_candidate_cells_count++;
+
+#define COUNT_NEW_FILTERED_VECTORS(nb_vectors) filterd_vectors_count += nb_vectors;
+#define COUNT_NEW_CHECKED_VECTOR_IN_PS checked_vectors_in_ps_count++;
+#define COUNT_NEW_CHECKED_VECTOR_IN_MTR checked_vectors_in_mtr_count++;
+
 #define COUNT_NEW_LOADED_VEC loaded_vec_count++;
 #define COUNT_NEW_LOADED_QUERY_VEC loaded_qvec_count++;
 #define COUNT_NEW_LOADED_FILE loaded_files_count++;

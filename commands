@@ -1,5 +1,7 @@
-To compile:                         gcc globals.c select_pivots.c gsl_matrix.c inv_index.c match_map.c  query_engine.c level.c file_buffer_manager.c file_buffer.c file_loader.c cell.c pexeso.c hgrid.c  main.c -o ../bin/pexeso -lm -g -lgsl -lgslcblas -lmcheck
-debug with valgrind:                valgrind  --leak-check=full --undef-value-errors=no ../bin/pexeso --work-dir /home/jaouhara/Documents/Projects/dssdl-projects/pexeso/ --dataset /home/jaouhara/Documents/Projects/dummy-data/bins-2 --queries /home/jaouhara/Documents/Projects/dummy-data/bins-2/queries --metric-space-dim 50 --pivot-space-dim 2 --num-levels 2 --leaf-size 450 --fft-scale 7 --join-threshold 1 --dist-threshold 0 --metric-buffer-size 70 --pivot-buffer-size 30 --mode 0 --num-query-sets -1 --min-query-set-size 0 --max-query-set-size -1 --best-fft 1 --max-fft 30
+To compile:                         gcc globals.c select_pivots.c gsl_matrix.c inv_index.c match_map.c 
+                                     query_engine.c level.c file_buffer_manager.c file_buffer.c file_loader.c cell.c 
+                                     pexeso.c hgrid.c  main.c -o ../bin/pexeso -lm -g -lgsl -lgslcblas -lmcheck
+
 
 Binary conversion:                  little indian.
 Base:
@@ -7,4 +9,6 @@ Number of bytes for integer:        4 (32 bits)
 Number of bytes for floats:         4 (32 bits)
 Number of bytes per binary file:    base * ((datasize * index->settings->num_dim) + nsets) / 8
 
-To execute:                         ../bin/pexeso --work-dir /home/jaouhara/Documents/Projects/dssdl-projects/pexeso/ --datalake /home/jaouhara/Documents/Projects/dummy-data/bins-2 --datalake-size 2 --queries /home/jaouhara/Documents/Projects/dummy-data/bins-2/queries --metric-space-dim 50 --pivot-space-dim 2 --num-levels 2 --leaf-size 450 --fft-scale 7 --join-threshold 1 --dist-threshold 0 --metric-buffer-size 70 --pivot-buffer-size 30 --mode 0 --num-query-sets -1 --min-query-set-size 0 --max-query-set-size -1 --best-fft 1 --max-fft 30 --num-best-fft-iter 5
+To execute:                         ../bin/pexeso --work-dir  $HOME/Projects/pexeso/grids/10/ --dataset /data/real/jchanchaf/wdc-2015-en-full/10m/bins/ 
+                                    --dataset-size 10 --queries /data/real/jchanchaf/wdc-2015-en-full/queries/10q-size100/  --num-query-sets 1 --min-query-set-size 100 --max-query-set-size 100 --metric-space-dim 50 --pivot-space-dim 3 --num-levels 4 --leaf-size 150 --fft-scale 12 --best-fft 0 --join-threshold 0.6 --dist-threshold 0.06 --metric-buffer-size 1000 
+                                    --qgrid-metric-buffer-size 5 --index-path /home/jaouhara.chanchaf/Projects/pexeso/grids/10/Hgrid_4.9%_fft12/ --mode 1

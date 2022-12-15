@@ -64,14 +64,22 @@ struct stats_info {
   unsigned long out_of_ps_space_vec_count; // data vectors that are out of the pivot space
   unsigned long out_of_ps_space_qvec_count; // query vectors that are out of the pivot space
 
-  unsigned long checked_cells_count;
-
   unsigned long total_queries_count;
-
 
   unsigned int used_lemmas_count[7]; // count how many times each lemma has been used
 
+  unsigned int filtered_cells_count;
+  unsigned int visited_cells_count;
+  unsigned int visited_matching_cells_count;
+  unsigned int visited_candidate_cells_count;
 
+  unsigned long filterd_vectors_count;
+  unsigned long checked_vectors_in_ps_count; // nb of vectors checked in the pivots space
+  unsigned long checked_vectors_in_mtr_count; // nb of vectors checked in the metric space
+
+  unsigned int count_add_mpair;
+  unsigned int count_add_cpair;
+  
   // timers 
   double idx_append_vec_to_leaf_total_time;	
 	double idx_append_vec_to_leaf_input_time;
