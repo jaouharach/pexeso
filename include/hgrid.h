@@ -7,6 +7,7 @@ struct grid_settings {
     char * root_directory; // where cell files will be stored
     char * query_root_directory; // where query grid cell files will be stored
     char * work_directory; // where Hgrid and Qrid will be stored
+    unsigned int fft_scale;
     vector * pivots_mtr; // pivot vectors in metric space  
     vector * pivots_ps; // pivot vectors in pivot space  
     unsigned int num_pivots; // |P|, number of dimensions in pivot space
@@ -25,6 +26,17 @@ struct grid_settings {
     unsigned int max_leaf_size; // max number of vectors stored in one leaf cell
     unsigned int track_vector; // (value = 0 / 1) track data vector id or not, vector id = (table_id, column_id) 
     struct query_settings * query_settings; // distance threshold tau, joinability threshold T ...
+};
+
+struct query_settings
+{
+    float join_threshold; // T 
+    float dist_threshold; // tau
+    int num_query_sets;
+    int min_query_set_size;
+    int max_query_set_size;
+    unsigned int mtr_buffered_memory_size; // amount of memory (in MB) to store metric space vectors for query grid
+    unsigned int ps_buffered_memory_size; // amount of memory (in MB) to store pivot space vectors for query grid
 };
 
 /* hierarchical grid structure */
@@ -47,7 +59,7 @@ struct stats_info {
   // counters
   unsigned long total_cells_count;
   unsigned long leaf_cells_count;
-  unsigned long empty_leaf_cells_count;
+  unsigned int empty_leaf_cells_count;
 
   double loaded_files_size; // total size of loaded data tables (in Bytes)
   double loaded_query_files_size; // total size of loaded query tables (in Bytes)
@@ -100,6 +112,7 @@ struct stats_info {
 };
 
 enum response init_grid(const char *work_dir,
+                    unsigned int fft_scale,
                     unsigned int num_pivots,
                     vector *pivots_mtr,
                     vector *pivots_ps,

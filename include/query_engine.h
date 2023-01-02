@@ -11,17 +11,6 @@ struct query_result
     struct vid *vector_ids;
 };
 
-struct query_settings
-{
-    float join_threshold; // T 
-    float dist_threshold; // tau
-    int num_query_sets;
-    int min_query_set_size;
-    int max_query_set_size;
-    unsigned int mtr_buffered_memory_size; // amount of memory (in MB) to store metric space vectors for query grid
-    unsigned int ps_buffered_memory_size; // amount of memory (in MB) to store pivot space vectors for query grid
-};
-
 // pairs of candidate and matching cells for every query vector
 /* pairs[i] = <q', has_candidates, has_matches, {candidate_cells}, {matching_cells}>  */
 struct pairs {

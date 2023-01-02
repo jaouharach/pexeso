@@ -172,7 +172,7 @@ struct sid * build_query_grid(struct grid * Qgrid, struct grid * Dgrid, inv_inde
     printf("(OK)\n");
 
     /* initialize grid */
-    if (!init_grid(Dgrid->settings->work_directory, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
+    if (!init_grid(Dgrid->settings->work_directory, 0, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, *num_query_vectors, base, mtr_query_vector_length, 
                     mtr_buffered_memory_size, max_leaf_size, track_vector, 
                     true, Dgrid->settings->query_settings, Qgrid, 0))

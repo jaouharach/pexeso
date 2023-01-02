@@ -13,8 +13,10 @@
 #include "../include/select_pivots.h"
 #include "../include/stats.h"
 #include "../include/inv_index.h"
+
 /* initialize grid */
 enum response init_grid(const char *work_dir,
+                    unsigned int fft_scale,
                     unsigned int num_pivots,
                     vector *pivots_mtr,
                     vector *pivots_ps,
@@ -52,6 +54,7 @@ enum response init_grid(const char *work_dir,
     else
         strcat(grid->settings->root_directory, "/Hgrid/\0");
 
+    grid->settings->fft_scale = fft_scale;
     grid->settings->num_pivots = num_pivots; // number of dimensions is equal to the number of pivots
     grid->settings->pivots_mtr = pivots_mtr; // pivot vectors in metric space
     grid->settings->pivots_ps = pivots_ps;   // pivot vectors in pivot space
@@ -473,7 +476,7 @@ struct grid * grid_read(const char * grid_directory, struct query_settings * que
     COUNT_PARTIAL_INPUT_TIME_END
 
     printf("\n\nInit grid... ");
-    if (!init_grid(grid_directory, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
+    if (!init_grid(grid_directory, 0, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                     num_levels, total_records, 32, mtr_vector_length, 
                     mtr_buffered_memory_size, max_leaf_size, 1, 
                     false, query_settings, grid, 1))
@@ -834,7 +837,7 @@ void print_grid_stats(struct grid * grid)
     printf("Leaf_cells_count\t%d\n", 
         grid->settings->num_leaf_cells);
     
-    printf("Empty_leaf_cells_count\t%ld\n", 
+    printf("Empty_leaf_cells_count\t%d\n", 
         grid->stats->empty_leaf_cells_count);
     
     printf("\n\n\n(!) Warnings:\t-------------------------------------\n\n\n");
@@ -881,6 +884,19 @@ void print_grid_stats(struct grid * grid)
     printf("Count_add_mpair\t%d\n", grid->stats->count_add_mpair);
     printf("Count_add_cpair\t%d\n", grid->stats->count_add_cpair);
 
+
+    printf("fft_scale,\ttau,\tT,\t%%filled_cells,\t#vec_outps,\t#filtered_vectors"
+            ",\t#checked_pvectors,\t#checked_mvectors,\t#visited_cells,\t#visited_mcells,\t#visited_ccells,\t#filtered_cells\n");
+    printf("%d,\t%f,\t%f,\t%.2f%%,\t%ld,\t%ld,\t%ld,\t%ld"
+            ",\t%d,\t%d,\t%d,\t%d\n", grid->settings->fft_scale, 
+            grid->settings->query_settings->dist_threshold/2, 
+            grid->settings->query_settings->join_threshold,
+            100.0 * (((float)grid->settings->num_leaf_cells - (float)grid->stats->empty_leaf_cells_count)/(float)grid->settings->num_leaf_cells),
+            grid->stats->out_of_ps_space_vec_count,
+            grid->stats->filterd_vectors_count, grid->stats->checked_vectors_in_ps_count, grid->stats->checked_vectors_in_mtr_count,
+            grid->stats->visited_cells_count, grid->stats->visited_matching_cells_count, grid->stats->visited_candidate_cells_count,
+            grid->stats->filtered_cells_count
+            );
     printf("\n\n\n"); 
 }
 
@@ -906,7 +922,7 @@ void print_grid_settings(struct grid * grid)
         print_vector(&(grid->settings->pivots_ps[p]), grid->settings->num_pivots);
     }
     printf("#Leaf_cells:\t\t%d\n", grid->settings->num_leaf_cells);
-    printf("#Empty_leaf_cells:\t\t%ld\n", grid->stats->empty_leaf_cells_count);
+    printf("#Empty_leaf_cells:\t\t%d\n", grid->stats->empty_leaf_cells_count);
     printf("#Max_leaf_size:\t\t%d\n", grid->settings->max_leaf_size);
     printf("Mtr_buffered_memory_size:\t\t%.3f\n", grid->settings->mtr_buffered_memory_size);
     printf("Ps_buffered_memory_size:\t\t%.3f\n", grid->settings->ps_buffered_memory_size);

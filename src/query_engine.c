@@ -154,6 +154,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     if (pivot_filter(query_vector, candidate_vectors[v].ps_vector,
                                     grid->settings->num_pivots, dist_threshold))
                     {
+                        COUNT_NEW_FILTERED_VECTORS(1)
                         COUNT_USED_LEMMA(1)
                         // printf("filterd by lemma 1\n");
                         // update mismatch count of curr set
@@ -197,7 +198,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                         }
                     }
                     if(checked_vetors_in_ps == 1)
-                            COUNT_NEW_CHECKED_VECTOR_IN_PS
+                        COUNT_NEW_CHECKED_VECTOR_IN_PS
 
                     match_map[map_idx].total_checked_vectors++; 
                 }   
@@ -231,13 +232,13 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
     
     is_empty(root_cell);
     is_empty(query_cell);
-    printf("-b- block on cq %u, size = %ld\n", query_cell->id, query_cell->total_children_size);
-    printf("-b- block on cr %u, size = %ld\n", root_cell->id, root_cell->total_children_size);
+    // printf("-b- block on cq %u, size = %ld\n", query_cell->id, query_cell->total_children_size);
+    // printf("-b- block on cr %u, size = %ld\n", root_cell->id, root_cell->total_children_size);
     for (int i = 0; i < query_cell->num_child_cells; i++)
     {
         struct cell *cq = &query_cell->children[i];
         if(is_empty(cq) == 1)   continue; // skip empty query cell
-        printf("\t-cq- cell %u (not empty) ------------------------------------------------ \n", cq->id);
+        // printf("\t-cq- cell %u (not empty) ------------------------------------------------ \n", cq->id);
         
         for (int j = 0; j < root_cell->num_child_cells; j++)
         {
@@ -287,7 +288,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                                                 settings->num_pivots, settings->mtr_vector_length); // add <q', cr>
                         else
                         {
-                            printf("-- fitered cell for vector %d -\n", q);
+                            // printf("-- fitered cell for vector %d -\n", q);
                             COUNT_NEW_FILTERED_CELL
                             COUNT_NEW_FILTERED_VECTORS(cr->cell_size)
                             COUNT_USED_LEMMA(3)
@@ -317,7 +318,7 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                 // lemma 6
                 if (cell_cell_match(cr, cq, settings, dist_threshold))
                 {
-                    printf("-m- matched cell %u, size = %ld\n", cr->id, cr->total_children_size);
+                    // printf("-m- matched cell %u, size = %ld\n", cr->id, cr->total_children_size);
                     COUNT_USED_LEMMA(6)
                     unsigned int num_cr_leaves = 0, max_leaf_idx = 0;
                     get_num_leaf_cells(cr, &num_cr_leaves);
@@ -392,8 +393,8 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                 {
                     if (cell_cell_filter(cr, cq, settings, dist_threshold))
                     {
-                        printf("-f- fitered cell %u, size = %ld (leaf = %d) (empty = %d) \n", cr->id, cr->total_children_size, 
-                            cr->is_leaf, cr->is_empty);
+                        // printf("-f- fitered cell %u, size = %ld (leaf = %d) (empty = %d) \n", cr->id, cr->total_children_size, 
+                        //     cr->is_leaf, cr->is_empty);
                         COUNT_NEW_FILTERED_CELL
                         COUNT_NEW_FILTERED_VECTORS(cr->total_children_size)
                         COUNT_USED_LEMMA(4)
@@ -404,7 +405,6 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                         block(cq, cr, pairs, settings, match_map);
                     }
                 }
-            
             }
         }
     }
@@ -510,9 +510,9 @@ enum response vector_cell_filter(struct vector *q, struct cell *cell, struct vec
     {
         if(vector_in_SQR(&cell_vectors[v], q, settings->num_pivots, dist_threshold))
         {
-            for(int i = 0; i < cell->cell_size; i++)
-                free(cell_vectors[i].values);
-            free(cell_vectors);
+            // for(int i = 0; i < cell->cell_size; i++)
+            //     free(cell_vectors[i].values);
+            // free(cell_vectors);
             return FAILED;
         }
     }

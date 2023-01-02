@@ -356,7 +356,7 @@ int main(int argc, char **argv)
         if (grid == NULL)
             exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
 
-        if (!init_grid(work_dir, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
+        if (!init_grid(work_dir, 0, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                         num_levels, total_vectors, base, mtr_vector_length, 
                         mtr_buffered_memory_size, max_leaf_size, track_vector, 
                         false, query_settings, grid, 0))
@@ -593,7 +593,7 @@ int main(int argc, char **argv)
         if (grid == NULL)
             exit_with_failure("Error in main.c: Couldn't allocate memory for grid!");
 
-        if (!init_grid(work_dir, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
+        if (!init_grid(work_dir, fft_scale, num_pivots, pivots_mtr, pivots_ps, pivot_space_extremity, 
                         num_levels, total_vectors, base, mtr_vector_length, 
                         mtr_buffered_memory_size, max_leaf_size, track_vector, 
                         false, query_settings, grid, 0))

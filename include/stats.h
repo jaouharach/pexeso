@@ -5,7 +5,7 @@
 // counters
 unsigned long total_cells_count;
 unsigned long leaf_cells_count;
-unsigned long empty_leaf_cells_count;
+unsigned int empty_leaf_cells_count;
 unsigned long max_leaf_size;
 unsigned long min_leaf_size;
 

@@ -463,7 +463,6 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
                         // insert vector in grid
                         if (!grid_insert(grid, index, vector))
                             exit_with_failure("Error in file_loaders.c:  Could not add vector to the grid.\n");
-                        
                         break;
                         COUNT_NEW_LOADED_QUERY_VEC
 
