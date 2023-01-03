@@ -2,8 +2,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-plt.rcParams["figure.figsize"] = (6,5)
-df = pd.read_csv('stats.csv')
+plt.rcParams["figure.figsize"] = (6,20)
+df = pd.read_csv('stats_10t_833v.csv')
 print(df)
 df['tau'] = 100. * df['tau']
 
@@ -16,14 +16,19 @@ print(dfc)
 print(dfv)
 
 for (tt, dfm) in df_list:
+    plt.rcParams["figure.autolayout"] = True
     g = sns.catplot(x="tau", y="val", hue='metric', data=dfm, kind='point', legend=False,
-    palette=sns.color_palette('icefire', 10), scale = 0.5, markers=['o', 'v', '*', 'X', 's', 'D', 'p'])
-    plt.xlabel(r'$\mathrm{tau (\%)}$', fontsize = 11)
+    palette = sns.color_palette('icefire', 10), scale = 0.5, markers=['o', 'v', '*', 'X', 's', 'D', 'p'])
+    
+    g.set_xticklabels(rotation=30)
+
+    plt.xlabel(r'$\mathrm{tau (\%)}$', fontsize = 11, labelpad = 5)
     plt.ylabel(r'$\mathrm{value}$', fontsize = 11)
     plt.legend(loc='best')
     plt.xticks(fontsize = 11)
     plt.yticks(fontsize = 11)
     plt.grid()  #just add this
+    
     # plt.yscale('log')
     # plt.ylim([0,1e5])
     plt.savefig(f"{tt}.png")
