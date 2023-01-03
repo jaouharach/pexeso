@@ -482,7 +482,9 @@ vector * get_vectors_ps(struct cell * cell, struct grid_settings * settings, boo
         full_filename = strcat(full_filename, cell->filename);
         full_filename = strcat(full_filename, "\0");
 
+        COUNT_PARTIAL_INPUT_TIME_START
         FILE *vectors_file = fopen(full_filename, "r");
+        COUNT_PARTIAL_INPUT_TIME_END
         if(vectors_file == NULL)
         {   
             fprintf(stderr, "Error in file_buffer.c: Function get_vectors_ps(): Could not open the filename %s. Reason = %s\n", full_filename, strerror(errno));
@@ -490,7 +492,9 @@ vector * get_vectors_ps(struct cell * cell, struct grid_settings * settings, boo
         }
 
         // read vectors in disk
+        COUNT_PARTIAL_INPUT_TIME_START
         fseek(vectors_file, 0, SEEK_SET);
+        COUNT_PARTIAL_INPUT_TIME_END
         v_type * temp_mtr_values = malloc(sizeof(v_type) * settings->mtr_vector_length);
         for (int i = 0; i < cell->file_buffer->disk_count ; i++) 
         {  
@@ -508,6 +512,9 @@ vector * get_vectors_ps(struct cell * cell, struct grid_settings * settings, boo
             cell_vectors[i].set_size = cell->vid[i].set_size; 
             cell_vectors[i].set_pos_in_inv_index = cell->vid[i].set_pos_in_inv_index; 
         }
+
+        free(temp_mtr_values);
+        free(full_filename);
         COUNT_PARTIAL_INPUT_TIME_START
         fclose(vectors_file);
         COUNT_PARTIAL_INPUT_TIME_END
@@ -640,7 +647,9 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
             exit(1);
         }
         // read vectors in disk
+        COUNT_PARTIAL_INPUT_TIME_START
         fseek(vectors_file, 0, SEEK_SET);
+        COUNT_PARTIAL_INPUT_TIME_END
         for (int i = 0; i < cell->file_buffer->disk_count ; i++) 
         {  
             COUNT_PARTIAL_INPUT_TIME_START
@@ -659,6 +668,7 @@ struct vector_tuple * get_vector_tuples(struct cell * cell, struct grid_settings
             cell_vectors[i].ps_vector->set_size = cell->vid[i].set_size;
             cell_vectors[i].ps_vector->set_pos_in_inv_index = cell->vid[i].set_pos_in_inv_index;
         }
+        free(full_filename);
         COUNT_PARTIAL_INPUT_TIME_START
         fclose(vectors_file);
         COUNT_PARTIAL_INPUT_TIME_END
@@ -808,13 +818,14 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * set
                 root_dir = settings->work_directory;
 
             int full_size = strlen(root_dir) + strlen(leaves[i]->filename)+1;
-        
             char *full_filename = malloc(sizeof(char) * full_size);
             full_filename = strcpy(full_filename, root_dir);
             full_filename = strcat(full_filename, leaves[i]->filename);
             full_filename = strcat(full_filename, "\0");
 
+            COUNT_PARTIAL_INPUT_TIME_START
             FILE *vectors_file = fopen(full_filename, "r");
+            COUNT_PARTIAL_INPUT_TIME_END
             if(vectors_file == NULL)
             {   
                 fprintf(stderr, "Error in file_buffer.c: Function get_sub_cells_vectors_ps(): Could not open the filename %s. Reason = %s\n", full_filename, strerror(errno));
@@ -823,7 +834,9 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * set
             }
 
             // read vectors in disk
+            COUNT_PARTIAL_INPUT_TIME_START
             fseek(vectors_file, 0, SEEK_SET);
+            COUNT_PARTIAL_INPUT_TIME_END
             v_type * temp_mtr_values = malloc(sizeof(v_type) * settings->mtr_vector_length);
             for (int v = v_idx, k = 0; v < (leaves[i]->file_buffer->disk_count + v_idx) ; v++, k++) 
             {  
@@ -841,11 +854,14 @@ vector * get_sub_cells_vectors_ps(struct cell * cell, struct grid_settings * set
                 cell_vectors[v].set_size = leaves[i]->vid[k].set_size; 
                 cell_vectors[v].set_pos_in_inv_index = leaves[i]->vid[k].set_pos_in_inv_index;
             }
+            free(temp_mtr_values);
+            free(full_filename);
+            COUNT_PARTIAL_INPUT_TIME_START
             fclose(vectors_file);
+            COUNT_PARTIAL_INPUT_TIME_END
 
             // read vectors in memory
             int last_idx = leaves[i]->file_buffer->buffered_list_size;
-    
             for(int v = 0; v < last_idx; v++)
             {
                 cell_vectors[v +(leaves[i]->file_buffer->disk_count + v_idx)].values = malloc(sizeof(v_type) * settings->num_pivots);
@@ -912,6 +928,8 @@ int is_empty(struct cell * cell)
             cell->is_empty = 1;
         else        
             cell->is_empty = 0;
+        
+        free(leaves);
     }
 
     return cell->is_empty;

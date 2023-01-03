@@ -589,9 +589,9 @@ enum response vector_cell_match(struct vector *q, struct cell *cell, struct vect
         if(cell_in_rqr == 1)
         {
             // free memory
-            for(int i = 0; i < cell->cell_size; i++)
-                free(cell_vectors[i].values);
-            free(cell_vectors);
+            // for(int i = 0; i < cell->cell_size; i++)
+            //     free(cell_vectors[i].values);
+            // free(cell_vectors);
             return OK;
         }
     }

@@ -597,6 +597,7 @@ enum response read_leaf_level(struct grid *grid, FILE *root_file, struct level *
         }
         COUNT_PARTIAL_INPUT_TIME_END
     }
+    free(temp_center.values);
     return OK;
 }
 
