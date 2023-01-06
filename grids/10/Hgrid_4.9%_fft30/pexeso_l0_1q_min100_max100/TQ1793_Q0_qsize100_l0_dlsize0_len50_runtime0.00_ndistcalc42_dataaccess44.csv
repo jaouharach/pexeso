@@ -1,0 +1,1 @@
+TQ:Q, TS:S, qindex, sindex, q, s, d

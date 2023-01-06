@@ -442,6 +442,7 @@ int main(int argc, char **argv)
         
         grid->stats->count_add_cpair = count_add_cpair;
         grid->stats->count_add_mpair = count_add_mpair;
+        grid->stats->count_dist_calc = count_dist_calc;
 
         /* print inverted index */
         // dump_inv_index_to_console(index);
@@ -516,6 +517,7 @@ int main(int argc, char **argv)
 
         grid->stats->count_add_cpair = count_add_cpair;
         grid->stats->count_add_mpair = count_add_mpair;
+        grid->stats->count_dist_calc = count_dist_calc;
 
         /* end of endexing and quering */
         COUNT_TOTAL_TIME_END
@@ -679,7 +681,8 @@ int main(int argc, char **argv)
         
         grid->stats->count_add_cpair = count_add_cpair;
         grid->stats->count_add_mpair = count_add_mpair;
-        
+        grid->stats->count_dist_calc = count_dist_calc;
+
         /* print inverted index */
         // dump_inv_index_to_console(index);
 

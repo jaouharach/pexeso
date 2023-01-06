@@ -91,6 +91,8 @@ struct stats_info {
 
   unsigned int count_add_mpair;
   unsigned int count_add_cpair;
+
+  unsigned long count_dist_calc;
   
   // timers 
   double idx_append_vec_to_leaf_total_time;	

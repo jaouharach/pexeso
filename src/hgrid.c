@@ -884,6 +884,7 @@ void print_grid_stats(struct grid * grid)
 
     printf("Count_add_mpair\t%d\n", grid->stats->count_add_mpair);
     printf("Count_add_cpair\t%d\n", grid->stats->count_add_cpair);
+    printf("Count_dist_calc\t%ld\n", grid->stats->count_dist_calc);
 
 
     printf("fft_scale,\ttau,\tT,\t%%filled_cells,\t#vec_outps,\t#filtered_vectors"

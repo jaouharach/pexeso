@@ -41,6 +41,8 @@ unsigned long checked_vectors_in_mtr_count;
 unsigned int count_add_mpair;
 unsigned int count_add_cpair;
 
+unsigned long count_dist_calc;
+
 // timers 
 double start;
 double end;
@@ -103,11 +105,14 @@ double pivot_selection_time;
                     checked_vectors_in_mtr_count = 0;\
                     count_add_mpair = 0;\
                     count_add_cpair = 0;\
+                    count_dist_calc = 0;\
                     for(int i = 0; i < 7; i++)\
                         used_lemmas_count[i] = 0;
 
 #define COUNT_ADD_MPAIR count_add_mpair++;
 #define COUNT_ADD_CPAIR count_add_cpair++;
+#define COUNT_DIST_CALC count_dist_calc++;
+
 
 #define COUNT_USED_LEMMA(lemma_idx) used_lemmas_count[lemma_idx-1]++;
 #define COUNT_NEW_FILTERED_CELL filtered_cells_count++;

@@ -178,6 +178,8 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                         // compute euclidean distance between v and q in metric space
                         float max_dist = 2.0, max_dist_no_sqrt = 4.0; // maximum distance between two normalized vectors
                         float dist_threshold_no_sqrt = (dist_threshold/max_dist) * max_dist_no_sqrt;
+
+                        COUNT_DIST_CALC
                         float d = euclidean_distance_cmp(candidate_vectors[v].mtr_vector,
                                                     query_vector_mtr, grid->settings->mtr_vector_length);
                         
