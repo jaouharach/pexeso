@@ -257,6 +257,9 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                 //for q, q' in cq
                 for (int q = 0; q < cq->cell_size; q++)
                 {
+                    RESET_QUERY_TIME()
+                    COUNT_QUERY_TIME_START
+                    
                     // check if current cell is already a candidate cell (added by quick browsing)
                     if(is_candidate_cell(pairs, query_vectors[q].ps_vector, cr, settings->num_pivots) == 1)
                     {
@@ -269,9 +272,6 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                     map_idx = get_match_map_idx(match_map, settings->query_settings->num_query_sets, query_set);
                     if(map_idx == -1)
                         exit_with_failure("Error in match_map.c Couldn't find match map of query set.");
-
-                    RESET_QUERY_TIME()
-                    COUNT_QUERY_TIME_START
 
                     // cr is a match of q' by lemma 5
                     if (vector_cell_match(query_vectors[q].ps_vector, cr, cr_vectors, settings, dist_threshold))
@@ -352,6 +352,9 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                         struct vector_tuple *query_vectors = get_vector_tuples(cq_leaves[ql], settings, true);
                         for (int q = 0; q < cq_leaves[ql]->cell_size; q++)
                         {
+                            RESET_QUERY_TIME()
+                            COUNT_QUERY_TIME_START
+
                             query_set->table_id = query_vectors[q].ps_vector->table_id;
                             query_set->set_id = query_vectors[q].ps_vector->set_id;
                             query_set->set_size = query_vectors[q].ps_vector->set_size;
@@ -359,9 +362,6 @@ enum response block(struct cell *query_cell, struct cell *root_cell,
                             map_idx = get_match_map_idx(match_map, settings->query_settings->num_query_sets, query_set);
                             if(map_idx == -1)
                                 exit_with_failure("Error in match_map.c Couldn't find match map of query set.");
-
-                            RESET_QUERY_TIME()
-                            COUNT_QUERY_TIME_START
 
                             for (int l = 0; l < num_cr_leaves; l++)
                             {
