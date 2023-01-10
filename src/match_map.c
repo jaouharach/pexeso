@@ -3,6 +3,7 @@
 #include "../include/hgrid.h"
 #include "../include/match_map.h"
 #include "../include/inv_index.h"
+#include "../include/stats.h"
 
 /* reset flag query vector has match in curr vector*/
 enum response reset_has_match_flag(struct match_map * match_map)
@@ -169,19 +170,49 @@ void dump_match_map_to_console(struct match_map * map, unsigned int map_idx)
 
 void dump_csv_results_to_console(struct match_map * map, unsigned int map_idx)
 {
+    char file_res [] = "query_results.csv\0";
+    char file_time [] = "query_time.csv\0";
+
+    FILE *fpr, *fpt;
+
+    COUNT_PARTIAL_OUTPUT_TIME_START
+    fpr = fopen(file_res, "a");
+    fpt = fopen(file_time, "a");
+    COUNT_PARTIAL_OUTPUT_TIME_END
+
+    if (fpr == NULL || fpt == NULL) {
+        fprintf(stderr, "Error in dstree_file_loaders.c: Could not open file %s or file %s!\n", file_res, file_time);
+        exit_with_failure("");
+    }
+
+    COUNT_PARTIAL_OUTPUT_TIME_START
+    fprintf(fpr, "tqq,tss,nooverlap\n");
+    fprintf(fpt, "tau,join_threashold,querytime\n");
+
     printf("\nQ = (%u, %u), |Q| = %u (Query time = %.2f seconds)\t\t\n", 
     map[map_idx].query_set.table_id, map[map_idx].query_set.set_id, map[map_idx].query_set.set_size, map[map_idx].query_time / 1000000);
+    fprintf(fpt, "%.2f,%.2f,%.3f\n", 0.06, 0.01, map[map_idx].query_time/1000000);
+
     printf("\t............................................................\n\n\n");
     struct sid curr_set;
     printf("tqq,tss,nooverlap\n");
+    
     for(unsigned long s = 0; s < map[map_idx].num_sets; s++)
     {
         if(map[map_idx].joinable[s]) // only print joinable sets
         {
             curr_set = map[map_idx].sets[s];
             printf("t%uc%u,t%uc%u,%u\n", map[map_idx].query_set.table_id, map[map_idx].query_set.set_id, curr_set.table_id, curr_set.set_id, map[map_idx].u[s]);
+            fprintf(fpr, "t%uc%u,t%uc%u,%u\n", map[map_idx].query_set.table_id, map[map_idx].query_set.set_id, curr_set.table_id, curr_set.set_id, map[map_idx].u[s]);
         }
     }
+
+    
+
+    fclose(fpr);
+    fclose(fpt);
+    COUNT_PARTIAL_OUTPUT_TIME_END
+
     printf("\t............................................................\n\n\n");
 }
 
