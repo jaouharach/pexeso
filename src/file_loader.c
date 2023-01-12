@@ -13,6 +13,7 @@
 #include "../include/query_engine.h"
 #include "../include/stats.h"
 #include "../include/file_loader.h"
+#include "../include/pexeso.h"
 
 vector * load_binary_files(const char *bin_files_directory, unsigned long num_files, unsigned long long total_vectors, unsigned int base, unsigned int mtr_vector_length)
 {
@@ -523,6 +524,207 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
     return query_sets;
 }
 
+// run pexeso on multiple query columns (in one or multiple files)
+enum response joinable_table_search(struct grid * Dgrid, struct inv_index * index, const char *bin_files_directory, unsigned int base, int min_query_set_size, int max_query_set_size)
+{
+    // printf("step 1.\n");
+    unsigned int read_files = 0u; // numbre of read files so far
+    unsigned int datasize, table_id, nsets, vector_length;
+
+    int num_query_sets = Dgrid->settings->query_settings->num_query_sets;
+    unsigned int set_counter = 0; // count query sets (columns)
+    struct sid * query_set = malloc(sizeof(struct sid));
+    if(query_set == NULL)
+        exit_with_failure("Error in files_loader.c: Couldn't allocate memory for query set id");
+
+
+    unsigned int num_vectors = 0u;
+    vector *query_vectors = NULL;
+
+    v_type val;
+    DIR *dir;
+    struct dirent *dfile;
+    dir = opendir(bin_files_directory);
+
+    if (dir == NULL)
+        exit_with_failure("Error in file_loader.c: Unable to open binary files directory stream!\n");
+
+    while ((dfile = readdir(dir)) != NULL) // each file in directory
+    {
+        if(num_query_sets == 0)
+            break;
+
+        if (dfile->d_type != DT_REG) // skip directories
+            continue;
+
+        if (is_binaryfile(dfile->d_name))
+        {
+            // printf("\n\nIndexing file %s ...\n", dfile->d_name);
+            // get fill path of bin file
+            char bin_file_path[PATH_MAX + 1] = "";
+            strcat(bin_file_path, bin_files_directory);
+            strcat(bin_file_path, "/");
+            strcat(bin_file_path, dfile->d_name);
+
+            // get binary table info
+            sscanf(dfile->d_name, "data_size%d_t%dc%d_len%d_noznorm.bin", &datasize, &table_id, &nsets, &vector_length);
+
+            // check if vector length in file name matches vector length passed as argument
+            if (vector_length != Dgrid->settings->mtr_vector_length)
+                exit_with_failure("Error in file_loader.c:  number of dimentions in grid settings does not match vector length in file.\n");
+
+            /* read binary file */
+            FILE *bin_file = fopen(bin_file_path, "rb");
+
+            if (bin_file == NULL)
+                exit_with_failure("Error in file_loader.c: Binary file not found in directory!\n");
+
+            /* Start processing file: read every vector in binary file */
+            int i = 0, j = 0, set_id = 0, total_bytes = base * ((datasize * Dgrid->settings->mtr_vector_length) + nsets) / 8;
+            unsigned int curr_query_vec = 0;
+            int count_curr_file = 0;
+            // printf("File size in bytes = %u\n\n", total_bytes);
+
+            while (total_bytes)
+            {
+                //printf("mtr vec len = %d\n", grid->settings->mtr_vector_length);
+                if (i == 0)
+                {
+                    if(num_query_sets == 0)
+                        break;
+                    i++;
+                    j = 0;
+                    //read first integer to check how many vactors in current set
+                    COUNT_PARTIAL_INPUT_TIME_START
+                    fread(&num_vectors, sizeof(num_vectors), 1, bin_file);
+                    COUNT_PARTIAL_INPUT_TIME_END
+                    total_bytes -= 4;
+                    // printf("Read set (%u, %u):\n", table_id, set_id);
+                    // printf("\t> Num vectors: %u\n", num_vectors);
+
+                    // skip set if its size doesn't match requirements
+                    if(max_query_set_size != -1 || min_query_set_size > 0)
+                        if((unsigned int)num_vectors < min_query_set_size || (unsigned int)num_vectors > max_query_set_size)
+                        {
+                            fseek(bin_file, num_vectors * 4 * vector_length, SEEK_CUR);
+                            i = 0;
+                            j = 0;
+                            curr_query_vec = 0;
+                            set_id += 1; 
+                            total_bytes -= num_vectors * 4 * vector_length;
+                            num_vectors = 0u;
+                            continue;
+                        }
+                    
+                    if(count_curr_file == 0)
+                    {
+                        // printf("query_file: %s\n", dfile->d_name);
+                        COUNT_NEW_LOADED_QUERY_FILE
+                        COUNT_SIZE_NEW_LOADED_QUERY_FILE(total_bytes)
+                        read_files += 1;
+                        count_curr_file = 1;
+                    }
+                    
+                    // read a new query set
+                    if(num_query_sets != -1)
+                        num_query_sets--; // read a new set (column)
+                    
+                    query_set->table_id = table_id;
+                    query_set->set_id = set_id;
+                    query_set->set_size = num_vectors;
+
+                    query_vectors = realloc(query_vectors, sizeof(struct vector) * num_vectors);
+                    if (query_vectors == NULL)
+                            exit_with_failure("Error in file_loader.c: Could not allocate memory for query vectors.");
+
+                    for(int qv = 0; qv < num_vectors; qv++)
+                    {
+                        query_vectors[qv].values = (v_type *)malloc(sizeof(v_type) * Dgrid->settings->mtr_vector_length);
+                        if (query_vectors[qv].values == NULL)
+                            exit_with_failure("Error in file_loader.c: Could not allocate memory for vector values.");
+
+                        // set id for all vectors in the current set
+                        query_vectors[qv].table_id = table_id;
+                        query_vectors[qv].set_id = set_id;
+                        query_vectors[qv].pos = qv; // vector position in set 
+                        query_vectors[qv].set_size = num_vectors;
+                    } curr_query_vec = 0;
+                    
+                    
+                    // printf("\nnew query set: t %u, c %u, size %u\n", table_id, set_id, num_vectors);
+                    // append set id to list of query sets
+                    COUNT_NEW_LOADED_QUERY_SET
+                    set_counter++;
+                    set_id += 1;
+                }
+                else if (i <= (unsigned int)num_vectors * Dgrid->settings->mtr_vector_length)
+                {
+                    // end of vector but still in current set
+                    if (j > Dgrid->settings->mtr_vector_length - 1)
+                    {
+                        // finished reading curr query vector
+                        j = 0;
+                        COUNT_NEW_LOADED_QUERY_VEC
+                        curr_query_vec = curr_query_vec + 1;
+                    }
+                    COUNT_PARTIAL_INPUT_TIME_START
+                    fread((void *)(&val), sizeof(val), 1, bin_file);
+                    COUNT_PARTIAL_INPUT_TIME_END
+                    total_bytes -= 4;
+                    query_vectors[curr_query_vec].values[j] = val;
+
+                    // last value in last vector in current  set
+                    if (i == (unsigned int)num_vectors * Dgrid->settings->mtr_vector_length)
+                    {
+                        // finished reading curr query vector (last vector in curr query set)
+                        COUNT_NEW_LOADED_QUERY_VEC
+
+                        // run pexeso() for curr set
+                        printf("Run pexeso on query set (%u, %u), Q size = %u", query_set->table_id, query_set->set_id, query_set->set_size);
+                        pexeso(query_set, query_vectors, num_vectors, Dgrid, index);
+
+                        // free memory
+                        for(int qv = 0; qv < num_vectors; qv++)
+                            free(query_vectors[qv].values);
+                        free(query_vectors);
+                        query_vectors = NULL;
+                        
+                        i = 0;
+                        j = 0;
+                        num_vectors = 0u;
+                        curr_query_vec = 0u;
+                        continue;
+                    }
+                    i++;
+                    j++;
+                }
+            }
+            COUNT_PARTIAL_INPUT_TIME_START
+            if (fclose(bin_file))
+                exit_with_failure("Error in file_loaders.c: Could not close binary.\n");
+            COUNT_PARTIAL_INPUT_TIME_END
+        }
+    }
+
+    if (read_files == 0)
+        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory.\n");
+
+    // check if we read more query sets than required
+    if(num_query_sets != -1) // if number of query set is specified
+        if(set_counter != Dgrid->settings->query_settings->num_query_sets)
+        {
+            printf("(!) set counter = %d, num_query_sets = %d\n", set_counter, num_query_sets);
+            exit_with_failure("Error in pexeso.c: Function index_query_binary_files() has read more sets than what's required.");
+        }
+    else
+        Dgrid->settings->query_settings->num_query_sets = set_counter;
+
+    // free memory
+    free(query_set);
+    closedir(dir);
+    return OK;
+}
+
 bool is_binaryfile(const char *filename) // check if filename has extesion.
 {
     char *ext = ".bin";
@@ -784,20 +986,30 @@ char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, u
         
         printf("(!) Warning in file_loader.c: Results directory already exists. Would you like to delete it? (y/n): ");
         char resp = 'n';
-        scanf("%c", &resp);
-        if (resp == 'y' || resp == 'Y')
+        
+        
+        while(1)
         {
-            remove_directory(result_dir_path);
+            scanf("%c", &resp);
+            if (resp == 'y' || resp == 'Y')
+            {
+                remove_directory(result_dir_path);
+                break;
+            }
+            else if (resp == 'n' || resp == 'N')
+                break;
+                
+            else 
+                printf("\nWould you like to delete the result directory? (y/n): ");
         }
-        else
-            exit(-1);
+
     }
   mkdir(result_dir_path, 0777);
   closedir(dir);
   return result_dir_path;
 }
 
-/* save query results to disk */
+/* save query results to disk (for one query column)*/
 enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, struct match_map * match_map)
 {
     char * algorithm = "pexeso";
@@ -816,26 +1028,22 @@ enum response save_results_to_disk(struct grid * Dgrid, struct grid * Qgrid, str
 
     // loop match maps for all query sets
     struct sid *query_set = NULL;
-    struct match_map *curr_map;
     unsigned int total_checked_vectors = 0;
     unsigned int num_dist_calc = 0;
     float runtime = 0.0;
 
-    for(int m = 0; m < num_query_sets; m++)
-    {
-        curr_map = &match_map[m];
-        query_set = &(curr_map->query_set);
-        total_checked_vectors = curr_map->total_checked_vectors;
-        num_dist_calc = curr_map->num_dist_calc;
-        runtime = curr_map->query_time / 1000000;
+    query_set = &(match_map->query_set);
+    total_checked_vectors = match_map->total_checked_vectors;
+    num_dist_calc = match_map->num_dist_calc;
+    runtime = match_map->query_time / 1000000;
 
-        char * file_path = make_file_path(result_dir, query_set, l, dlsize, mtr_vector_length, runtime, num_dist_calc, total_checked_vectors);
-        
-        if(!save_to_query_result_file(file_path, query_set, curr_map))
-            exit_with_failure("Error in file_loader.c: Couldn't save query results to csv file.");
-        
-        free(file_path);
-    }
+    char * file_path = make_file_path(result_dir, query_set, l, dlsize, mtr_vector_length, runtime, num_dist_calc, total_checked_vectors);
+    
+    if(!save_to_query_result_file(file_path, query_set, match_map))
+        exit_with_failure("Error in file_loader.c: Couldn't save query results to csv file.");
+    
+    free(file_path);
+    
     
     free(result_dir);
     return OK;

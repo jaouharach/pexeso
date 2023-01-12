@@ -6,6 +6,10 @@ bool is_binaryfile(const char *filename);
 enum response index_binary_files(struct grid *grid, struct inv_index * index, const char *bin_files_directory, unsigned int num_files, unsigned int base);
 /* index raw binary vectors (in metric space), only index a specific number af sets */
 struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, struct inv_index * index, const char *bin_files_directory, unsigned int num_files, unsigned int base, int min_query_set_size, int max_query_set_size);
+
+/* read query columns from disk, only read a specific number af sets and run pexeso query columns */
+enum response joinable_table_search(struct grid * Dgrid, struct inv_index * index, const char *bin_files_directory, unsigned int base, int min_query_set_size, int max_query_set_size);
+
 /* read all dataset files and create one big list of all the vectors in the dataset */
 vector * load_binary_files(const char *bin_files_directory, unsigned long num_files, unsigned long long total_vectors, unsigned int base, unsigned int mtr_vector_length);
 

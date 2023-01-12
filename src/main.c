@@ -419,9 +419,6 @@ int main(int argc, char **argv)
         grid->stats->loaded_sets_count += loaded_sets_count;
         grid->stats->loaded_files_size += loaded_files_size;
         grid->stats->loaded_vec_count += loaded_vec_count;
-        
-        /* querying */
-        // pexeso(bin_query_file_directory, grid, index);
 
         grid->stats->total_query_time += total_query_time;
         grid->stats->loaded_query_files_count += loaded_query_files_count;
@@ -485,46 +482,20 @@ int main(int argc, char **argv)
         struct grid *grid = grid_read(grid_dir, query_settings);
         
         // read inverted index from disk
-        struct inv_index* index = index_read(grid->settings->work_directory, 
-                    grid->settings,
-                    grid->first_level);
+        struct inv_index* index = index_read(grid->settings->work_directory, grid->settings,
+                                                grid->first_level);
 
         grid->stats->grid_building_input_time += partial_input_time;
-
 
         /* print inverted index */
         // dump_inv_index_to_console(index);
 
         /* querying */
-        pexeso(bin_query_file_directory, grid, index);
+        if(!joinable_table_search(grid, index, bin_files_directory, base, min_query_set_size, max_query_set_size))
+            exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
 
-        grid->stats->total_query_time += total_query_time;
-        grid->stats->loaded_query_files_count += loaded_query_files_count;
-        grid->stats->loaded_query_sets_count += loaded_query_sets_count;
-        grid->stats->loaded_query_files_size += loaded_query_files_size;
-        grid->stats->loaded_qvec_count += loaded_qvec_count;
-        for(int i = 0; i < 7; i++)
-            grid->stats->used_lemmas_count[i] = used_lemmas_count[i];
-
-        grid->stats->filtered_cells_count = filtered_cells_count;
-        grid->stats->visited_cells_count = visited_cells_count;
-        grid->stats->visited_matching_cells_count = visited_matching_cells_count;
-        grid->stats->visited_candidate_cells_count = visited_candidate_cells_count;
-
-        grid->stats->filterd_vectors_count = filterd_vectors_count;
-        grid->stats->checked_vectors_in_ps_count = checked_vectors_in_ps_count;
-        grid->stats->checked_vectors_in_mtr_count = checked_vectors_in_mtr_count;
-
-        grid->stats->count_add_cpair = count_add_cpair;
-        grid->stats->count_add_mpair = count_add_mpair;
-        grid->stats->count_dist_calc = count_dist_calc;
-
-        /* end of endexing and quering */
         COUNT_TOTAL_TIME_END
         grid->stats->total_time = total_time;
-
-        /* print grid statistics */
-        print_grid_stats(grid);
 
         printf("End of progam: combined indexing and querying time : %.2f secs \n", total_time / 1000000);
         
@@ -660,7 +631,8 @@ int main(int argc, char **argv)
         grid->stats->loaded_vec_count += loaded_vec_count;
         
         /* querying */
-        pexeso(bin_query_file_directory, grid, index);
+        if(!joinable_table_search(grid, index, bin_files_directory, base, min_query_set_size, max_query_set_size))
+            exit_with_failure("Error main.c: Couldn't destroy inverted index.\n");
 
         grid->stats->total_query_time += total_query_time;
         grid->stats->loaded_query_files_count += loaded_query_files_count;
@@ -698,9 +670,6 @@ int main(int argc, char **argv)
         /* end of endexing and quering */
         COUNT_TOTAL_TIME_END
         grid->stats->total_time = total_time;
-
-        /* print grid statistics */
-        print_grid_stats(grid);
 
         printf("End of progam: total time : %.2f secs \n", total_time / 1000000);
         

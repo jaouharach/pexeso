@@ -134,6 +134,9 @@ enum response init_grid(const char *work_dir,
 /* init statistics */
 enum response init_grid_stats(struct grid * grid);
 
+// rest all query related stats
+enum response reset_grid_stats(struct grid * grid);
+
 /* get the farthest vector in the pivot space */
 vector * get_extremity(vector * pivot_vectors, unsigned int num_dim);
 

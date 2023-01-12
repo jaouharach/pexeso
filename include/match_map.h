@@ -18,6 +18,9 @@ struct match_map {
 /* create a match/mismatch map for all query sets */
 struct match_map * init_match_maps(struct inv_index * index, struct sid * query_sets, int num_query_sets);
 
+/* create a match/mismatch map for one query set */
+struct match_map * init_match_map(struct inv_index * index, struct sid * query_set);
+
 /* reset flag query vector has match in curr vector*/
 enum response reset_has_match_flag(struct match_map * match_map);
 
@@ -25,10 +28,10 @@ enum response reset_has_match_flag(struct match_map * match_map);
 enum response update_zero_match_counter(struct match_map * match_map);
 
 /* update match count for a given set */
-enum response update_match_count(struct match_map * map_list, int map_idx, struct sid * query_set, int set_idx, float join_threshold, unsigned int query_set_size);
+enum response update_match_count(struct match_map * match_map, struct sid * query_set, int set_idx, float join_threshold, unsigned int query_set_size);
 
 /* update mismatch count for a given set */
-enum response update_mismatch_count(struct match_map * map_list, int map_idx, int set_idx);
+enum response update_mismatch_count(struct match_map * match_map, int set_idx);
 
 /* check if set id is in map */
 unsigned long get_set_idx(struct match_map * map, struct sid * set_id);

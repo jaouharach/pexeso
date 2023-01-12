@@ -176,6 +176,53 @@ enum response init_grid_stats(struct grid * grid)
     return OK;  
 }
 
+
+/* init statistics */
+enum response reset_grid_stats(struct grid * grid)
+{
+    grid->stats->total_cells_count = 0;
+    grid->stats->leaf_cells_count = 0;
+    grid->stats->empty_leaf_cells_count = 0;
+
+    grid->stats->loaded_files_count = 0;
+    grid->stats->loaded_query_files_count = 0;
+
+    grid->stats->loaded_sets_count = 0;
+    grid->stats->loaded_query_sets_count = 0; 
+
+    grid->stats->loaded_files_size = 0;
+    grid->stats->loaded_query_files_size = 0;
+    grid->stats->loaded_vec_count = 0;
+    grid->stats->loaded_qvec_count = 0;
+
+    grid->stats->out_of_ps_space_qvec_count = 0;
+
+    for(int i = 0; i < 7; i++)
+        grid->stats->used_lemmas_count[i] = 0;
+
+    grid->stats->filtered_cells_count = 0;
+    grid->stats->visited_cells_count = 0;
+    grid->stats->visited_matching_cells_count = 0;
+    grid->stats->visited_candidate_cells_count = 0;
+
+    grid->stats->filterd_vectors_count = 0;
+    grid->stats->checked_vectors_in_ps_count = 0;
+    grid->stats->checked_vectors_in_mtr_count = 0;
+
+    // timers 
+    grid->stats->idx_append_vec_to_leaf_total_time = 0;	
+	grid->stats->idx_append_vec_to_leaf_input_time = 0;
+	grid->stats->idx_append_vec_to_leaf_output_time = 0;
+	grid->stats->idx_append_vec_to_leaf_cpu_time = 0;
+
+    grid->stats->total_input_time = 0;
+    grid->stats->total_output_time = 0;
+    grid->stats->total_parse_time = 0;
+    grid->stats->total_query_time = 0;
+
+    return OK;  
+}
+
 /* get extremity vector of the pivot space, pivots must be outliers for extremity to be accurate */
 vector *get_extremity(vector *pivot_vectors, unsigned int num_pivots)
 {

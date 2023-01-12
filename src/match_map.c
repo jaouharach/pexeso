@@ -42,6 +42,8 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
 
     for(int i = 0; i < num_query_sets; i++)
     {
+        printf("\n\nMake map for Q (%u, %u) size = %u ...",
+         query_sets[i].table_id, query_sets[i].set_id, query_sets[i].set_size);
         struct match_map * curr_map = &match_map[i];
         curr_map->query_set.table_id = query_sets[i].table_id;
         curr_map->query_set.set_id = query_sets[i].set_id;
@@ -81,22 +83,68 @@ struct match_map * init_match_maps(struct inv_index * index, struct sid * query_
     return match_map;
 }
 
-/* update match count for a given set */
-enum response update_match_count(struct match_map * map_list, int map_idx, struct sid * query_set, int set_idx, float join_threshold, unsigned int query_set_size)
-{
-    map_list[map_idx].match_count[set_idx] = map_list[map_idx].match_count[set_idx] + 1;
 
-    if(map_list[map_idx].match_count[set_idx] >= ceil(join_threshold * query_set_size))
+/* create a match/mismatch map for one query set */
+struct match_map * init_match_map(struct inv_index * index, struct sid * query_set)
+{
+    if(query_set == NULL)
+        exit_with_failure("Error in match_map.c: cannot initialize match map for NULL query set!");
+
+    struct match_map * match_map = malloc(sizeof(struct match_map));
+    if(match_map == NULL)
+        exit_with_failure("Error in main.c: Couldn't allocate memory for match maps.");
+
+    match_map->query_set.table_id = query_set->table_id;
+    match_map->query_set.set_id = query_set->set_id;
+    match_map->query_set.set_size = query_set->set_size;
+
+    match_map->num_sets = index->num_distinct_sets;
+    match_map->sets = (struct sid *)malloc(sizeof(struct sid) * index->num_distinct_sets); // points to set in inverted index
+    match_map->match_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
+    match_map->mismatch_count = calloc(index->num_distinct_sets, sizeof(unsigned int));
+    match_map->u = calloc(index->num_distinct_sets, sizeof(unsigned int));
+    match_map->has_match_for_curr_qvec = calloc(index->num_distinct_sets, sizeof(unsigned int));
+    match_map->joinable = calloc(index->num_distinct_sets, sizeof(bool));
+    match_map->total_checked_vectors = 0;
+    match_map->num_dist_calc = 0;
+    match_map->query_time = 0;
+
+    for(int s = 0; s < index->num_distinct_sets; s++)
     {
-        map_list[map_idx].joinable[set_idx] = true;
+        struct sid * curr_set = &match_map->sets[s];
+        // from inverted index copy set ids to map  
+        if(index->distinct_sets == NULL)
+            exit_with_failure("Error in match_map.c: NULL pointer! couldn't link entry in matchmap to entry in inverted index!");
+        
+        curr_set->table_id = index->distinct_sets[s].table_id;
+        curr_set->set_id = index->distinct_sets[s].set_id;
+        curr_set->set_size = index->distinct_sets[s].set_size;
+        match_map->match_count[s] = 0;
+        match_map->mismatch_count[s] = 0;
+        match_map->u[s] = 0;
+        match_map->has_match_for_curr_qvec[s] = 0;
+        match_map->joinable[s] = false;
+    }
+    
+    return match_map;
+}
+
+/* update match count for a given set */
+enum response update_match_count(struct match_map * match_map, struct sid * query_set, int set_idx, float join_threshold, unsigned int query_set_size)
+{
+    match_map->match_count[set_idx] = match_map->match_count[set_idx] + 1;
+
+    if(match_map->match_count[set_idx] >= ceil(join_threshold * query_set_size))
+    {
+        match_map->joinable[set_idx] = true;
     }
     return OK;
 }
 
 /* update mismatch count for a given set */
-enum response update_mismatch_count(struct match_map * map_list, int map_idx, int set_idx)
+enum response update_mismatch_count(struct match_map * match_map, int set_idx)
 {
-    map_list[map_idx].mismatch_count[set_idx] = map_list[map_idx].mismatch_count[set_idx] + 1;
+    match_map->mismatch_count[set_idx] = match_map->mismatch_count[set_idx] + 1;
     return OK;
 }
 
