@@ -12,7 +12,7 @@ import csv
 base_path = Path(__file__).parent
 outdir = '../img/'
 kashif_versions = {'nonorm': '../csv/kashif/nonorm/', 'norm': '../csv/kashif/norm/'}
-pexeso_versions = {'0%': '../csv/pexeso/tau0%-T1%/', '2%': '../csv/pexeso/tau2%-T1%/', '6%': '../csv/pexeso/tau6%-T1%/', '8%': '../csv/pexeso/tau8%-T1%/'}
+pexeso_versions = {'0': '../csv/pexeso/tau0%-T1%/', '2': '../csv/pexeso/tau2%-T1%/', '6': '../csv/pexeso/tau6%-T1%/', '8': '../csv/pexeso/tau8%-T1%/'}
 
 curr_kashif_version = kashif_versions['nonorm']
 search_modes = ["mode0/", "mode1/", "mode2/"]
@@ -64,12 +64,13 @@ g = sns.barplot(data=df, x='tau', y='avg. recall', hue='search-mode', palette=sn
 
 plt.subplots_adjust(bottom=0.15)
 plt.subplots_adjust(left=0.15)
-plt.xlabel(r'$\mathrm{tau}$', fontsize = 11)
+plt.title("Kashif avg. recall (100k tables, 4.9M vectors, k = 1000)")
+plt.xlabel(r'$\mathrm{tau\ (\%)}$', fontsize = 11)
 plt.ylabel(r'$\mathrm{avg.\ recall}$', fontsize = 11)
 # plt.legend(loc='best')
 plt.xticks(fontsize = 11)
 plt.yticks(fontsize = 11)
 plt.ylim([0, 1])
 plt.grid()  #just add this
-plt.savefig(f"{outdir}avg_recall.png")
+plt.savefig(f"{outdir}kashif_avg_recall.png")
 plt.close()

@@ -5,11 +5,11 @@ from pathlib import Path
 
 base_path = Path(__file__).parent
 outdir = '../img/'
-kashif_version = {'nonorm': '../csv/kashif/nonorm/', 'norm': '../csv/kashif/norm/'}
-curr_version = kashif_version['norm']
-csv_files = {"kashif": (base_path / f"{curr_version}kashif_querytime.csv").resolve(), "pexeso": (base_path / "../csv/pexeso/pexeso_querytime.csv").resolve()}
+kashif_version = {'nonorm': '../csv/kashif/nonorm/mode0/', 'norm': '../csv/kashif/norm/mode0/'}
+curr_version = kashif_version['nonorm']
+csv_files = {"kashif": (base_path / f"{curr_version}kashif_querytime.csv").resolve(), "pexeso": (base_path / "../csv/pexeso/tau6%-T1%/pexeso_querytime.csv").resolve()}
 
-plt.rcParams["figure.figsize"] = (8,7)
+# plt.rcParams["figure.figsize"] = (8,7)
 k = pd.read_csv(csv_files['kashif'])
 p = pd.read_csv(csv_files['pexeso'])
 
@@ -21,7 +21,7 @@ dfk = k.groupby(
 ).reset_index()
 
 dfp = p.groupby(
-    ['tau', 'join_threashold', 'total_tables']
+    ['tau', 'join_threashold']
 ).agg(
     querytime = ('querytime','mean'),
 ).reset_index()
@@ -37,13 +37,16 @@ for t in dfp['querytime']:
     break
 
 g.set_xticklabels(rotation=30)
+plt.subplots_adjust(top=0.9)
 plt.subplots_adjust(bottom=0.15)
 plt.subplots_adjust(left=0.15)
+plt.title("Mean querytime Kashif vs PEXESO (100k tables, 4.9M vectors)")
 plt.xlabel(r'$\mathrm{k}$', fontsize = 11)
 plt.ylabel(r'$\mathrm{mean\ querytime\ (sec)}$', fontsize = 11)
 # plt.legend(loc='best')
 plt.xticks(fontsize = 11)
 plt.yticks(fontsize = 11)
+plt.yscale("log")
 plt.grid()  #just add this
-plt.savefig(f"{outdir}mean_querytime(norm).png")
+plt.savefig(f"{outdir}mean_querytime_kashif_vs_pexeso(nonorm,log).png")
 plt.close()
