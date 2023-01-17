@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     /* query settings (todo: change threshold to %) */
     float join_threshold = 1; // T 
     float dist_threshold = 0.0; // tau = 0%
-    float max_dist = 2; // max euclidean distance between two normalized vectors
+    float max_dist = 2; // max euclidean distance between two normalized vectors (unit 1 vectors)
 
     /* num query sets to take from bin_query_file_directory, if equal to -1 the algorithm will take all sets in all files */
     int num_query_sets = -1;
@@ -208,10 +208,10 @@ int main(int argc, char **argv)
                 dist_threshold = atof(optarg); // dist threshold is provided in %
                 if (dist_threshold > 1 || dist_threshold < 0)
                 {
-                    fprintf(stderr, "Please change distance thershold to be less than 1 and greater than 0.\n");
+                    fprintf(stderr, "Please change distance thershold to be in range [0 - 1].\n");
                     exit(-1);
                 }
-                dist_threshold = dist_threshold * max_dist;
+                dist_threshold = dist_threshold * max_dist; // convert tau from (%) to distance
                 break;
 
             case 'u':

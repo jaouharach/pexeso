@@ -985,12 +985,12 @@ char * make_result_directory(char * work_dir, char* algorithm, unsigned int l, u
     {
         
         printf("(!) Warning in file_loader.c: Results directory already exists. Would you like to delete it? (y/n): ");
-        char resp = 'n';
+        char resp = 'y';
         
         
         while(1)
         {
-            scanf("%c", &resp);
+            // scanf("%c", &resp);
             if (resp == 'y' || resp == 'Y')
             {
                 remove_directory(result_dir_path);
