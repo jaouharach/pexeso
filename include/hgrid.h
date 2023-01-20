@@ -85,7 +85,8 @@ struct stats_info {
   unsigned int visited_matching_cells_count;
   unsigned int visited_candidate_cells_count;
 
-  unsigned long filterd_vectors_count;
+  unsigned long filtered_vectors_count;
+  unsigned long matching_vectors_count;
   unsigned long checked_vectors_in_ps_count; // nb of vectors checked in the pivots space
   unsigned long checked_vectors_in_mtr_count; // nb of vectors checked in the metric space
 

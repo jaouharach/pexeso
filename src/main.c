@@ -433,7 +433,8 @@ int main(int argc, char **argv)
         grid->stats->visited_matching_cells_count = visited_matching_cells_count;
         grid->stats->visited_candidate_cells_count = visited_candidate_cells_count;
 
-        grid->stats->filterd_vectors_count = filterd_vectors_count;
+        grid->stats->filtered_vectors_count = filtered_vectors_count;
+        grid->stats->matching_vectors_count = matching_vectors_count;
         grid->stats->checked_vectors_in_ps_count = checked_vectors_in_ps_count;
         grid->stats->checked_vectors_in_mtr_count = checked_vectors_in_mtr_count;
         
@@ -647,7 +648,8 @@ int main(int argc, char **argv)
         grid->stats->visited_matching_cells_count = visited_matching_cells_count;
         grid->stats->visited_candidate_cells_count = visited_candidate_cells_count;
 
-        grid->stats->filterd_vectors_count = filterd_vectors_count;
+        grid->stats->filtered_vectors_count = filtered_vectors_count;
+        grid->stats->matching_vectors_count = matching_vectors_count;
         grid->stats->checked_vectors_in_ps_count = checked_vectors_in_ps_count;
         grid->stats->checked_vectors_in_mtr_count = checked_vectors_in_mtr_count;
         

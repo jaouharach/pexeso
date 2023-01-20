@@ -4,13 +4,12 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 base_path = Path(__file__).parent
-# outdir = '../img/'
 outdir = '../img_(k=10k)/'
 k = 'k=10k'
 
 kashif_versions = {'nonorm': f'../csv/kashif/{k}/nonorm/mode0/', 'norm': f'../csv/kashif/{k}/norm/mode0/'}
 curr_version = kashif_versions['nonorm']
-pexeso_versions =  {(0, 'violet'): 'tau0%-T1%/', (2, 'magenta'): 'tau2%-T1%/', (6, 'indigo'): 'tau6%-T1%/'}
+pexeso_versions =  {(0, 'violet'): 'tau0%-T1%/', (2, 'magenta'): 'tau2%-T1%/', (6, 'indigo'): 'tau6%-T1%/', (8, 'black'): 'tau8%-T1%/'}
 csv_files = {"kashif": (base_path / f"{curr_version}kashif_querytime.csv").resolve(), "pexeso": (base_path / f"../csv/pexeso/").resolve()}
 
 # plot kashif query time
@@ -21,6 +20,10 @@ dfk = k.groupby(
     querytime = ('querytime','mean'),
 ).reset_index()
 print(dfk)
+
+dfk['nb_threads'] = dfk['nb_threads'].replace({16 : 'kashif (#th = 16)'}, regex=True)
+dfk['nb_threads'] = dfk['nb_threads'].replace({32 : 'kashif (#th = 32)'}, regex=True)
+dfk['nb_threads'] = dfk['nb_threads'].replace({64 : 'kashif (#th = 64)'}, regex=True)
 g = sns.catplot(data=dfk, x='k', y='querytime', hue='nb_threads',  kind='point', scale = 0.5,
     palette=sns.color_palette('nipy_spectral_r', 3),  markers=['o', 'v', '*', 'X'], legend=False)
 
@@ -47,7 +50,7 @@ plt.ylabel(r'$\mathrm{mean\ querytime\ (sec)}$', fontsize = 11)
 plt.legend(loc='best')
 plt.xticks(fontsize = 11)
 plt.yticks(fontsize = 11)
-plt.yscale("log")
+# plt.yscale("log")
 plt.grid()  #just add this
-plt.savefig(f"{outdir}mean_querytime_kashif_vs_pexeso(nonorm,log).png")
+plt.savefig(f"{outdir}mean_querytime_kashif_vs_pexeso(nonorm).png")
 plt.close()

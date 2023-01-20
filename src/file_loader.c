@@ -681,7 +681,7 @@ enum response joinable_table_search(struct grid * Dgrid, struct inv_index * inde
 
                         // run pexeso() for curr set
                         printf("Run pexeso on query set (%u, %u), Q size = %u", query_set->table_id, query_set->set_id, query_set->set_size);
-                        pexeso(query_set, query_vectors, num_vectors, Dgrid, index);
+                        pexeso(query_set, query_vectors, 1, Dgrid, index);
 
                         // free memory
                         for(int qv = 0; qv < num_vectors; qv++)

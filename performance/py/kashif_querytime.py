@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 base_path = Path(__file__).parent
-outdir = '../img/'
-kashif_version = {'nonorm': '../csv/kashif/nonorm/', 'norm': '../csv/kashif/norm/'}
-
-norm_csv = (base_path / f"{kashif_version['norm']}/mode0/kashif_querytime.csv").resolve()
-nonorm_csv = (base_path / f"{kashif_version['nonorm']}/mode0/kashif_querytime.csv").resolve()
+outdir = '../img_(k=1k)/'
+k = 'k=1k'
+kashif_versions = {'nonorm': f'../csv/kashif/{k}/nonorm/', 'norm': f'../csv/kashif/{k}/norm/'}
+search_modes = ["mode0/"]
+norm_csv = (base_path / f"{kashif_versions['norm']}{search_modes[0]}/kashif_querytime.csv").resolve()
+nonorm_csv = (base_path / f"{kashif_versions['nonorm']}{search_modes[0]}/kashif_querytime.csv").resolve()
 
 k_norm = pd.read_csv(norm_csv)
 k_nonorm = pd.read_csv(nonorm_csv)
@@ -34,8 +35,9 @@ dfm = dfk.melt(['k', 'nb_threads'], var_name='data', value_name='mean_querytime'
 print(dfm)
 
 plt.rcParams["figure.figsize"] = (15,13)
+flatui = ["#e74c3c", "#34495e"]
 g = sns.catplot(data=dfm, x='k', y='mean_querytime', hue='data',  kind='point', scale = 0.5,
-    palette=sns.color_palette('nipy_spectral_r', 4),  markers=['o', 'v'])
+    palette=sns.color_palette(flatui),  markers=['o', 'v'])
 
 plt.subplots_adjust(top=0.9)
 # plt.subplots_adjust(left=0.15)

@@ -10,8 +10,8 @@ import csv
 # 2 : "similar to mode 1 but kashif also returns extra results found in the last increment"
 
 base_path = Path(__file__).parent
-outdir = '../img_(k=10k)/'
-k = 'k=10k'
+outdir = '../img_(k=1k)/'
+k = 'k=1k'
 kashif_versions = {'nonorm': f'../csv/kashif/{k}/nonorm/', 'norm': f'../csv/kashif/{k}/norm/'}
 pexeso_versions = {'0': '../csv/pexeso/tau0%-T1%/', '2': '../csv/pexeso/tau2%-T1%/', '6': '../csv/pexeso/tau6%-T1%/', '8': '../csv/pexeso/tau8%-T1%/'}
 
@@ -65,7 +65,7 @@ g = sns.barplot(data=df, x='tau', y='avg. recall', hue='search-mode', palette=sn
 
 plt.subplots_adjust(bottom=0.15)
 plt.subplots_adjust(left=0.15)
-plt.title("Kashif avg. recall (100k tables, 4.9M vectors, k = 10.000)")
+plt.title("Kashif avg. recall (100k tables, 4.9M vectors, k = 1.000)")
 plt.xlabel(r'$\mathrm{tau\ (\%)}$', fontsize = 11)
 plt.ylabel(r'$\mathrm{avg.\ recall}$', fontsize = 11)
 # plt.legend(loc='best')

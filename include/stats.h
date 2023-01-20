@@ -34,7 +34,8 @@ unsigned int visited_cells_count;
 unsigned int visited_matching_cells_count;
 unsigned int visited_candidate_cells_count;
 
-unsigned long filterd_vectors_count;
+unsigned long filtered_vectors_count;
+unsigned long matching_vectors_count;
 unsigned long checked_vectors_in_ps_count;
 unsigned long checked_vectors_in_mtr_count;
 
@@ -100,7 +101,8 @@ double pivot_selection_time;
                     visited_cells_count = 0;\
                     visited_matching_cells_count = 0;\
                     visited_candidate_cells_count = 0;\
-                    filterd_vectors_count = 0;\
+                    filtered_vectors_count = 0;\
+                    matching_vectors_count = 0;\
                     checked_vectors_in_ps_count = 0;\
                     checked_vectors_in_mtr_count = 0;\
                     count_add_mpair = 0;\
@@ -120,7 +122,8 @@ double pivot_selection_time;
 #define COUNT_NEW_MATCH_CELL visited_matching_cells_count++;
 #define COUNT_NEW_CANDIDATE_CELL visited_candidate_cells_count++;
 
-#define COUNT_NEW_FILTERED_VECTORS(nb_vectors) filterd_vectors_count += nb_vectors;
+#define COUNT_NEW_FILTERED_VECTORS(nb_vectors) filtered_vectors_count += nb_vectors;
+#define COUNT_NEW_MATCHING_VECTORS(nb_vectors) matching_vectors_count += nb_vectors;
 #define COUNT_NEW_CHECKED_VECTOR_IN_PS checked_vectors_in_ps_count++;
 #define COUNT_NEW_CHECKED_VECTOR_IN_MTR checked_vectors_in_mtr_count++;
 

@@ -80,7 +80,8 @@ enum response pexeso(struct sid * query_set, struct vector * query_vectors, unsi
     Dgrid->stats->visited_matching_cells_count = visited_matching_cells_count;
     Dgrid->stats->visited_candidate_cells_count = visited_candidate_cells_count;
 
-    Dgrid->stats->filterd_vectors_count = filterd_vectors_count;
+    Dgrid->stats->filtered_vectors_count = filtered_vectors_count;
+    Dgrid->stats->matching_vectors_count = matching_vectors_count;
     Dgrid->stats->checked_vectors_in_ps_count = checked_vectors_in_ps_count;
     Dgrid->stats->checked_vectors_in_mtr_count = checked_vectors_in_mtr_count;
 

@@ -46,6 +46,8 @@ KASHIF RUN QUERIES:
 bin/dstree --queries /data/real/jchanchaf/wdc-2015-en-full/10m/query/10q-size100/  --total-data-files 100000 --buffer-size 6000 --index-path /home/jaouhara.chanchaf/work-dir/indexes/100k-nonorm-idx/ --ascii-input 0 --mode 1 --track-bsf   --incremental --delta 1 --epsilon 0  --timeseries-size 50 --track-vector 1 --warping 0.00 --leaf-size 100000 --top 10 --dataset /data/real/jchanchaf/wdc-2015-en-full/10m/bins/ --result-dir /home/jaouhara.chanchaf/work-dir/exp-results/kashif-search/50tk/stop-mode-0/ --ground-truth-dir /home/jaouhara.chanchaf/work-dir/exp-results/bf-search/k/100k-results/1000nn/bf_l100000_10q_min50_max100/ --k 1000  --k-values "1,3,5,10,30,50,100,300,500,1000" --nq 10 --min-qset-size 100 --max-qset-size 100  --num-threads 32  --parallel --incremental --store-results-in-disk 1 --stop-when-nn-dist-changes 0
 
 JOSIE:
-./configure --prefix=$HOME/pgsql-11.0 
-export path to use pgsql commands:
+./configure --prefix=$HOME/postgresql-11.18 
+export path.
 start database server: pg_ctl -D pg_data -l logfile start
+load sql dumps:
+psql jaouhara.chanchaf -p 5432 < /home/jaouhara.chanchaf/Téléchargements/webtable_benchmark.sql

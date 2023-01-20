@@ -50,13 +50,14 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                 for (int m = 0; m < mpair->num_match; m++) // loop through match cells
                 {
                     struct cell *match_cell = mpair->cells[m];
-                    COUNT_NEW_VISITED_CELL
-                    COUNT_NEW_MATCH_CELL
                     if(match_cell->cell_size == 0)
                     {
-                        printf("Warning in query_engine.c: empty matching cell!");
-                        continue;
+                        fprintf(stderr, "Warning in query_engine.c: empty matching cell!\n");
+                        exit(1);
                     }
+                    COUNT_NEW_VISITED_CELL
+                    COUNT_NEW_MATCH_CELL
+                    COUNT_NEW_MATCHING_VECTORS(match_cell->cell_size)
                     // get sets in matching cell, look for cell entry in inverted index
                     // int entry_idx = has_cell(index, match_cell, num_pivots);
                     // printf("\ncell, found index entry = %d, stored index entry = %d\n", entry_idx, match_cell->index_entry_pos);
@@ -163,6 +164,7 @@ enum response verify(struct grid *grid, struct pairs *pairs,
                     else if (pivot_match(query_vector, candidate_vectors[v].ps_vector,
                                         grid->settings->num_pivots, dist_threshold))
                     {
+                        COUNT_NEW_MATCHING_VECTORS(1)
                         COUNT_USED_LEMMA(2)
                         match_map->
                         has_match_for_curr_qvec[set_idx] = 1;
