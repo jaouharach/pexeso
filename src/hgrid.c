@@ -937,19 +937,19 @@ void print_grid_stats(struct grid * grid)
     printf("Count_dist_calc\t%ld\n", grid->stats->count_dist_calc);
 
 
-    printf("fft_scale,\ttau,\tT,\t%%filled_cells,\t#vec_outps,\t#filtered_vectors,\t#matching_vectors"
-            ",\t#checked_pvectors,\t#checked_mvectors,\t#visited_cells,\t#visited_mcells,\t#visited_ccells,\t#filtered_cells\n");
-    printf("%d,\t%f,\t%f,\t%.2f%%,\t%ld,\t%ld,\t%ld,\t%ld,\t%ld"
-            ",\t%d,\t%d,\t%d,\t%d\n", grid->settings->fft_scale, 
-            grid->settings->query_settings->dist_threshold/2, 
-            grid->settings->query_settings->join_threshold,
-            100.0 * (((float)grid->settings->num_leaf_cells - (float)grid->stats->empty_leaf_cells_count)/(float)grid->settings->num_leaf_cells),
-            grid->stats->out_of_ps_space_vec_count,
-            grid->stats->filtered_vectors_count, grid->stats->matching_vectors_count,
-            grid->stats->checked_vectors_in_ps_count, grid->stats->checked_vectors_in_mtr_count,
-            grid->stats->visited_cells_count, grid->stats->visited_matching_cells_count, grid->stats->visited_candidate_cells_count,
-            grid->stats->filtered_cells_count
-            );
+    // printf("fft_scale,\ttau,\tT,\t%%filled_cells,\t#vec_outps,\t#filtered_vectors,\t#matching_vectors"
+    //         ",\t#checked_pvectors,\t#checked_mvectors,\t#visited_cells,\t#visited_mcells,\t#visited_ccells,\t#filtered_cells\n");
+    // printf("%d,\t%f,\t%f,\t%.2f%%,\t%ld,\t%ld,\t%ld,\t%ld,\t%ld"
+    //         ",\t%d,\t%d,\t%d,\t%d\n", grid->settings->fft_scale, 
+    //         grid->settings->query_settings->dist_threshold/2, 
+    //         grid->settings->query_settings->join_threshold,
+    //         100.0 * (((float)grid->settings->num_leaf_cells - (float)grid->stats->empty_leaf_cells_count)/(float)grid->settings->num_leaf_cells),
+    //         grid->stats->out_of_ps_space_vec_count,
+    //         grid->stats->filtered_vectors_count, grid->stats->matching_vectors_count,
+    //         grid->stats->checked_vectors_in_ps_count, grid->stats->checked_vectors_in_mtr_count,
+    //         grid->stats->visited_cells_count, grid->stats->visited_matching_cells_count, grid->stats->visited_candidate_cells_count,
+    //         grid->stats->filtered_cells_count
+    //         );
     printf("\n\n\n"); 
 }
 

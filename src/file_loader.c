@@ -173,7 +173,7 @@ vector * load_binary_files(const char *bin_files_directory, unsigned long num_fi
     }
 
     if (read_files == 0)
-        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory.\n");
+        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory 1.\n");
 
     // free memory
     free(vector->values);
@@ -320,7 +320,7 @@ enum response index_binary_files(struct grid *grid, struct inv_index * index, co
     }
 
     if (read_files == 0)
-        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory.\n");
+        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory 2.\n");
 
     // free memory
     free(vector->values);
@@ -504,7 +504,7 @@ struct sid * index_query_binary_files(struct grid *grid, struct grid * Dgrid, st
     }
 
     if (read_files == 0)
-        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory.\n");
+        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory 2.\n");
 
     // free memory
     free(vector->values);
@@ -707,7 +707,11 @@ enum response joinable_table_search(struct grid * Dgrid, struct inv_index * inde
     }
 
     if (read_files == 0)
-        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory.\n");
+    {
+        
+        printf("%s\n", bin_files_directory);
+        exit_with_failure("Error in file_loader.c:  Could not find any binary file in binary files directory 4.\n");
+    }
 
     // check if we read more query sets than required
     if(num_query_sets != -1) // if number of query set is specified

@@ -1,77 +1,68 @@
+# pexeso results are all stored in one file
+# kashif results are stored in several files each file stores the results of one query column (for a given k values)
+
+from os import listdir
+from os.path import isfile, join
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-from pathlib import Path
-import csv
-
-# search_modes:
-# 0 : "kashif returns all nn results"
-# 1 : "kashif only returns NNs with the same distance to the query (as the first nn)"
-# 2 : "similar to mode 1 but kashif also returns extra results found in the last increment"
-
-base_path = Path(__file__).parent
-outdir = '../img_(k=1k)/'
-k = 'k=1k'
-kashif_versions = {'nonorm': f'../csv/kashif/{k}/nonorm/', 'norm': f'../csv/kashif/{k}/norm/'}
-pexeso_versions = {'0': '../csv/pexeso/tau0%-T1%/', '2': '../csv/pexeso/tau2%-T1%/', '6': '../csv/pexeso/tau6%-T1%/', '8': '../csv/pexeso/tau8%-T1%/'}
-
-curr_kashif_version = kashif_versions['nonorm']
-search_modes = ["mode0/", "mode1/", "mode2/"]
-
-rows = []
-for pv in pexeso_versions:
-    curr_pexeso_version = pexeso_versions[pv]
-    for sm in search_modes:
-        csv_files = {"kashif": (base_path / f"{curr_kashif_version}{sm}kashif_results.csv").resolve(), "pexeso": (base_path / f"{curr_pexeso_version}pexeso_results.csv").resolve()}
-
-        # plt.rcParams["figure.figsize"] = (8,7)
-        k = pd.read_csv(csv_files['kashif'])
-        p = pd.read_csv(csv_files['pexeso'])
-        k = k.drop('overlap', axis=1)
-        p = p.drop('nooverlap', axis=1)
-
-        queryids = pd.unique(k['tqq'])
-        # print(queryids)
-
-        mean_recall = 0.0
-        mean_precision = 0.0
-        nb_query_results = 0
-
-        for query in queryids:
-            print(f"query: {query}")
-            res = k.loc[k['tqq'] == query].reset_index(drop=True) # kashif results
-            gt = p.loc[p['tqq'] == query].reset_index(drop=True) # ground truth results (pexeso)
-            res['tp'] = res['tss'].map(gt['tss'].value_counts())
-            res['tp'] = res['tp'].fillna(0)
-
-            if gt.shape[0] != 0:
-                recall = res['tp'].sum() / (gt.shape[0])
-                precision = res['tp'].sum() / (res.shape[0])
-                print(f"recall = {recall}, precision = {precision}")
-                mean_recall += recall
-                mean_precision += precision
-                nb_query_results += 1
-
-        mean_recall /= nb_query_results
-        mean_precision /= nb_query_results
-        rows.append({'tau' : pv, 'search-mode' : sm, 'avg. precision': mean_precision, 'avg. recall': mean_recall})
+import csv 
 
 
-df = pd.DataFrame(rows)
-print(df)
+def format_query_id(query_id): # from [tableid]:[columnid] to t[tableid]c[columnid]
+    tableid, setid = query_id.strip().split(":") 
+    return f"t{tableid}c{setid}"
 
-flatui = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"]
-g = sns.barplot(data=df, x='tau', y='avg. recall', hue='search-mode', palette=sns.color_palette(flatui))
+# k_values = ["1", "5", "10", "50", "100", "500", "1000", "5000", "10000", "50000", "100000", "500000", "1000000"]
+k_values = ["1000000"]
 
-plt.subplots_adjust(bottom=0.15)
-plt.subplots_adjust(left=0.15)
-plt.title("Kashif avg. recall (100k tables, 4.9M vectors, k = 1.000)")
-plt.xlabel(r'$\mathrm{tau\ (\%)}$', fontsize = 11)
-plt.ylabel(r'$\mathrm{avg.\ recall}$', fontsize = 11)
-# plt.legend(loc='best')
-plt.xticks(fontsize = 11)
-plt.yticks(fontsize = 11)
-plt.ylim([0, 1])
-plt.grid()  #just add this
-plt.savefig(f"{outdir}kashif_avg_recall.png")
-plt.close()
+kashif_results_path = "./merged_files/"
+pexeso_file = "./100k_tables_10queries_size100/queryresults_tau=6%_T=60%.csv"
+
+out_file = './query_recall_k=1m.csv'
+f = open(out_file, 'w')
+writer = csv.writer(f)
+writer.writerow(["tqq","recall","precision", "k"])
+
+pexeso_df = pd.read_csv(pexeso_file)
+pexeso_df = pexeso_df.drop('nooverlap', axis=1)
+
+for k in k_values:
+    
+    kashif_file = [kf for kf in listdir(kashif_results_path) if isfile(join(kashif_results_path, kf)) and f'_k={k}.' in kf][0]
+    
+    kashif_df = pd.read_csv(f"{kashif_results_path}{kashif_file}")
+    kashif_df = kashif_df.drop([' q', ' s', ' q_pos', ' s_pos', ' time', ' k', ' d'], axis=1)
+
+    queryids = pd.unique(kashif_df['TQ:Q'])
+
+    for query in queryids:
+        print(f"processing query: ({format_query_id(query)})")
+
+        res = kashif_df.loc[kashif_df['TQ:Q'] == query].reset_index(drop=True) # kashif results
+        gt = pexeso_df.loc[pexeso_df['tqq'] == format_query_id(query)].reset_index(drop=True) # ground truth results (pexeso)
+
+        res['TQ:Q'] = res['TQ:Q'].apply(lambda qid : format_query_id(qid))
+        res[' TS:S'] = res[' TS:S'].apply(lambda qid : format_query_id(qid))
+
+        res['tp'] = res[' TS:S'].map(gt['tss'].value_counts())
+        res['tp'] = res['tp'].fillna(0)
+        
+
+        tmpr = pd.unique(res[' TS:S'])
+        tmpgt = pd.unique(gt['tss'])
+        tp = list(set(tmpr) & set(tmpgt))
+
+        # print("results")
+        # print(tmpr)
+        # print("ground truths")
+        # print(tmpgt)
+        # print("TPs")
+        # print(tp)
+
+        if gt.shape[0] != 0:
+            recall = len(tp)/ len(tmpgt)
+            precision = len(tp)/ len(tmpr)
+            writer.writerow([format_query_id(query), recall, precision, k])
+            print(f"query ({query}), k = {k}, recall = {recall}, precision = {precision}")
+
+
+    

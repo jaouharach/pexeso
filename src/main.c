@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     unsigned int num_levels = 3;  // m
     unsigned int num_pivots = 2;  // number of pivots
     unsigned int fft_scale = 13;   // constant for finding |P| * fft_scale candidate pivots, a good choice of fft_scale is approximately 30 (in paper) and 13 with experiments.
-    bool best_fft = 1; // search for the best fft scale that will maximize extremity (have less vectors ou of pivot space)
+    bool best_fft = 0; // search for the best fft scale that will maximize extremity (have less vectors ou of pivot space)
     unsigned short num_best_fft_iter = 5; // number of iteration to search for best fft
     unsigned int max_fft = 30; // max fft scale (search for the best fft scale that produces the farthest extrimity)
     /* query settings (todo: change threshold to %) */
@@ -284,19 +284,18 @@ int main(int argc, char **argv)
         }
     }
 
-    /* start count time  to select pivots and make the grid structure */
+    /* start counting time  to select pivots and make the grid structure */
     RESET_PARTIAL_COUNTERS()
     COUNT_PARTIAL_TIME_START
 
-    /* read all vectors in the data set */
-    printf("Reading dataset info...");
+    printf("Reading dataset info..."); // count all vectors in the data set (if not set by the user)
     if(total_dl_files == 0)
         get_full_datalake_info(bin_files_directory, &total_dl_files, &total_vectors, &mtr_vector_length);
     else
         get_datalake_info(bin_files_directory, total_dl_files, &total_vectors, &mtr_vector_length);
     printf("(OK)\n");
 
-    printf("\tNumber of tables = %lu\n\tNumber of vectors = %llu\n\tVector length in mtric spaces = %u\n\n", total_dl_files, total_vectors, mtr_vector_length);
+    // printf("\tNumber of tables = %lu\n\tNumber of vectors = %llu\n\tVector length in mtric spaces = %u\n\n", total_dl_files, total_vectors, mtr_vector_length);
 
     // create grid index and store it in disk
     if(mode == 0)
@@ -339,9 +338,9 @@ int main(int argc, char **argv)
 
 
         /* map pivot vectors to pivot space pi --> pi' */
-        printf("\n\nTransforming pivots to pivot space... ");
+        // printf("\n\nTransforming pivots to pivot space... ");
         vector * pivots_ps = map_to_pivot_space(pivots_mtr, pivots_mtr_dim, pivots_mtr, num_pivots);
-        printf("(OK)\n");
+        // printf("(OK)\n");
         
 
         /* pivot space extremity */
@@ -461,7 +460,7 @@ int main(int argc, char **argv)
         /* print grid statistics */
         print_grid_stats(grid);
 
-        printf("End of progam: combined indexing and querying time : %.2f secs \n", total_time / 1000000);
+        printf("End of progam: total time : %.2f secs \n", total_time / 1000000);
         
 
         /* destroy grid */
@@ -498,7 +497,7 @@ int main(int argc, char **argv)
         COUNT_TOTAL_TIME_END
         grid->stats->total_time = total_time;
 
-        printf("End of progam: combined indexing and querying time : %.2f secs \n", total_time / 1000000);
+        printf("End of progam: total time : %.2f secs \n", total_time / 1000000);
         
 
         /* destroy grid */
